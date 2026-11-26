@@ -29,7 +29,7 @@ socket.on('state', (s) => {
 
 function hud(s) {
   const banner = $('#banner'), timer = $('#timer'), reveal = $('#reveal'), lb = $('#lb');
-  $('#join').hidden = s.phase !== PHASE.LOBBY || s.rank;
+  $('#join').hidden = s.phase !== PHASE.LOBBY || s.rank || !s.qr;
 
   if (s.q && s.phase !== PHASE.LOBBY) {
     banner.hidden = false;

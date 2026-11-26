@@ -105,6 +105,7 @@ io.on('connection', (socket) => {
   host('host:undo', () => ({ ok: game.undoScore() }));
   host('host:pause', (d) => ({ ok: game.pauseTimer(d?.on) }));
   host('host:addTime', (d) => ({ ok: game.addTime(d?.sec) }));
+  host('host:qr', (d) => ({ ok: game.setQr(d?.on) }));
   host('host:freeze', (d) => ({ ok: game.setFrozen(d?.on) }));
   host('host:x2', (d) => ({ ok: game.setMultiplier(d?.on ? 2 : 1) }));
   host('host:announce', (d) => ({ ok: game.announce(d?.text, d?.sec) }));

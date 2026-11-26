@@ -82,6 +82,7 @@ $('#t-p10').addEventListener('click', () => emit('host:addTime', { sec: 10 }));
 $('#t-undo').addEventListener('click', () => emit('host:undo'));
 $('#t-x2').addEventListener('click', () => emit('host:x2', { on: st?.x2 !== 2 }));
 $('#t-freeze').addEventListener('click', () => emit('host:freeze', { on: !st?.fz }));
+$('#t-qr').addEventListener('click', () => emit('host:qr', { on: !st?.qr }));
 $('#c-rain').addEventListener('click', () => emit('host:coinRain', { n: 24 }));
 $('#q-cancel').addEventListener('click', () => { if (confirm('출제를 취소하고 대기실로 돌아갈까요? (점수 변화 없음)')) emit('host:cancel'); });
 const step = (d) => { const ids = info.questions.map((q) => q.id); const i = ids.indexOf(askId ?? curId); askId = ids[Math.min(ids.length - 1, Math.max(0, (i < 0 ? 0 : i) + d))]; renderCurrent(); renderQuestions(); };
@@ -103,6 +104,7 @@ socket.on('state', (s) => {
   $('#s-players').textContent = `${humans.length}명 접속`; $('#s-phase').textContent = phaseName[s.phase] || '-'; $('#s-left').textContent = s.left > 0 ? `⏱ ${Math.ceil(s.left)}초` : '-';
   $('#rank').classList.toggle('on', rankOn); $('#rank').textContent = rankOn ? '🏆 등수 숨기기' : '🏆 등수 공개';
   $('#t-pause').classList.toggle('on', !!s.tp); $('#t-pause').textContent = s.tp ? '▶ 재개' : '⏸ 일시정지';
+  $('#t-qr').textContent = s.qr ? 'QR 닫기' : 'QR 열기'; $('#t-qr').classList.toggle('on', !s.qr);
   $('#t-x2').classList.toggle('on', s.x2 === 2); $('#t-freeze').textContent = s.fz ? '▶ 정지 해제' : '■ 비상 정지'; $('#t-undo').disabled = !s.ud;
   document.querySelectorAll('[data-screen]').forEach((b) => b.classList.toggle('on', b.dataset.screen === s.sm));
   $('#tools-state').textContent = [s.tp ? '타이머 정지됨' : '', s.x2 === 2 ? '점수 ×2' : '', s.fz ? '비상 정지 중' : ''].filter(Boolean).join(' · ');

@@ -1233,6 +1233,10 @@ test('아군 봇: 왼쪽에 서 있고 사람과 같은 편이라 공격·궁극
   g.gather(); assert.ok(al.every((p) => Math.hypot(p.x - p.home.x, p.y - p.home.y) < 1.5), '모이기에 안 끌려감');
 });
 
+test('대기실 QR: 진행자가 닫고 열 수 있다', () => {
+  const g = new Game(chars, quizzes); assert.equal(g.snapshot().qr, 1); g.setQr(false); assert.equal(g.snapshot().qr, 0); g.setQr(true); assert.equal(g.snapshot().qr, 1);
+});
+
 test('난타(격투가): 5초간 앞으로 걸어가며 전방 직선을 연타하고 끝나면 멈춘다', () => {
   const { g, A, B } = duo('brawler', 'blue');
   A.x = 10; A.y = 10; B.x = 12; B.y = 10; A.ult = A.cfg.ult.need;
