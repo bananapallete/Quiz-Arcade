@@ -12,6 +12,7 @@ const $ = (s) => document.querySelector(s);
 addBtnIcons();
 const qtop = mountQuizTop();
 const socket = io();
+import { mountFade } from './fade.js'; mountFade(socket);
 const LS = 'quiz_player';
 const load = () => { try { return JSON.parse(localStorage.getItem(LS) || 'null'); } catch { return null; } };
 const save = (v) => { try { localStorage.setItem(LS, JSON.stringify(v)); } catch { /* 저장 불가 환경 */ } };

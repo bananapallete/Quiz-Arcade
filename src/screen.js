@@ -7,6 +7,7 @@ import { mountScreenUi, renderScreenUi } from './screenUi.js';
 const $ = (s) => document.querySelector(s);
 const { scene } = startWorld('game');
 const socket = io();
+import { mountFade } from './fade.js'; mountFade(socket);
 const sq = mountScreenUi();
 
 socket.on('connect', () => { socket.emit('screen:join'); $('#conn').textContent = ''; });
