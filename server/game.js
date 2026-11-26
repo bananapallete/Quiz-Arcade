@@ -608,8 +608,8 @@ export class Game {
       const x = Math.min(MAP.w - 0.5, Math.max(0.5, p.x + Math.cos(ang) * dist));
       const y = Math.min(MAP.h - 0.5, Math.max(0.5, p.y + Math.sin(ang) * dist));
       const flight = COIN.flightSec * rand(0.85, 1.15);
-      // 떨어진 동전은 누구도(떨어뜨린 본인 포함) 일정 시간 못 줍는다
-      const c = { id: ++this.coinSeq, x, y, readyAt: this.t + COIN.dropLockSec, lockUntil: this.t + COIN.dropLockSec };
+      // 떨어진 동전은 땅에 닿는 순간부터 줍을 수 있다 (줍기 금지 시간 없음)
+      const c = { id: ++this.coinSeq, x, y, readyAt: this.t + flight + COIN.dropLockSec, lockUntil: this.t + COIN.dropLockSec };
       this.coins.set(c.id, c);
       this.events.push({ e: 'coinDrop', id: c.id, fx: r2(p.x), fy: r2(p.y), x: r2(x), y: r2(y), flight: r2(flight), lock: COIN.dropLockSec });
     }
