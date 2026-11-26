@@ -4,7 +4,7 @@
 
 ## A. 지금 바로 (내 노트북이 서버, 가장 빠름)
 ```bash
-npm install && npm run build
+cd quiz-game && npm install && npm run build
 HOST_KEY=비밀키 npm start            # http://localhost:3000
 # 다른 터미널에서 (cloudflared 설치 필요: brew install cloudflared)
 cloudflared tunnel --url http://localhost:3000
@@ -16,7 +16,7 @@ cloudflared tunnel --url http://localhost:3000
 
 ## B. 항상 켜 두기 (Render 같은 Node 호스팅)
 0. (가장 쉬운 방법) 저장소 루트의 `render.yaml`을 쓴다: Render에서 New → Blueprint로 이 저장소를 열면 아래 설정이 자동으로 채워진다. `HOST_KEY`만 직접 입력.
-1. 수동이면 GitHub 저장소를 연결해 Web Service를 만든다 (루트 디렉터리는 비워 둠).
+1. 수동이면 GitHub 저장소를 연결해 Web Service를 만든다 (루트 디렉터리 `quiz-game`).
 2. Build: `npm ci && npm run build` · Start: `npm start`
 3. 환경변수: `HOST_KEY`(필수, 진행자 키), `PUBLIC_URL`(발급된 주소)
 4. 웹소켓을 쓰므로 무료 플랜의 "잠들기"로 첫 접속이 느릴 수 있다. 파티 직전에 한 번 열어 둔다.
@@ -27,4 +27,4 @@ cloudflared tunnel --url http://localhost:3000
 node tools/quiz_csv.mjs 내문제.csv server/quizzes.json
 QUIZ_FILE=server/quizzes.json HOST_KEY=비밀키 npm start
 ```
-(`현실` 유형은 관리자 화면이 생기기 전까지 제외된다)
+(`현실` 유형 문제는 진행자 화면에서 점수를 입력 → 확인 → 공개하기로 진행한다)
