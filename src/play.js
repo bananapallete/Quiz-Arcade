@@ -83,6 +83,7 @@ let lastState = null;
 socket.on('state', (s) => {
   if (!ME) return;
   lastState = s;
+  $('#charbtn').hidden = s.phase !== PHASE.LOBBY; // 캐릭터 변경은 대기실에서만
   scene.applyState(s);
   { const e = s.ev?.find((e) => e.e === 'ult' && e.id === ME); if (e) { ultAt = performance.now(); ultDir = PROJ_ULT.includes(e.t) ? { dx: e.dx, dy: e.dy } : null; } }
   hud(s);
@@ -253,7 +254,7 @@ async function ensurePicker() {
   picker = mountPicker($('#pickroot'), chars, { spriteUrl: (sprite, m) => `/characters/${sprite}/${m}.png`, ultUrl: (id) => `/ult/${id}.mp4`, selected: me?.charId });
 }
 async function openPicker(mode) {
-  pickMode = mode; await ensurePicker();
+  pickMode = mode; await ensurePicker(); $('#pickname').value = me?.name || savedName();
   if (me) picker.setValue(me.charId);
   $('#pickgo').textContent = mode === 'join' ? '시작' : '선택'; $('#pick').hidden = false;
 }
@@ -267,9 +268,11 @@ $('#nickgo').addEventListener('click', nickDone);
 nickIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') nickDone(); });
 $('#charbtn').addEventListener('click', () => openPicker('change'));
 $('#pickgo').addEventListener('click', () => {
-  const id = picker.value();
+  const id = picker.value(), nm = $('#pickname').value.trim();
+  if (!nm) { $('#pickname').focus(); return; }
+  if (nm !== savedName()) { try { localStorage.setItem(NAME_KEY, nm); } catch { /* 저장 불가 */ } if (me) socket.emit('rename', nm, () => { me.name = nm; $('#mename').textContent = nm; save(me); }); }
   if (pickMode === 'join') join({ name: savedName(), charId: id });
-  else socket.emit('char', id, (r) => { if (r?.ok) { me.charId = id; me.skill = chars[id].skill || 'run'; me.ult = null; join({ token: me.token, name: me.name, charId: id }); } });
+  else socket.emit('char', id, (r) => { if (!r?.ok) { $('#conn').hidden = false; $('#conn').textContent = '대기실에서만 바꿀 수 있어요'; setTimeout(() => { $('#conn').hidden = true; }, 1800); return; } if (r?.ok) { me.charId = id; me.skill = chars[id].skill || 'run'; me.ult = null; join({ token: me.token, name: me.name, charId: id }); } });
   $('#pick').hidden = true;
 });
 

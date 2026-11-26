@@ -22,6 +22,7 @@ const CSS = `
 #qnt{position:fixed;left:50%;top:22%;transform:translateX(-50%);z-index:30;max-width:84vw;background:#14122bf0;color:#fff;border:3px solid #ffd54a;border-radius:14px;padding:12px 16px;font-weight:900;font-size:calc(2vw + 12px);text-align:center;word-break:keep-all;pointer-events:none}#qnt[hidden]{display:none}
 #qx2{position:fixed;left:max(10px,env(safe-area-inset-left,0px));bottom:48px;z-index:30;background:#e5483c;color:#fff;border:3px solid #14122b;border-radius:10px;padding:2px 9px;font-weight:900;font-size:14px;pointer-events:none}#qx2[hidden]{display:none}
 #qfz{position:fixed;inset:0;z-index:60;background:#14122baa;color:#fff;display:grid;place-items:center;font-weight:900;font-size:26px;pointer-events:none}#qfz[hidden]{display:none}
+@media (orientation:portrait){#qtop .row{grid-template-columns:minmax(0,.3fr) minmax(0,1fr) auto;gap:2vw}#qtop .tm .ring{width:15vw;height:15vw}#qtop .tm b{font-size:6.4vw}#qtop .q{padding:1.2vh 2.4vw;gap:2vw;border-radius:12px}#qtop .no{font-size:calc(3vw + 4px)}#qtop .q p{font-size:calc(3vw + 3px);-webkit-line-clamp:3}#qtop .th{width:22vw;height:16vw}#qtop #toprank div{font-size:calc(2.4vw + 3px)}}
 #qbig{position:fixed;inset:0;z-index:70;background:#14122bcc;display:grid;place-items:center}#qbig[hidden]{display:none}
 #qbig img{max-width:80vw;max-height:80vh;border:4px solid #14122b;border-radius:16px;background:#fff}
 `;

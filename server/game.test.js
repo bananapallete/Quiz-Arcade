@@ -1,5 +1,6 @@
 // 실행: npm test   (Node 내장 테스트 러너 사용)
-import test from 'node:test';
+import baseTest from 'node:test';
+const test = (name, fn) => baseTest(name, (...a) => { seed = 12345; return fn(...a); }); // 테스트마다 같은 난수열로 시작
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Game, SANDBAG_ATTACK } from './game.js';
@@ -8,6 +9,10 @@ const HUMAN_MUL = ULT_CHARGE.humanMul; ULT_CHARGE.humanMul = 1; // 규칙 테스
 
 CRIT.chance = 0; // 테스트는 정확한 피해 숫자를 확인하므로 크리티컬은 꺼둔다 (크리티컬 테스트에서만 켬)
 
+// 난수를 고정해 같은 결과가 나오게 한다 (봇·동전 같은 무작위 테스트가 가끔 실패하던 문제)
+let seed = 12345;
+const seedRandom = () => { Math.random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }; };
+seedRandom();
 const chars = JSON.parse(readFileSync(new URL('./characters.json', import.meta.url), 'utf8'));
 const quizzes = JSON.parse(readFileSync(new URL('./quizzes.test.json', import.meta.url), 'utf8'));
 const DT = 1 / 30;
@@ -1228,6 +1233,13 @@ test('아군 봇: 왼쪽에 서 있고 사람과 같은 편이라 공격·궁극
 
 test('대기실 QR: 진행자가 닫고 열 수 있다', () => {
   const g = new Game(chars, quizzes); assert.equal(g.snapshot().qr, 1); g.setQr(false); assert.equal(g.snapshot().qr, 0); g.setQr(true); assert.equal(g.snapshot().qr, 1);
+});
+
+test('캐릭터 변경은 대기실에서만: 문제가 시작되면 거부된다', () => {
+  const g = new Game(chars, quizzes), a = g.join({ token: 'a', name: 'A', charId: 'blue' });
+  assert.equal(g.setChar('a', 'orc'), true); assert.equal(a.charId, 'orc');
+  g.ask(1); assert.equal(g.setChar('a', 'elf'), false); assert.equal(a.charId, 'orc', '출제 중엔 그대로');
+  g.cancelQuestion(); assert.equal(g.setChar('a', 'elf'), true);
 });
 
 test('난타(격투가): 5초간 앞으로 걸어가며 전방 직선을 연타하고 끝나면 멈춘다', () => {
