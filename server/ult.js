@@ -172,7 +172,7 @@ const RUN = {
       if (p.buff !== b || p.stunned) return; // 그 전에 쓰러졌으면 터지지 않음
       g.events.push({ e: 'burst', id: p.id, x: r2(p.x), y: r2(p.y), r: u.radius, fx: u.fx });
       hitArea(g, p, p.x, p.y, u.radius, u.dmg, u.knock ?? 0, u.fx);
-      p.buff = null; p.shield = null; p.egg = true; p.hp = 0; p.stunned = true; p.stunUntil = g.t + p.cfg.stunSec; p.kx = p.ky = 0; // _ko와 달리 동전을 떨구지 않음
+      p.buff = null; p.shield = null; p.egg = true; p.hp = p.eggMax = u.eggHp ?? 20; p.stunned = true; p.stunUntil = g.t + p.cfg.stunSec; p.kx = p.ky = 0; // _ko와 달리 동전을 떨구지 않음. 알도 체력이 있어서 깨지면 병아리도 죽음
       g.events.push({ e: 'stun', id: p.id });
     });
   },

@@ -1024,7 +1024,7 @@ test('피닉스(병아리): 3초간 받는 피해 60% 감소, 뒤에 자폭해 �
   const hp = B.hp; run(g, 2.8); assert.equal(B.hp, hp, '3초 전엔 터지지 않음');
   run(g, 0.5);
   assert.ok(A.cfg.ult.dmg >= 200 && B.hp === 0 && B.stunned, '즉사급 폭발: 체력 90 이하는 한 방');
-  assert.ok(A.stunned && A.hp === 0, '자폭');
+  assert.ok(A.stunned && A.egg && A.hp === A.cfg.ult.eggHp, '자폭: 알이 되고 알의 체력이 생김');
   assert.equal(g.snapshot().players.find((p) => p.id === 'a').s, 'egg', '알로 변신');
   assert.equal(A.coins, 7, '동전은 잃지 않음');
   run(g, 4.9);
@@ -1183,6 +1183,15 @@ test('간호사: 평타 자동 조준은 가까운 다친 아군도 향한다 (�
   A.team = 1; B.team = 1; C.team = 2; A.x = 10; A.y = 10; B.x = 10; B.y = 13; C.x = 14; C.y = 10;
   assert.equal(g._aimDir(A, null, 5).near, C, '멀쩡한 아군은 대상 아님'); B.hp = 10;
   assert.equal(g._aimDir(A, null, 5).near, B, '다친 아군이 더 가까우면 조준');
+});
+
+test('병아리 알: 체력이 있어서 맞으면 줄고, 깨지면(0) 병아리도 죽어 동전이 떨어지며 부활 시간이 처음부터', () => {
+  const { g, A, B } = duo('chick', 'blue'); A.x = 10; A.y = 10; B.x = 11; B.y = 10; A.coins = 6; A.ult = A.cfg.ult.need; B.invUntil = 0; g.ult('a', null); run(g, 3.3);
+  assert.ok(A.egg && A.stunned && A.hp === 20, '알이 됨'); assert.equal(A.coins, 6, '알이 된 순간엔 동전 유지'); assert.equal(g.snapshot().players.find((p) => p.id === 'a').mhp, 20, '알 체력바 최대치');
+  g._applyHit(A, B, 8, 0, 1, 0); assert.equal(A.hp, 12, '알이 피해를 입음'); assert.equal(A.egg, true);
+  run(g, 2); g._applyHit(A, B, 20, 0, 1, 0);
+  assert.equal(A.egg, false, '알이 깨짐'); assert.equal(A.hp, 0); assert.ok(A.stunned, '병아리 사망'); assert.equal(A.coins, 0, '동전이 떨어짐'); assert.ok(A.stunUntil - g.t > 4.9, `부활 시간은 처음부터 ${A.stunUntil - g.t}`);
+  run(g, 5.2); assert.ok(!A.stunned && A.hp === A.cfg.hp, '5초 뒤 부활');
 });
 
 test('방패 성벽(기사): 천천히 전진하며 적을 밀어내고, 막다른 곳이면 멈추고, 끝나면 폭파한다', () => {

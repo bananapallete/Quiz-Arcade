@@ -186,6 +186,7 @@ export function sfxEvent(e, c) {
     if (!e.u || e.fx === 'note' || !gate('h' + (c.mine ? 'm' : 'o'), 40)) return; // 디바 무대의 음표 틱은 곡이 있으니 제외
     const fx = String(e.fx || ''), big = e.dmg >= 12, k = big || /smash/.test(fx) ? 'hitSmash' : /arrow|rain|boomerang/.test(fx) ? 'hitArrow' : /fire|flame|burn|crescent|bottle/.test(fx) ? 'hitFire' : /spark|chain|zap|beam/.test(fx) ? 'hitZap' : /peck/.test(fx) ? 'hitTick' : 'hitThump'; // 기본(펀치·회전·할퀴기)은 퍽 하는 소리
     BASIC[k](v * (c.mine ? 0.85 : 0.6), p * (0.95 + Math.random() * 0.1));
+  } else if (e.e === 'eggBreak') { if (gate('egg', 100)) { BASIC.pop(v, 0.8); BASIC.hitSmash(v * 0.6, 1.2); }
   } else if (e.e === 'regen') { if (c.mine && gate('regen', 400)) BASIC.heal(0.45); } // 자동 회복: 내 것만 작게
   else if (e.e === 'boom' && gate('b', BOOM_GAP)) BASIC.boom(v * 0.8, 1);
   else if (e.e === 'coinGet' && gate('coin' + (c.mine ? 'm' : 'o'), 55)) BASIC.coin(v * (c.mine ? 1 : 0.6), 1 + Math.random() * 0.12); // 동전 줍는 소리 (음높이를 살짝 흔들어 단조롭지 않게)

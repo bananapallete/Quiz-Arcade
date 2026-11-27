@@ -710,6 +710,7 @@ export class Game {
   }
 
   _ko(target) {
+    if (target.egg) { target.egg = false; this.events.push({ e: 'eggBreak', id: target.id, x: r2(target.x), y: r2(target.y) }); } // 알이 깨지면 병아리도 죽음 (아래의 보통 사망 처리: 동전이 떨어지고 부활 시간은 처음부터)
     target.hp = 0;
     target.stunned = true;
     target.stunUntil = this.t + target.cfg.stunSec;
@@ -847,7 +848,7 @@ export class Game {
     }
     const bf = attacker.cfg ? buffOf(this, attacker) : null; // 궁극기 강화
     const assassin = bf?.assassin || 0; // 은신 첫 일격
-    let dmg = target.stunned ? 0 : Math.round(rawDmg * (bf?.dmg ?? 1) * (assassin || 1));
+    let dmg = target.stunned && !target.egg ? 0 : Math.round(rawDmg * (bf?.dmg ?? 1) * (assassin || 1));
     if (assassin && dmg > 0) { bf.assassin = 0; bf.stealth = false; }
     const crit = dmg > 0 && (assassin || bf?.crit || Math.random() < CRIT.chance + (attacker.cfg?.attack?.critBonus ?? 0));
     if (crit) dmg = Math.round(dmg * CRIT.mul);
@@ -1188,7 +1189,7 @@ export class Game {
       players.push({
         id: p.id, n: p.name, c: p.charId, s: p.stunned && p.egg ? 'egg' : buffOf(this, p)?.morph || p.cfg.sprite, b: p.isBot ? 1 : 0,
         x: r2(p.x), y: r2(p.y), f: p.face,
-        hp: p.hp, mhp: p.cfg.hp,
+        hp: p.hp, mhp: p.stunned && p.egg ? p.eggMax || p.cfg.hp : p.cfg.hp,
         st: p.stunned ? 1 : 0, inv: this.t < p.invUntil ? 1 : 0,
         a: p.moving ? (p.running ? 'run' : 'walk') : 'idle',
         ...(p.cfg.skill?.type === 'dash'
