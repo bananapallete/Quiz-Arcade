@@ -1344,6 +1344,13 @@ test('봇 이름은 서로 겹치지 않는 임의의 사람 이름', () => {
   assert.equal(new Set(names).size, 30); assert.ok(names.every((n) => !/^봇\d/.test(n)));
 });
 
+test('시간이 끝나면(HOLD) 정답 공개 전까지 제자리에 고정, 공개 뒤에는 다시 움직인다', () => {
+  const g = new Game(chars, quizzes), a = g.join({ token: 'a', name: 'A', charId: 'blue' }); a.x = 14; a.y = 11; g.ask(1); run(g, 3.2); assert.equal(g.phase, PHASE.MOVING);
+  run(g, 14.9); assert.equal(g.phase, PHASE.HOLD); const x0 = a.x, y0 = a.y; g.setInput('a', { mx: 1, my: 0, run: true }); a.kx = 5;
+  run(g, 1); assert.equal(a.x, x0); assert.equal(a.y, y0, '입력·밀림 모두 무시'); g.attack('a', { x: 1, y: 0 }); assert.equal(g.ult('a', null), false);
+  g.endQuestion(); assert.equal(g.phase, PHASE.REVEAL); run(g, 0.5); assert.ok(a.x > x0 + 1, `공개 뒤엔 움직임 x=${a.x}`);
+});
+
 test('난타(격투가): 5초간 앞으로 걸어가며 전방 직선을 연타하고 끝나면 멈춘다', () => {
   const { g, A, B } = duo('brawler', 'blue');
   A.x = 10; A.y = 10; B.x = 12; B.y = 10; A.ult = A.cfg.ult.need;

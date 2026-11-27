@@ -521,7 +521,7 @@ export class Game {
   }
 
   _tryAttack(p, aim) {
-    if (this.noAtk || p.ghost) return; // 진행자가 공격을 막음 · 유령은 공격 못 함
+    if (this.noAtk || p.ghost || this.phase === PHASE.HOLD) return; // 진행자가 공격을 막음 · 유령은 공격 못 함 · 시간 종료 후엔 공격 없음
     const a = p.cfg.attack;
     if (this.t < p.nextAttackAt || this.t < (p.silenceUntil || 0) || p.stunned || this.t < p.rootUntil || this.t < p.charmUntil || p.channel || this._dashing(p) || p.ammoF < 1) return; // 탄창이 비면 못 쏨
     if (p.running && !a.canAttackWhileRunning) return;
@@ -846,7 +846,7 @@ export class Game {
   // ---------- 궁극기 ----------
   ult(id, aim) {
     const p = this.players.get(id);
-    if (this.noUlt || !p || p.ghost || p.stunned || this.t < p.rootUntil || this.t < p.charmUntil || this.t < (p.silenceUntil || 0) || p.channel || this._dashing(p) || !ultReady(p)) return false;
+    if (this.noUlt || this.phase === PHASE.HOLD || !p || p.ghost || p.stunned || this.t < p.rootUntil || this.t < p.charmUntil || this.t < (p.silenceUntil || 0) || p.channel || this._dashing(p) || !ultReady(p)) return false;
     useUlt(this, p, aim);
     return true;
   }
@@ -859,7 +859,7 @@ export class Game {
   skill(id) {
     const p = this.players.get(id);
     const sk = p?.cfg.skill;
-    if (!p || p.ghost || p.stunned || this.t < p.rootUntil || this.t < p.charmUntil || p.channel || sk?.type !== 'dash' || this.t < p.skillReadyAt || this._dashing(p)) return;
+    if (!p || p.ghost || this.phase === PHASE.HOLD || p.stunned || this.t < p.rootUntil || this.t < p.charmUntil || p.channel || sk?.type !== 'dash' || this.t < p.skillReadyAt || this._dashing(p)) return;
     const len = Math.hypot(p.input.mx, p.input.my);
     const dx = len > 0.1 ? p.input.mx / len : p.face, dy = len > 0.1 ? p.input.my / len : 0;
     p.dash = { dx, dy, speed: sk.distance / sk.duration, until: this.t + sk.duration, pass: !!sk.pass, hitDmg: sk.hitDmg || 0, hitKnock: sk.hitKnock || 0 };
@@ -883,7 +883,7 @@ export class Game {
       if (p.isBot) this._botThink(p);
       this._step(p, dt);
     }
-    this._collide(active.filter((p) => !p.out && !p.ghost)); // 탈락자·유령은 몸이 부딪히지 않음
+    if (this.phase !== PHASE.HOLD) this._collide(active.filter((p) => !p.out && !p.ghost)); // 탈락자·유령은 몸이 부딪히지 않음 · 시간 종료 후엔 서로 밀지도 않음
     for (const p of active) if (p.cfg.ult && !p.stunned) charge(p, p.cfg.ult.need * (p.cfg.ult.chargeSec ? 1 / p.cfg.ult.chargeSec : ULT_CHARGE.auto) * dt); // 가만히 있어도 초당 3% (chargeSec가 있으면 그 시간에 가득)
     const living = active.filter((p) => !p.ghost); // 유령은 동전·아이템도 못 주움
     this._updateCoins(dt, living);
@@ -975,6 +975,7 @@ export class Game {
         }
       }
     }
+    if (this.phase === PHASE.HOLD) { vx = vy = 0; p.kx = p.ky = 0; p.dash = null; } // 시간이 끝나면 정답 공개 전까지 그 자리에 고정 (밀려도 안 움직임)
     p.x += (vx + p.kx) * dt;
     p.y += (vy + p.ky) * dt;
     const decay = Math.exp(-KNOCK_DECAY * dt);
