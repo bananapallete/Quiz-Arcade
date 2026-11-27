@@ -316,8 +316,8 @@ export class WorldScene extends Phaser.Scene {
     const bar = this.add.graphics();
     const shoe = this.add.image(0, 0, 'item-shoe').setScale(1.5).setVisible(false);
     const status = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: '18px', color: '#c0392b', fontStyle: 'bold', stroke: '#ffffff', strokeThickness: 4 }).setOrigin(0.5, 1);
-    const coinIcon = this.add.image(0, 0, 'coin-f0').setScale(1.5).setVisible(false);
-    const coinTxt = this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '17px', fontStyle: 'bold', color: '#ffe27a', stroke: '#14122b', strokeThickness: 4 }).setOrigin(0, 0.5).setVisible(false);
+    const coinIcon = this.add.image(0, 0, 'coin-f0').setScale(2.4).setVisible(false);
+    const coinTxt = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: '24px', fontStyle: '900', color: '#ffe27a', stroke: '#14122b', strokeThickness: 5 }).setOrigin(0, 0.5).setVisible(false);
     const v = { sprite, name, bar, shoe, status, coinIcon, coinTxt, root: [sprite, name, bar, shoe, status, coinIcon, coinTxt], flashUntil: 0, punchUntil: 0, flashing: false, pending: 0, bump: 0, shown: 0, tint, hopUntil: 0, p };
     this.views.set(p.id, v);
     return v;
@@ -585,8 +585,9 @@ export class WorldScene extends Phaser.Scene {
       v.status.setText('').setPosition(bx, by - 32).setDepth(v.y + 1); // 상태이상 글자는 쓰지 않음
       const shown = Math.max(0, (p.cn || 0) - (v.pending || 0)); // 습득 연출이 끝나야 '기록'됨
       const bk = Math.max(0, 1 - (now - v.bump) / 250);
-      v.coinIcon.setVisible(shown > 0).setPosition(bx0 + bw + (p.sp > 0 ? 40 : 18), by + 7).setDepth(v.y + 1).setScale(1.5 * (1 + 0.45 * bk));
-      v.coinTxt.setVisible(shown > 0).setText(`×${shown}`).setPosition(bx0 + bw + (p.sp > 0 ? 52 : 30), by + 7).setDepth(v.y + 1);
+      { const nx = bx + v.name.displayWidth / 2 + 16, ny = by - 8 - v.name.displayHeight / 2; // 동전: 이름 바로 오른쪽에 동전 + 숫자
+        v.coinIcon.setVisible(shown > 0).setPosition(nx, ny).setDepth(v.y + 1).setScale(2.4 * (1 + 0.45 * bk));
+        v.coinTxt.setVisible(shown > 0).setText(String(shown)).setPosition(nx + 14, ny).setDepth(v.y + 1); }
       { const hid = !!p.sl && !!this.focusId && !me && !(p.tm && p.tm === this.views.get(this.focusId)?.p?.tm); v.bar.setVisible(!hid); v.name.setVisible(!hid); v.shoe.setVisible(!hid && p.sp > 0); if (hid) { v.coinIcon.setVisible(false); v.coinTxt.setVisible(false); } } // 은신·부쉬에 숨은 적은 이름·체력바도 숨김
     }
     this.coins.update(now);
