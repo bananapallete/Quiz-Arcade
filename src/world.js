@@ -442,7 +442,8 @@ export class WorldScene extends Phaser.Scene {
       phoenixTick(this, v, p, BU, pixText);
       if (p.id === this.focusId) this._redTint = p.pr && !p.st ? p.pu : 0; // 내가 피닉스면 화면이 점점 붉어짐
       const me = p.id === this.focusId, sz = me ? 1 : 0.72;
-      const bw = 1.9 * BU * sz * (me ? 0.8 : 1), bh = Math.round(14 * sz * (me ? 0.7 : 1)), bd = 2; // 내 바: 가로 20%·세로 30% 줄임
+      const half = this.screen ? 0.5 : 1; // 빔프로젝터 화면은 체력바를 절반 크기로
+      const bw = 1.9 * BU * sz * (me ? 0.8 : 1) * half, bh = Math.max(4, Math.round(14 * sz * (me ? 0.7 : 1) * half)), bd = 2; // 내 바: 가로 20%·세로 30% 줄임
       // 머리 위 UI는 캐릭터의 실제 머리 꼭대기 위에 쌓는다 (내 게이지가 아래로 늘어나도 캐릭터를 가리지 않게 전체를 위로 올림)
       const headPx = (SPRITE.anchor[1] - (BOUNDS[p.s] ?? 20)) * SPR_SCALE * (v.zsCur ?? (p.zs || 1));
       const GH = 3.5, GG = 5, gauges = me ? (p.mam ? 1 : 0) + (p.mrg ? 1 : 0) : 0, below = gauges ? GG + gauges * GH + (gauges - 1) * GG + 2 : 0;
@@ -478,7 +479,7 @@ export class WorldScene extends Phaser.Scene {
       if (v.nameStr !== nm) { v.nameStr = nm; v.name.setText(nm); }
       if (lead && this.sys.game.renderer.type === Phaser.WEBGL && !v.lglow) { v.sprite.preFX.setPadding(24); v.lglow = v.sprite.preFX.addGlow(0xffd54a, 4, 0, false, 0.1, 12); } // 1등: 항상 노란 테두리로 빛남
       else if (!lead && v.lglow) { v.sprite.preFX.remove(v.lglow); v.lglow = null; }
-      v.name.setPosition(bx, by - 8).setDepth(v.y + 1).setAlpha(p.gh ? 0.3 : me || p.id === this.lockId ? 1 : 0.35); // 다른 사람 이름은 흐리게, 내가 조준한 상대만 또렷하게
+      v.name.setPosition(bx, by - 8).setDepth(v.y + 1).setAlpha(p.gh ? 0.3 : this.screen || me || p.id === this.lockId ? 1 : 0.35); // 다른 사람 이름은 흐리게, 내가 조준한 상대만 또렷하게
       v.status.setText('').setPosition(bx, by - 32).setDepth(v.y + 1); // 상태이상 글자는 쓰지 않음
       const shown = Math.max(0, (p.cn || 0) - (v.pending || 0)); // 습득 연출이 끝나야 '기록'됨
       const bk = Math.max(0, 1 - (now - v.bump) / 250);
@@ -501,6 +502,7 @@ const PIXEL_BUDGET = 2.2e6, MIN_DPR = 1;
 const pickDpr = (parent, cap = 3) => Math.max(MIN_DPR, Math.min(cap, window.devicePixelRatio || 1, Math.sqrt(PIXEL_BUDGET / Math.max(1, parent.clientWidth * parent.clientHeight))));
 export function startWorld(parentId, opts = {}) {
   const scene = new WorldScene();
+  scene.screen = !!opts.screen; // 빔프로젝터 화면: 이름은 항상 또렷하게, 체력바는 작게
   let config;
   if (opts.fill) {
     // 부모 영역을 가득 채우는 모드(폰·태블릿 화면용)

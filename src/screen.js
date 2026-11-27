@@ -5,7 +5,7 @@ import { startWorld } from './world.js';
 import { mountScreenUi, renderScreenUi } from './screenUi.js';
 
 const $ = (s) => document.querySelector(s);
-const { scene } = startWorld('game');
+const { scene } = startWorld('game', { screen: true });
 const socket = io();
 import { mountFade } from './fade.js'; mountFade(socket);
 const sq = mountScreenUi();
