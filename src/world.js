@@ -238,7 +238,12 @@ export class WorldScene extends Phaser.Scene {
       let v = this.views.get(p.id);
       if (!v) v = this.makeView(p);
       v.p = p;
-      v.tx = p.x * BU; v.ty = p.y * BU;
+      const nx = p.x * BU, ny = p.y * BU, at = performance.now(), dt = v.stAt ? (at - v.stAt) / 1000 : 0;
+      if (dt > 0.01 && dt < 0.4 && Math.hypot(nx - v.tx, ny - v.ty) < 3 * BU) { // 서버 간격이 들쭉날쭉해도 가던 방향으로 계속 움직여 보이게 속도를 어림 (순간이동 수준 점프는 제외)
+        const cap = 12 * BU, mx = (nx - v.tx) / dt, my = (ny - v.ty) / dt, sp = Math.hypot(mx, my), c = sp > cap ? cap / sp : 1;
+        v.vx = (v.vx || 0) * 0.4 + mx * c * 0.6; v.vy = (v.vy || 0) * 0.4 + my * c * 0.6;
+      } else { v.vx = 0; v.vy = 0; }
+      v.tx = nx; v.ty = ny; v.stAt = at;
       if (v.x === undefined) { v.x = v.tx; v.y = v.ty; }
     }
     for (const [id, v] of this.views) {
@@ -397,8 +402,9 @@ export class WorldScene extends Phaser.Scene {
     const k = 1 - Math.exp(-delta / 50); // 지수 보간: 프레임 간격(60·120Hz)과 상관없이 같은 속도로 따라감 // 위치 보간 (끊김 완화)
     for (const v of this.views.values()) {
       const p = v.p;
-      v.x += (v.tx - v.x) * k;
-      v.y += (v.ty - v.y) * k;
+      const ex = Math.min((now - (v.stAt || now)) / 1000, 0.2); // 마지막 서버 상태 이후 지난 시간 (최대 0.2초까지 앞질러 그림)
+      v.x += (v.tx + (v.vx || 0) * ex - v.x) * k;
+      v.y += (v.ty + (v.vy || 0) * ex - v.y) * k;
       const slamU = v.slamAt ? (now - v.slamAt) / 200 : 1; // 대지 강타: 30px 뛰었다 내려옴
       const hop0 = slamU < 1 ? Math.sin(Math.PI * slamU) * 30 : 0;
       const hop = v.hopUntil > now ? Math.sin(Math.PI * (1 - (v.hopUntil - now) / 350)) * 1.3 * BU : 0; // 도약: 포물선으로 뜸
