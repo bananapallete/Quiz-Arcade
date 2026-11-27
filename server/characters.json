@@ -336,7 +336,7 @@
       "tick": 0.25,
       "radius": 2.2,
       "dmg": 4,
-      "move": 0.4,
+      "move": 2,
       "fx": "flurry",
       "range": 2.2,
       "desc": "2.5초간 회전하며 주변 연속 베기"
