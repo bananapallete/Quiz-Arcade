@@ -995,14 +995,14 @@ test('번개 5연타(파란티): 가까운 상대 뒤로 이동해 연타하고 
   assert.equal(B.cfg.hp - B.hp, u.dmg * (u.hits - 1) + u.finish);
 });
 
-test('그림자(고양이): 자동 조준 불가, 첫 일격 3배 크리티컬 뒤 은신 해제', () => {
+test('그림자(고양이): 자동 조준 불가, 첫 일격은 6배 크리티컬(큰 피해) 뒤 은신 해제', () => {
   const { g, A, B } = duo('cat', 'blue');
   A.x = 10; A.y = 10; B.x = 11; B.y = 10;
   A.ult = A.cfg.ult.need; g.ult('a', null);
   assert.equal(g.aimPreview('b', null).targetId, null, '상대가 조준 못함');
   g.attack('a', null);
   const hit = g.events.find((e) => e.e === 'hit' && e.id === 'b');
-  assert.ok(hit.crit && hit.dmg >= A.cfg.attack.dmgMin * 3, `암살 ${hit.dmg}`);
+  assert.ok(hit.crit && hit.dmg >= A.cfg.attack.dmgMin * 6, `암살 ${hit.dmg}`); assert.ok(hit.dmg >= 25, `큰 피해 ${hit.dmg}`);
   assert.equal(g._stealthed(A), false, '은신 해제');
 });
 
