@@ -32,6 +32,7 @@ let follow = true;
 let spT = 0; // 신발(달리기) 아이템 효과 중이면 0→1: 달리는 시간 동안 줌아웃
 let runT = 0; // 0 평소 → 1 달리는 중 (0.4초에 걸쳐 오감)
 let deadT = 0; // 쓰러지면 0→1 (0.5초에 걸쳐): 줌인 + 흑백
+let deadMs = 0, lastDz = 1; // 죽은 지 지난 시간(ms)과 마지막 줌 배율: 줌인 → 3초간 천천히 1.3배 줌아웃 → 1초간 천천히 다시 줌인
 let eggT = 0; // 알이 된 지 지난 시간(ms): 알이 되면 줌인했다가 1초 뒤 줌아웃
 const deathMsg = document.getElementById('deathMsg');
 // 궁극기 줌인: 만화식 집중선 — 중앙에서 퍼져 나가는 흰 하프톤 도트 광선이 돌고 출렁이며 중앙으로 시선을 모음
@@ -73,8 +74,13 @@ scene.onFrame = (sc, dt) => {
     const dead = !!v.p.st, egg = dead && v.p.s === 'egg'; eggT = egg ? eggT + dt : 0;
     deadT = Math.max(0, Math.min(1, deadT + (dead && (!egg || eggT < 1000) ? dt : -dt) / 500)); // 알은 1초 동안만 줌인, 이후엔 알인 채로 줌아웃
     const de = deadT < 0.5 ? 4 * deadT ** 3 : 1 - (-2 * deadT + 2) ** 3 / 2;
+    deadMs = dead ? deadMs + dt : 0;
+    if (dead) { // 죽음 줌: 0.5초 줌인(1.45배) → 3초 동안 서서히 1.3배 줌아웃 → 1초 동안 서서히 다시 줌인 (알은 2.5배 줌인 후 위에서 1초 뒤 줌아웃)
+      const sec = deadMs / 1000, k = (a, b, u) => { const t = Math.max(0, Math.min(1, u)); return a + (b - a) * t * t * (3 - 2 * t); };
+      lastDz = egg ? 2.5 : sec < 0.5 ? 1.45 : sec < 3.5 ? k(1.45, 1.45 / 1.3, (sec - 0.5) / 3) : sec < 4.5 ? k(1.45 / 1.3, 1.45, sec - 3.5) : 1.45;
+    }
     { const z = ultZoom(); frameCv.style.opacity = z > 0.01 ? 1 : 0; drawFrame(performance.now(), z); }
-    cam.setZoom((w / ((h > w ? 16.5 : 24) * BU * (1 + 0.3 * ease))) * (1 + 0.15 * ultZoom()) * (1 + (v.p.s === 'egg' ? 1.5 : 0.45) * de)); // 알이 되면 크게 줌인. 달리면 1.3배 줌 아웃, 궁극기는 1.22배, 쓰러지면 1.45배 줌인
+    cam.setZoom((w / ((h > w ? 16.5 : 24) * BU * (1 + 0.3 * ease))) * (1 + 0.15 * ultZoom()) * (1 + (lastDz - 1) * de)); // 알이 되면 크게 줌인. 달리면 1.3배 줌 아웃, 궁극기는 1.22배, 쓰러지면 1.45배 줌인
     { const ch = !!v.p.cm; document.body.classList.toggle('charmed', ch); document.getElementById('charmMsg').hidden = !ch; } // 매혹당한 동안 내 화면이 분홍빛 + 안내 문구
     document.body.classList.toggle('dead', dead && v.p.s !== 'egg'); // 알이 된 동안엔 흑백 대신 컬러로(폭발 연출)
     deathMsg.hidden = !dead; if (dead) deathMsg.textContent = `${Math.ceil(v.p.rv)}초 뒤 부활합니다`;
