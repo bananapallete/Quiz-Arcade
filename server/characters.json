@@ -6,7 +6,7 @@
     "hp": 50,
     "walkSpeed": 3.0,
     "runSpeed": 4.5,
-    "runGauge": 2.8,
+    "runGauge": 4.9,
     "runRecharge": 8,
     "stunSec": 5,
     "invincibleSec": 3,
@@ -282,17 +282,12 @@
     "hp": 45,
     "walkSpeed": 3.25,
     "runSpeed": 4.875,
-    "runGauge": 5,
+    "runGauge": 4.9,
     "runRecharge": 10,
     "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
-      "type": "dash",
-      "distance": 3,
-      "duration": 0.25,
-      "cooldown": 3,
-      "hitDmg": 3,
-      "hitKnock": 1
+      "type": "run"
     },
     "attack": {
       "type": "melee",
@@ -353,7 +348,7 @@
     "hp": 70,
     "walkSpeed": 2.25,
     "runSpeed": 3.375,
-    "runGauge": 2.8,
+    "runGauge": 4.9,
     "runRecharge": 10,
     "stunSec": 5,
     "invincibleSec": 3,
@@ -471,17 +466,12 @@
     "hp": 60,
     "walkSpeed": 2.5,
     "runSpeed": 3.75,
-    "runGauge": 5,
+    "runGauge": 4.9,
     "runRecharge": 10,
     "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
-      "type": "dash",
-      "distance": 2.5,
-      "duration": 0.25,
-      "cooldown": 5,
-      "hitDmg": 4,
-      "hitKnock": 2
+      "type": "run"
     },
     "attack": {
       "type": "melee",
@@ -547,7 +537,7 @@
     "hp": 43,
     "walkSpeed": 3.75,
     "runSpeed": 5.625,
-    "runGauge": 4.2,
+    "runGauge": 4.9,
     "runRecharge": 10,
     "stunSec": 5,
     "invincibleSec": 3,
@@ -654,17 +644,12 @@
     "hp": 70,
     "walkSpeed": 2.0,
     "runSpeed": 3.0,
-    "runGauge": 5,
+    "runGauge": 4.9,
     "runRecharge": 10,
     "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
-      "type": "dash",
-      "distance": 2.5,
-      "duration": 0.25,
-      "cooldown": 4.5,
-      "hitDmg": 3,
-      "hitKnock": 1.8
+      "type": "run"
     },
     "attack": {
       "type": "melee",
@@ -713,7 +698,7 @@
     "hp": 38,
     "walkSpeed": 3.75,
     "runSpeed": 5.625,
-    "runGauge": 2.8,
+    "runGauge": 4.9,
     "runRecharge": 8,
     "stunSec": 5,
     "invincibleSec": 3,
@@ -759,17 +744,12 @@
     "hp": 60,
     "walkSpeed": 2.5,
     "runSpeed": 3.75,
-    "runGauge": 5,
+    "runGauge": 4.9,
     "runRecharge": 10,
     "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
-      "type": "dash",
-      "distance": 3,
-      "duration": 0.25,
-      "cooldown": 4,
-      "hitDmg": 3,
-      "hitKnock": 1.5
+      "type": "run"
     },
     "attack": {
       "type": "melee",
@@ -810,7 +790,7 @@
     "hp": 45,
     "walkSpeed": 3.5,
     "runSpeed": 5.25,
-    "runGauge": 4.2,
+    "runGauge": 4.9,
     "runRecharge": 10,
     "stunSec": 5,
     "invincibleSec": 3,
@@ -926,17 +906,12 @@
     "hp": 45,
     "walkSpeed": 3.5,
     "runSpeed": 5.25,
-    "runGauge": 6,
+    "runGauge": 4.9,
     "runRecharge": 10,
     "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
-      "type": "dash",
-      "distance": 3.5,
-      "duration": 0.25,
-      "cooldown": 3,
-      "hitDmg": 3,
-      "hitKnock": 1.2
+      "type": "run"
     },
     "attack": {
       "type": "melee",
@@ -998,7 +973,7 @@
     "hp": 90,
     "walkSpeed": 2.0,
     "runSpeed": 3.0,
-    "runGauge": 2.8,
+    "runGauge": 4.9,
     "runRecharge": 10,
     "stunSec": 5,
     "invincibleSec": 3,
@@ -1044,17 +1019,12 @@
     "hp": 75,
     "walkSpeed": 2.25,
     "runSpeed": 3.375,
-    "runGauge": 4,
+    "runGauge": 4.9,
     "runRecharge": 10,
     "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
-      "type": "dash",
-      "distance": 4,
-      "duration": 0.3,
-      "cooldown": 4,
-      "hitDmg": 5,
-      "hitKnock": 2.5
+      "type": "run"
     },
     "attack": {
       "type": "melee",

@@ -177,18 +177,19 @@ test('캐릭터끼리 겹치지 않는다', () => {
   assert.ok(Math.hypot(a.x - b.x, a.y - b.y) >= 0.99);
 });
 
-test('달리기: 게이지가 40% 빨리 닳아 2.8짜리가 약 2초 뒤 바닥, 11.2초 뒤 가득, 문제 시작 시 가득', () => {
+test('달리기: 게이지가 40% 빨리 닳아 바닥나고, 쉬면 가득, 문제 시작 시 가득', () => {
   const { g, a } = setup();
+  const G = a.cfg.runGauge;
   a.x = 5; a.y = 5; // 넓은 곳에서 (맵 벽에 막히지 않게 대각선 왕복은 생략하고 짧게 확인)
   g.setInput('a', { mx: 0, my: 1, run: true });
   run(g, 1); // 맵 경계에 닿아도 입력 중이면 달리는 것으로 본다
-  assert.ok(Math.abs(a.runGauge - (2.8 - 1 * RUN_DRAIN)) < 0.2, `gauge=${a.runGauge}`);
-  run(g, 2.8 / RUN_DRAIN - 1 + 0.2); // 바닥난 직후
+  assert.ok(Math.abs(a.runGauge - (G - 1 * RUN_DRAIN)) < 0.2, `gauge=${a.runGauge}`);
+  run(g, G / RUN_DRAIN - 1 + 0.2); // 바닥난 직후
   assert.ok(a.runGauge < 0.2, `gauge=${a.runGauge}`);
   assert.equal(a.exhausted, true);
   g.setInput('a', { mx: 0, my: 0, run: false });
-  run(g, 11.2);
-  assert.ok(a.runGauge >= 2.7, `gauge=${a.runGauge}`);
+  run(g, G * 4);
+  assert.ok(a.runGauge >= G - 0.1, `gauge=${a.runGauge}`);
   a.runGauge = 1; g.ask(1);
   assert.equal(a.runGauge, a.cfg.runGauge);
 });
@@ -582,22 +583,6 @@ test('체력 기준은 50 (파란티), 모든 캐릭터는 30~90', () => {
   for (const c of Object.values(chars)) assert.ok(c.hp >= 30 && c.hp <= 90, c.name);
 });
 
-test('귀상어 돌진: 3칸 달려가 처음 닿은 상대를 날리고 멈춘다. 쿨타임 4초', () => {
-  const { g, A, B } = duo('hammerhead', 'blue');
-  g.setInput('a', { mx: 1, my: 0, run: false });
-  g.skill('a');
-  g.setInput('a', { mx: 0, my: 0, run: false }); // 돌진 중에는 입력과 상관없이 나아감
-  run(g, 0.4);
-  assert.equal(B.hp, B.cfg.hp - 3, '돌진 피해 3');
-  assert.ok(B.x > 12.8, `크게 날아감: ${B.x}`);
-  assert.ok(A.x < 11.5, `부딪히면 멈춤: ${A.x}`);
-  const x = A.x; g.skill('a'); run(g, 0.3);
-  assert.ok(Math.abs(A.x - x) < 0.01 || A.x - x < 0.01, '쿨타임 중에는 안 나감');
-  assert.ok(g.snapshot().players.find((p) => p.id === 'a').rg < 6);
-  run(g, 6); g.setInput('a', { mx: 0, my: 0, run: false }); g.skill('a');
-  assert.ok(g._dashing(A), '쿨타임이 지나면 다시 나감 (입력 없으면 바라보는 방향)');
-});
-
 test('귀상어 박치기: 부채꼴 ±90° 안의 상대를 모두 때린다', () => {
   const { g, A, B } = duo('hammerhead', 'blue');
   const C = g.join({ token: 'c', name: 'C', charId: 'blue' });
@@ -649,13 +634,10 @@ test('달리기 캐릭터는 스킬 입력이 아무 일도 하지 않는다', (
   assert.equal(g._dashing(A), false);
 });
 
-test('대시 캐릭터는 달리기 입력을 무시하고, 기절하면 돌진이 끊긴다', () => {
-  const { g, A } = duo('hammerhead', 'blue');
-  g.setInput('a', { mx: 1, my: 0, run: true });
-  g.update(DT);
-  assert.equal(A.running, false);
-  g.skill('a'); g.knockOut('a'); g.update(DT);
-  assert.equal(g._dashing(A), false);
+test('모든 캐릭터는 달리기, 근접은 원거리보다 달리기 게이지가 많다', () => {
+  const cs = Object.values(chars), melee = cs.filter((c) => c.attack.type === 'melee'), ranged = cs.filter((c) => c.attack.type !== 'melee');
+  for (const c of cs) assert.equal(c.skill.type, 'run', c.name);
+  assert.ok(Math.min(...melee.map((c) => c.runGauge)) > Math.max(...ranged.map((c) => c.runGauge)));
 });
 
 import { dpsOf, FIGHT_SEC, powerIndex, shotsOf } from './balance.js';
@@ -670,11 +652,10 @@ test('밸런스: 전투력 지수가 17~22 안 (서포터는 회복이 있어 15
   }
 });
 
-test('DPS 계산: 콤보 평균, 명중률, 범위, 돌진 피해를 반영한다', () => {
+test('DPS 계산: 콤보 평균, 명중률, 범위를 반영한다', () => {
   const blue = dpsOf(chars.blue); // 평균 피해 × 콤보 평균 × 교전 중 발수 ÷ 교전 시간
   const a = chars.blue.attack;
   assert.ok(Math.abs(blue.basic - ((a.dmgMin + a.dmgMax) / 2) * ((2 + a.combo[2].dmg) / 3) * shotsOf(chars.blue) / FIGHT_SEC) < 1e-9);
-  assert.ok(dpsOf(chars.brawler).dps > dpsOf(chars.brawler).basic * 0.85, '돌진 피해가 더해짐 (직선 명중률 0.85 적용 후)');
   assert.ok(dpsOf(chars.witch).dps < dpsOf(chars.witch).basic, '느린 투사체는 명중률로 깎임');
   assert.ok(dpsOf(chars.bomber).dps > dpsOf(chars.bomber).basic * 0.65, '범위 공격은 보정이 붙음');
   assert.ok(dpsOf(chars.blue).dps < dpsOf({ ...chars.blue, ammo: undefined }).dps, '탄창이 있으면 교전 DPS가 낮아짐');
