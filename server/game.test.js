@@ -177,18 +177,18 @@ test('캐릭터끼리 겹치지 않는다', () => {
   assert.ok(Math.hypot(a.x - b.x, a.y - b.y) >= 0.99);
 });
 
-test('달리기: 게이지가 40% 빨리 닳아 5초짜리가 약 3.6초 뒤 바닥, 10초 뒤 가득, 문제 시작 시 가득', () => {
+test('달리기: 게이지가 40% 빨리 닳아 2.8짜리가 약 2초 뒤 바닥, 11.2초 뒤 가득, 문제 시작 시 가득', () => {
   const { g, a } = setup();
   a.x = 5; a.y = 5; // 넓은 곳에서 (맵 벽에 막히지 않게 대각선 왕복은 생략하고 짧게 확인)
   g.setInput('a', { mx: 0, my: 1, run: true });
-  run(g, 2); // 맵 경계에 닿아도 입력 중이면 달리는 것으로 본다
-  assert.ok(Math.abs(a.runGauge - (5 - 2 * RUN_DRAIN)) < 0.2, `gauge=${a.runGauge}`);
-  run(g, 5 / RUN_DRAIN - 2 + 0.2); // 바닥난 직후
+  run(g, 1); // 맵 경계에 닿아도 입력 중이면 달리는 것으로 본다
+  assert.ok(Math.abs(a.runGauge - (2.8 - 1 * RUN_DRAIN)) < 0.2, `gauge=${a.runGauge}`);
+  run(g, 2.8 / RUN_DRAIN - 1 + 0.2); // 바닥난 직후
   assert.ok(a.runGauge < 0.2, `gauge=${a.runGauge}`);
   assert.equal(a.exhausted, true);
   g.setInput('a', { mx: 0, my: 0, run: false });
-  run(g, 10);
-  assert.ok(a.runGauge >= 4.9, `gauge=${a.runGauge}`);
+  run(g, 11.2);
+  assert.ok(a.runGauge >= 2.7, `gauge=${a.runGauge}`);
   a.runGauge = 1; g.ask(1);
   assert.equal(a.runGauge, a.cfg.runGauge);
 });

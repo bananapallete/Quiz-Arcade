@@ -6,8 +6,8 @@
     "hp": 50,
     "walkSpeed": 6,
     "runSpeed": 9,
-    "runGauge": 5,
-    "runRecharge": 10,
+    "runGauge": 2.8,
+    "runRecharge": 11.2,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -44,7 +44,7 @@
     },
     "ammo": {
       "max": 3,
-      "reload": 1.0
+      "reload": 1
     },
     "role": "melee",
     "atkInfo": "3연타, 마지막 강타",
@@ -68,8 +68,8 @@
     "hp": 50,
     "walkSpeed": 6,
     "runSpeed": 9,
-    "runGauge": 5,
-    "runRecharge": 10,
+    "runGauge": 2.8,
+    "runRecharge": 11.2,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -116,8 +116,8 @@
     "hp": 40,
     "walkSpeed": 6.5,
     "runSpeed": 9.75,
-    "runGauge": 6,
-    "runRecharge": 10,
+    "runGauge": 4.2,
+    "runRecharge": 14,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -165,8 +165,8 @@
     "hp": 40,
     "walkSpeed": 5.5,
     "runSpeed": 8.25,
-    "runGauge": 5,
-    "runRecharge": 10,
+    "runGauge": 2.8,
+    "runRecharge": 11.2,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -215,8 +215,8 @@
     "hp": 40,
     "walkSpeed": 5.5,
     "runSpeed": 8.25,
-    "runGauge": 5,
-    "runRecharge": 10,
+    "runGauge": 2.8,
+    "runRecharge": 11.2,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -275,7 +275,7 @@
       "duration": 0.25,
       "cooldown": 3,
       "hitDmg": 3,
-      "hitKnock": 1.0
+      "hitKnock": 1
     },
     "attack": {
       "type": "melee",
@@ -335,8 +335,8 @@
     "hp": 70,
     "walkSpeed": 4.5,
     "runSpeed": 6.75,
-    "runGauge": 4,
-    "runRecharge": 10,
+    "runGauge": 2.8,
+    "runRecharge": 14,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -347,7 +347,7 @@
       "dmgMin": 5,
       "dmgMax": 5,
       "interval": 0.8,
-      "range": 4.0,
+      "range": 4,
       "knockback": 0,
       "canAttackWhileRunning": true,
       "moveSpeedWhileAttacking": 0.4,
@@ -395,9 +395,9 @@
     "radius": 0.5,
     "hp": 40,
     "walkSpeed": 6,
-    "runSpeed": 9.0,
-    "runGauge": 5,
-    "runRecharge": 10,
+    "runSpeed": 9,
+    "runGauge": 2.8,
+    "runRecharge": 11.2,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -423,7 +423,7 @@
         "sec": 2
       }
     },
-    "pickupRadius": 2.0,
+    "pickupRadius": 2,
     "ammo": {
       "max": 3,
       "reload": 1.5
@@ -458,7 +458,7 @@
       "duration": 0.25,
       "cooldown": 5,
       "hitDmg": 4,
-      "hitKnock": 2.0
+      "hitKnock": 2
     },
     "attack": {
       "type": "melee",
@@ -487,7 +487,7 @@
         {
           "dmg": 2,
           "range": 1.35,
-          "knockback": 2.0,
+          "knockback": 2,
           "multi": true,
           "lineW": 1.3
         }
@@ -523,8 +523,8 @@
     "hp": 40,
     "walkSpeed": 7.5,
     "runSpeed": 11.25,
-    "runGauge": 6,
-    "runRecharge": 10,
+    "runGauge": 4.2,
+    "runRecharge": 14,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -538,7 +538,7 @@
       "range": 1.1,
       "knockback": 0,
       "canAttackWhileRunning": true,
-      "moveSpeedWhileAttacking": 1.0,
+      "moveSpeedWhileAttacking": 1,
       "fx": "bite"
     },
     "scale": 0.8,
@@ -569,9 +569,9 @@
     "radius": 0.48,
     "hp": 45,
     "walkSpeed": 6,
-    "runSpeed": 9.0,
-    "runGauge": 5,
-    "runRecharge": 10,
+    "runSpeed": 9,
+    "runGauge": 2.8,
+    "runRecharge": 11.2,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -623,7 +623,7 @@
     "radius": 0.6,
     "hp": 70,
     "walkSpeed": 4,
-    "runSpeed": 6.0,
+    "runSpeed": 6,
     "runGauge": 5,
     "runRecharge": 10,
     "stunSec": 2,
@@ -641,7 +641,7 @@
       "dmgMin": 4,
       "dmgMax": 4,
       "interval": 0.75,
-      "range": 2.0,
+      "range": 2,
       "knockback": 0,
       "canAttackWhileRunning": true,
       "moveSpeedWhileAttacking": 0.5,
@@ -682,8 +682,8 @@
     "hp": 35,
     "walkSpeed": 7.5,
     "runSpeed": 11.25,
-    "runGauge": 5,
-    "runRecharge": 10,
+    "runGauge": 2.8,
+    "runRecharge": 11.2,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -777,8 +777,8 @@
     "hp": 45,
     "walkSpeed": 7,
     "runSpeed": 10.5,
-    "runGauge": 6,
-    "runRecharge": 10,
+    "runGauge": 4.2,
+    "runRecharge": 14,
     "stunSec": 2,
     "invincibleSec": 3,
     "pickupRadius": 1.6,
@@ -837,8 +837,8 @@
     "hp": 50,
     "walkSpeed": 7,
     "runSpeed": 10.5,
-    "runGauge": 5,
-    "runRecharge": 10,
+    "runGauge": 2.8,
+    "runRecharge": 11.2,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -958,9 +958,9 @@
     "radius": 0.6,
     "hp": 90,
     "walkSpeed": 4,
-    "runSpeed": 6.0,
-    "runGauge": 4,
-    "runRecharge": 10,
+    "runSpeed": 6,
+    "runGauge": 2.8,
+    "runRecharge": 14,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -970,7 +970,7 @@
       "type": "melee",
       "dmgMin": 7,
       "dmgMax": 7,
-      "interval": 1.0,
+      "interval": 1,
       "range": 1.5,
       "knockback": 0,
       "canAttackWhileRunning": true,
@@ -1056,9 +1056,9 @@
     "radius": 0.34,
     "hp": 40,
     "walkSpeed": 6,
-    "runSpeed": 9.0,
-    "runGauge": 5,
-    "runRecharge": 10,
+    "runSpeed": 9,
+    "runGauge": 2.8,
+    "runRecharge": 11.2,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -1068,7 +1068,7 @@
       "type": "ranged",
       "dmgMin": 6,
       "dmgMax": 6,
-      "interval": 1.0,
+      "interval": 1,
       "range": 5.5,
       "knockback": 0,
       "multi": true,
@@ -1109,9 +1109,9 @@
     "radius": 0.28,
     "hp": 30,
     "walkSpeed": 8,
-    "runSpeed": 12.0,
-    "runGauge": 6,
-    "runRecharge": 10,
+    "runSpeed": 12,
+    "runGauge": 4.2,
+    "runRecharge": 14,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -1159,8 +1159,8 @@
     "hp": 42,
     "walkSpeed": 6,
     "runSpeed": 9,
-    "runGauge": 5,
-    "runRecharge": 10,
+    "runGauge": 2.8,
+    "runRecharge": 11.2,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -1210,8 +1210,8 @@
     "hp": 55,
     "walkSpeed": 6,
     "runSpeed": 9,
-    "runGauge": 5,
-    "runRecharge": 10,
+    "runGauge": 2.8,
+    "runRecharge": 11.2,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
