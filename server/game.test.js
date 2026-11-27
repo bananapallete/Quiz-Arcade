@@ -194,7 +194,7 @@ test('달리기: 게이지가 40% 빨리 닳아 바닥나고, 쉬면 가득, 문
   assert.equal(a.runGauge, a.cfg.runGauge);
 });
 
-test('걷기 3, 달리기 4.5 BU/s (파란티)', () => {
+test('걷기 3, 달리기 6 BU/s (파란티)', () => {
   const g = new Game(chars, quizzes);
   const a = g.join({ token: 'a', name: 'A', charId: 'blue' });
   a.x = 10; a.y = 10; a.kx = a.ky = 0;
@@ -202,7 +202,7 @@ test('걷기 3, 달리기 4.5 BU/s (파란티)', () => {
   run(g, 1); assert.ok(Math.abs(a.x - 13) < 0.15, `walk x=${a.x}`);
   a.x = 10;
   g.setInput('a', { mx: 1, my: 0, run: true });
-  run(g, 1); assert.ok(Math.abs(a.x - 14.5) < 0.15, `run x=${a.x}`);
+  run(g, 1); assert.ok(Math.abs(a.x - 16) < 0.15, `run x=${a.x}`);
 });
 
 test('점수: 정답 1점 + 먼저 도착한 1~3등 +3/+2/+1, 오답·무응답 0점', () => {
