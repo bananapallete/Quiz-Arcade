@@ -561,7 +561,7 @@ export class Game {
       const d = calCell(c.l, p.x, p.y);
       if (d != null) now[d] = c.bad.has(d) ? 2 : 1;
       // 칸 밖 · 탈락 날짜 · 이미 열린 칸(안전했어도 다시 밟으면) 모두 유령
-      if (d == null || c.bad.has(d) || seen.has(d)) { p.ghost = true; p.dash = null; p.channel = null; this.events.push({ e: 'ghost', id: p.id, x: r2(p.x), y: r2(p.y) }); } else c.found.add(d);
+      if (d == null || c.bad.has(d) || seen.has(d)) this._quizBoom(p); else c.found.add(d); // 탈락: 제자리 폭발 → 다음 문제까지 유령
     }
     Object.assign(c.rv, now);
     const left = this._calAlive().length;
@@ -580,7 +580,6 @@ export class Game {
     this.reveal = { answer: null, cal: true, results, pool, elim, survivors: surv.length, each, l: c.l, bad: [...c.bad] };
     this._pushUndo(`Q${q.id} 달력`, undo, this._hist('cal', `Q${q.id} ${q.text}`, results.map((r) => ({ id: r.id, name: r.name, team: r.team, gain: r.gain }))));
     this._log(`달력 종료 · 생존 ${surv.length}명 · 탈락 ${elim}명 · 각 +${fmtScore(each)}`);
-    for (const p of ids) p.ghost = false; // 끝나면 유령도 끝
     this._unpark(); this.cal = null; this.phase = PHASE.REVEAL;
   }
 

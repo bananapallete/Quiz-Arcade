@@ -1301,7 +1301,7 @@ test('대난투: 강과 장애물은 지나갈 수 없고(투사체는 장애물
   g2.ask(1); assert.deepEqual([s1.team, s2.team].sort(), [1, 2], '두 팀이 아니면 자동으로 2팀');
 });
 
-test('달력 퀴즈: 채점 때 탈락 칸의 사람은 유령, 끝나면 생존자가 탈락자 수 ×2를 나눠 가진다', async () => {
+test('달력 퀴즈: 채점 때 탈락 칸의 사람은 폭발해 다음 문제까지 유령, 끝나면 생존자가 탈락자 수 ×2를 나눠 가진다', async () => {
   const { calCenter } = await import('../shared/constants.js');
   const g = new Game(chars, [{ type: 'calendar', text: '달력', days: 30, start: 0, bad: [2, 5], time: 100 }]);
   const mk = (t) => g.join({ token: t, name: t, charId: 'blue' }), a = mk('a'), b = mk('b'), c = mk('c'), d = mk('d');
@@ -1312,7 +1312,7 @@ test('달력 퀴즈: 채점 때 탈락 칸의 사람은 유령, 끝나면 생존
   const hp = b.hp; g._applyHit(b, a, 5, 1, 1, 0); assert.equal(b.hp, hp, '유령은 안 맞음'); g._tryAttack(b, null); assert.equal(g.ult('b', null), false);
   at(a, 3); at(c, 7); g.endQuestion(); // 3일은 1차에서 이미 열린 칸 → a도 유령, 새 안전 칸(7일)의 c만 생존 = 최후의 1인
   assert.equal(g.phase, PHASE.REVEAL); assert.ok(g.reveal.cal); assert.equal(g.reveal.results.find((r) => r.id === 'a').ghost, true, '이미 열린 칸을 다시 밟으면 유령');
-  assert.equal(g.reveal.elim, 3); assert.equal(g.reveal.survivors, 1); assert.equal(c.score, 6, '탈락자 3명 ×2 = 6점'); assert.equal(a.score, 0); assert.equal(b.ghost, false, '끝나면 유령 해제'); assert.equal(g.snapshot().cal, null);
+  assert.equal(g.reveal.elim, 3); assert.equal(g.reveal.survivors, 1); assert.equal(c.score, 6, '탈락자 3명 ×2 = 6점'); assert.equal(a.score, 0); assert.equal(b.ghost, true, '끝나도 다음 문제까지 유령'); g.ask(1); assert.equal(b.ghost, false, '다음 문제에서 부활'); assert.equal(g.snapshot().cal, null);
 });
 
 test('달력 퀴즈: 안전한 칸을 모두 찾아내면 끝나고, 시간이 끝나도 정산된다', async () => {
