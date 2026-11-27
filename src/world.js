@@ -505,6 +505,10 @@ export class WorldScene extends Phaser.Scene {
       if (v.nameStr !== nm) { v.nameStr = nm; v.name.setText(nm); }
       if (lead && this.sys.game.renderer.type === Phaser.WEBGL && !v.lglow) { v.sprite.preFX.setPadding(24); v.lglow = v.sprite.preFX.addGlow(0xffd54a, 4, 0, false, 0.1, 12); } // 1등: 항상 노란 테두리로 빛남
       else if (!lead && v.lglow) { v.sprite.preFX.remove(v.lglow); v.lglow = null; }
+      if (p.st && p.rv > 0) { // 쓰러진 캐릭터 몸통 위에 부활까지 남은 초 (내 화면 · 남의 화면 모두)
+        if (!v.rvT) { v.rvT = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: '30px', color: '#ffffff', fontStyle: '900', stroke: '#14122b', strokeThickness: 6 }).setOrigin(0.5); v.root.push(v.rvT); }
+        v.rvT.setText(String(Math.ceil(p.rv))).setPosition(v.x, v.y - 0.45 * BU).setDepth(v.y + 3).setVisible(true).setColor(p.rv <= 1 ? '#ffe27a' : '#ffffff'); // 마지막 1초는 노랗게
+      } else if (v.rvT) v.rvT.setVisible(false);
       v.name.setPosition(bx, by - 8).setDepth(v.y + 1).setAlpha(p.gh ? 0.3 : this.screen || me || p.id === this.lockId ? 1 : 0.35); // 다른 사람 이름은 흐리게, 내가 조준한 상대만 또렷하게
       v.status.setText('').setPosition(bx, by - 32).setDepth(v.y + 1); // 상태이상 글자는 쓰지 않음
       const shown = Math.max(0, (p.cn || 0) - (v.pending || 0)); // 습득 연출이 끝나야 '기록'됨
