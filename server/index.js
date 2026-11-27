@@ -22,7 +22,7 @@ const game = new Game(characters, quizzes);
 
 const app = express();
 const http = createServer(app);
-const io = new Server(http);
+const io = new Server(http, { perMessageDeflate: { threshold: 1024, zlibDeflateOptions: { level: 1 } } }); // 상태 패킷(약 12KB)을 압축: 전송량이 약 1/10
 
 function lanOrigin() {
   for (const list of Object.values(networkInterfaces())) {
