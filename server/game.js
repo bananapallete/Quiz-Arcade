@@ -504,7 +504,7 @@ export class Game {
   aimPreview(id, aim) {
     const p = this.players.get(id);
     if (!p) return null;
-    const { range, step, arc, line } = this._comboState(p);
+    const { range: r0, step, arc, line } = this._comboState(p), range = r0 + (p.cfg.attack.lunge?.dist ?? 0); // 돌진 공격은 달려가는 거리까지 사거리로 표시
     const dir = this._aimDir(p, aim, range);
     const pr = p.cfg.attack.projectile;
     let { target } = this._pickTarget(p, range, dir.dx, dir.dy, arc, line);
@@ -526,7 +526,7 @@ export class Game {
     if (a.burst) p.comboStep = 0; // 연타형: 한 번 누르면 항상 1타부터 n타까지
     // 콤보: 잽 → 잽 → 큰 휘두르기. 일정 시간 공격하지 않으면 1타부터 다시
     const { combo, step, m, range, arc, multi, line } = this._comboState(p);
-    const { dx, dy, near } = this._aimDir(p, aim, range);
+    const { dx, dy, near } = this._aimDir(p, aim, range + (a.lunge?.dist ?? 0)); // 돌진 공격은 달려갈 거리만큼 더 멀리서도 노림
     if (Math.abs(dx) > 0.15) p.face = dx > 0 ? 1 : -1;
     p.nextAttackAt = this.t + a.interval / (buffOf(this, p)?.atk ?? 1);
     p.ammoF -= 1;
@@ -535,6 +535,14 @@ export class Game {
     p.lastAttackAt = this.t;
     p.comboStep = combo ? (step + 1) % combo.length : 0;
 
+    if (a.lunge) { // 돌진 공격(돼지): 먼저 앞으로 dist칸 달려가고, 도착하면 그 자리에서 타격
+      const L = a.lunge;
+      p.dash = { dx, dy, speed: L.dist / L.sec, until: this.t + L.sec, pass: false, hitDmg: 0, hitKnock: 0 };
+      p.attackUntil += L.sec;
+      this.events.push({ e: 'dash', id: p.id, dx: r2(dx), dy: r2(dy), kind: 'charge', dist: L.dist });
+      this.tasks.push({ at: this.t + L.sec, fn: () => { if (p.stunned || this.t < p.rootUntil || this.t < p.charmUntil || p.channel) return; this._strike(p, range, dx, dy, m, step, arc, multi, line); } });
+      return;
+    }
     if (a.chain) { // 체인 라이트닝: 맞히면 가까운 다른 적에게 최대 bounces번 튕김
       this._chain(p, a, dx, dy, range);
       this.events.push({ e: 'atk', id: p.id, dx: r2(dx), dy: r2(dy), kind: 'proj', step, len: range });

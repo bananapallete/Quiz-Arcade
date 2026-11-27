@@ -1331,6 +1331,14 @@ test('달력 퀴즈: 안전한 칸을 모두 찾아내면 끝나고, 시간이 �
   g.endQuestion(); assert.equal(g.phase, PHASE.MOVING, '찾은 칸 2/28'); run(g, 21); assert.equal(g.phase, PHASE.REVEAL, '시간 끝 → 정산'); assert.equal(g.reveal.elim, 0); assert.equal(a.score, 0);
 });
 
+test('돼지: 기본 공격을 하면 2칸 앞으로 돌진한 뒤 타격한다 (사거리 1.2 + 2칸)', () => {
+  const { g, A, B } = duo('pig', 'blue'); A.x = 10; A.y = 10; A.face = 1; B.x = 12.9; B.y = 10; B.invUntil = 0; A.invUntil = 0; const hp = B.hp;
+  g.attack('a', { x: 1, y: 0 }); run(g, 0.6);
+  assert.ok(A.x > 11.3, `앞으로 전진 x=${A.x}`); assert.ok(B.hp < hp, '도착해서 맞힘');
+  const { g: g2, A: A2 } = duo('pig', 'blue'); A2.x = 10; A2.y = 5; A2.face = 1; A2.invUntil = 0; g2.attack('a', { x: 1, y: 0 }); run(g2, 0.6);
+  assert.ok(Math.abs(A2.x - 12) < 0.35, `상대가 없어도 약 2칸 전진 x=${A2.x}`);
+});
+
 test('난타(격투가): 5초간 앞으로 걸어가며 전방 직선을 연타하고 끝나면 멈춘다', () => {
   const { g, A, B } = duo('brawler', 'blue');
   A.x = 10; A.y = 10; B.x = 12; B.y = 10; A.ult = A.cfg.ult.need;

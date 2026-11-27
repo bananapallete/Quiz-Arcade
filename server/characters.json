@@ -1025,14 +1025,18 @@
       "knockback": 0,
       "canAttackWhileRunning": true,
       "moveSpeedWhileAttacking": 0.5,
-      "fx": "bump"
+      "fx": "bump",
+      "lunge": {
+        "dist": 2,
+        "sec": 0.15
+      }
     },
     "ammo": {
       "max": 3,
       "reload": 2.1
     },
     "role": "tank",
-    "atkInfo": "묵직한 박치기",
+    "atkInfo": "2칸 돌진 박치기",
     "ult": {
       "name": "진흙 목욕",
       "need": 100,
