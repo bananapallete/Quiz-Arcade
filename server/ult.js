@@ -283,7 +283,7 @@ const RUN = {
     g.projectiles.set(id, { id, ult: true, owner: p.id, art: 'wave', dmgMin: u.dmg, dmgMax: u.dmg, knock: 0, root: u.root, carry: u.carry, kind: 'bolt', x: p.x, y: p.y, dx, dy, vx: dx * u.speed, vy: dy * u.speed, speed: u.speed, travel: 0, maxDist: u.range, radius: u.width / 2, pierce: true, hit: new Set(), carried: new Map() });
   },
 
-  magnet(g, p, u) { // 반경 안의 맵 동전은 전부, 다른 사람이 든 동전은 한 명당 최대 steal개를 흡수하고 잠깐 빨라짐
+  magnet(g, p, u) { // 반경 안의 맵 동전·하트·신발은 전부, 다른 사람이 든 동전은 한 명당 최대 steal개를 흡수하고 잠깐 빨라짐
     let n = 0;
     const R = u.radius ?? 8, near = (o) => Math.hypot(o.x - p.x, o.y - p.y) <= R;
     for (const o of g._enemies(p)) { // 든 동전 흡수: 동전을 주울 때와 같은 모션(상대 자리에서 떠올라 내 머리 위로)
@@ -297,6 +297,7 @@ const RUN = {
       g.coins.delete(c.id); p.coins += 1; n++;
       g.events.push({ e: 'coinGet', id: c.id, by: p.id, x: r2(c.x), y: r2(c.y) });
     }
+    for (const it of [...g.items.values()]) if (near(it)) { g.takeItem(p, it); n++; } // 하트·신발 아이템도 흡수
     RUN.buff(g, p, { sec: u.sec, spd: u.spd });
     g.events.push({ e: 'magnet', id: p.id, x: r2(p.x), y: r2(p.y), r: R, n });
   },

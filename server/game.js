@@ -943,6 +943,15 @@ export class Game {
     return it;
   }
 
+  /** 아이템 줍기 효과 (하트 = 회복, 신발 = 달리기 빨라짐). 래브라도 궁극기도 이걸로 흡수 */
+  takeItem(p, it) {
+    this.items.delete(it.id);
+    let amount = 0;
+    if (it.k === 'heart') { amount = Math.max(0, Math.min(p.cfg.hp - p.hp, Math.ceil(p.cfg.hp * ITEM.heart.heal))); p.hp += amount; }
+    else p.speedUntil = this.t + ITEM.shoe.sec;
+    this.events.push({ e: 'itemGet', id: it.id, k: it.k, by: p.id, amount, x: r2(it.x), y: r2(it.y) });
+  }
+
   _updateItems(dt, active) {
     if (active.some((p) => !p.isBot)) {
       this.itemClock += dt;
@@ -955,16 +964,7 @@ export class Game {
         const d = Math.hypot(p.x - it.x, p.y - it.y);
         if (d <= (p.cfg.pickupRadius ?? ITEM.pickupRadius) * (buffOf(this, p)?.pickup ?? 1) && d < bd) { best = p; bd = d; }
       }
-      if (!best) continue;
-      this.items.delete(it.id);
-      let amount = 0;
-      if (it.k === 'heart') {
-        amount = Math.min(best.cfg.hp - best.hp, Math.ceil(best.cfg.hp * ITEM.heart.heal));
-        best.hp += amount;
-      } else {
-        best.speedUntil = this.t + ITEM.shoe.sec;
-      }
-      this.events.push({ e: 'itemGet', id: it.id, k: it.k, by: best.id, amount, x: r2(it.x), y: r2(it.y) });
+      if (best) this.takeItem(best, it);
     }
   }
 

@@ -1707,3 +1707,13 @@ test('동전 모으기: 제한시간 동안 동전이 쏟아지고 많이 주운
   assert.deepEqual(g.reveal.results.map((r) => [r.name, r.got, r.gain]), [['B', 5, 5], ['A', 3, 3], ['C', 0, 0]]);
   assert.equal(g.coins.size, 0);
 });
+
+test('래브라도 궁극기는 동전뿐 아니라 하트·신발 아이템도 흡수한다', () => {
+  const g = new Game(chars, quizzes);
+  const a = g.join({ token: 'a', name: 'A', charId: 'labrador' }); a.x = 10; a.y = 10; a.hp = 10;
+  g.items.set(901, { id: 901, k: 'heart', x: 13, y: 10 }); g.items.set(902, { id: 902, k: 'shoe', x: 10, y: 14 }); g.items.set(903, { id: 903, k: 'shoe', x: 30, y: 10 });
+  a.ult = a.cfg.ult.need; g.ult('a', null);
+  assert.ok(!g.items.has(901) && !g.items.has(902), '반경 안 아이템 흡수');
+  assert.ok(g.items.has(903), '반경 밖은 그대로');
+  assert.ok(a.hp > 10); assert.ok(a.speedUntil > g.t);
+});
