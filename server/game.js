@@ -26,7 +26,7 @@ function spawnPos() {
 export class Game {
   constructor(characters, quizzes) {
     this.characters = characters;
-    this.questions = quizzes.map((q, i) => ({ ...q, id: i + 1, mode: q.type === 'real' ? '현실' : q.mode === '팀' ? '팀' : '개인' }));
+    this.questions = quizzes.map((q, i) => ({ ...q, id: i + 1, mode: q.type === 'real' ? '현실' : q.type === 'brawl' ? '대난투' : q.mode === '팀' ? '팀' : '개인' }));
     this.players = new Map();
     this.t = 0; // 게임 시간(초)
     this.phase = PHASE.LOBBY;
@@ -149,35 +149,39 @@ export class Game {
   ask(qid) {
     const q = this.questions.find((x) => x.id === qid);
     if (!q) return false;
+    this._unpark(); this.brawl = null;
     this.question = q;
     this.reveal = null; this.locked = null; this.realPending = new Map(); this.realConfirmed = false;
     this.showRank = false; this.hideAns = false; this.screenMode = 'quiz'; this.timerPaused = false;
     this.phase = q.type === 'real' ? PHASE.REAL : PHASE.READING;
     this.phaseEnd = this.t + READ_SEC;
     this._log(`문제 ${q.id} 출제`);
-    for (const p of this.players.values()) this._refill(p); // 문제마다 체력·달리기 게이지 가득
+    for (const p of this.players.values()) { p.out = false; p.stunned = false; p.stunUntil = 0; this._refill(p); } // 문제마다 체력·달리기 게이지 가득
+    if (q.type === 'brawl') this._brawlSetup();
     return true;
   }
 
   addQuestion(q) {
-    const type = q.type === 'choice' ? 'choice' : q.type === 'real' ? 'real' : 'ox';
+    const type = q.type === 'choice' ? 'choice' : q.type === 'real' ? 'real' : q.type === 'brawl' ? 'brawl' : 'ox';
     const item = {
       id: this.questions.length ? Math.max(...this.questions.map((x) => x.id)) + 1 : 1,
       type,
       text: String(q.text || '').slice(0, 120),
       options: type === 'choice' ? (q.options || ['1번', '2번', '3번', '4번']).slice(0, 4) : undefined,
-      answer: type === 'real' ? null : type === 'ox' ? (q.answer === 'X' ? 'X' : 'O') : Math.min(4, Math.max(1, Number(q.answer) || 1)),
-      time: Math.min(60, Math.max(5, Number(q.time) || 15)),
-      mode: type === 'real' ? '현실' : q.mode === '팀' ? '팀' : '개인',
+      answer: type === 'real' || type === 'brawl' ? null : type === 'ox' ? (q.answer === 'X' ? 'X' : 'O') : Math.min(4, Math.max(1, Number(q.answer) || 1)),
+      time: type === 'brawl' ? Math.min(300, Math.max(20, Number(q.time) || 90)) : Math.min(60, Math.max(5, Number(q.time) || 15)),
+      mode: type === 'real' ? '현실' : type === 'brawl' ? '대난투' : q.mode === '팀' ? '팀' : '개인',
       image: q.image ? String(q.image).slice(0, 300) : undefined,
     };
     if (type === 'real') item.answer = null;
+    if (type === 'brawl') item.pts = Math.max(1, Number(q.pts) || 5);
     this.questions.push(item);
     return item;
   }
 
   /** 진행자의 '정답 공개': 시간이 끝나길 기다리는 중이어도, 끝나서 대기 중이어도 이 시점의 판정으로 점수를 반영해 공개 */
   endQuestion() {
+    if (this.brawl && this.phase === PHASE.MOVING) return this._finishBrawl(); // 대난투: 지금 상태로 바로 끝냄
     if (this.phase === PHASE.READING || this.phase === PHASE.MOVING) this._lock();
     if (this.phase === PHASE.HOLD || this.locked) this._applyLocked();
   }
@@ -214,7 +218,7 @@ export class Game {
   rename(id, name) { const p = this.players.get(id), n = String(name || '').trim().slice(0, 10); if (!p || !n) return false; p.name = n; return true; }
   kick(id) { const p = this.players.get(id); if (!p || p.isBot) return false; this.players.delete(id); this._log(`${p.name} 퇴장`); return true; }
   /** 출제를 취소하고 대기실로 (점수 변화 없음) */
-  cancelQuestion() { this.phase = PHASE.LOBBY; this.question = null; this.reveal = null; this.locked = null; this.realPending = new Map(); this.timerPaused = false; this._log('출제 취소'); return true; }
+  cancelQuestion() { this._unpark(); this.brawl = null; for (const p of this.players.values()) { p.out = false; p.stunned = false; p.stunUntil = 0; } this.phase = PHASE.LOBBY; this.question = null; this.reveal = null; this.locked = null; this.realPending = new Map(); this.timerPaused = false; this._log('출제 취소'); return true; }
   /** 동전 비: n개를 sec초에 걸쳐 맵 곳곳에 떨어뜨림 (기본 동전 한도와 별개) */
   coinRain(n = 24, sec = 4) {
     for (let i = 0; i < n; i++) this.tasks.push({ at: this.t + (i / n) * sec, fn: () => { this.coinsSpawned = Math.max(0, this.coinsSpawned - 1); this.spawnCoin(); } });
@@ -235,7 +239,7 @@ export class Game {
   }
 
   setQuestionMode(qid, mode) {
-    const q = this.questions.find((x) => x.id === qid); if (!q || q.type === 'real') return false;
+    const q = this.questions.find((x) => x.id === qid); if (!q || q.type === 'real' || q.type === 'brawl') return false;
     q.mode = mode === '팀' ? '팀' : '개인'; return true;
   }
 
@@ -307,6 +311,42 @@ export class Game {
     }
   }
 
+  // ---------- 대난투: 팀(없으면 개인)별로 마지막까지 살아남은 쪽이 점수 ----------
+  _bKey(p) { return p.team ? `t${p.team}` : p.id; }
+  _brawlAlive() { return [...this.brawl.ids].map((id) => this.players.get(id)).filter((p) => p && p.connected && !p.out); }
+  _unpark() { for (const p of this.players.values()) if (p.parked) { p.parked = false; p.connected = true; } }
+
+  /** 참가자(접속한 사람)를 팀별로 타원 둘레에 나눠 세우고, 봇은 잠시 치움. 읽는 동안은 무적 */
+  _brawlSetup() {
+    const hs = this.humans().filter((p) => p.connected), groups = new Map();
+    for (const p of hs) { const k = this._bKey(p); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); }
+    const gs = [...groups.values()], cx = MAP.w / 2, cy = 13.2, clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    gs.forEach((ms, i) => {
+      const a = -Math.PI / 2 + (i / gs.length) * Math.PI * 2, gx = cx + Math.cos(a) * 15, gy = cy + Math.sin(a) * 5.6;
+      ms.forEach((p, j) => { const off = (j - (ms.length - 1) / 2) * 1.2; p.x = clamp(gx - Math.sin(a) * off, 1.5, MAP.w - 1.5); p.y = clamp(gy + Math.cos(a) * off, 1.5, MAP.h - 1.5); p.kx = p.ky = 0; p.invUntil = this.t + READ_SEC; });
+    });
+    for (const p of this.players.values()) if (p.isBot && p.connected) { p.parked = true; p.connected = false; }
+    this.brawl = { ids: new Set(hs.map((p) => p.id)), pts: this.question.pts || 5, groups0: gs.length };
+  }
+
+  _finishBrawl() {
+    const b = this.brawl, q = this.question, alive = this._brawlAlive(), hp = new Map();
+    for (const p of alive) hp.set(this._bKey(p), (hp.get(this._bKey(p)) || 0) + p.hp); // 시간이 끝났을 때 여럿이 남았으면 남은 체력 합이 큰 쪽
+    const top = Math.max(0, ...hp.values()), win = new Set([...hp].filter(([, v]) => v === top).map(([k]) => k));
+    const members = [...b.ids].map((id) => this.players.get(id)).filter(Boolean), undo = [];
+    const results = members.map((p) => {
+      const ok = p.connected && win.has(this._bKey(p)), gain = ok ? b.pts * this.multiplier : 0;
+      if (gain) { p.score = Math.round((p.score + gain) * 10) / 10; undo.push([p.id, gain]); }
+      return { id: p.id, name: p.name, team: p.team || 0, correct: ok, gain, out: !!p.out };
+    });
+    const winners = [...win].map((k) => ({ team: k.startsWith('t') ? Number(k.slice(1)) : 0, names: results.filter((r) => r.correct && (r.team ? `t${r.team}` : r.id) === k).map((r) => r.name) }));
+    this.reveal = { answer: null, brawl: true, results, winners };
+    this._pushUndo(`Q${q.id} 대난투`, undo, this._hist('brawl', `Q${q.id} ${q.text}`, results.map((r) => ({ id: r.id, name: r.name, team: r.team, gain: r.gain }))));
+    this._log(`대난투 종료 · ${winners.map((w) => w.team ? `${w.team}팀` : w.names.join()).join(', ') || '승자 없음'}`);
+    for (const p of members) { p.out = false; p.stunned = false; p.stunUntil = 0; p.hp = p.cfg.hp; p.invUntil = this.t + 3; } // 끝나면 모두 일어남
+    this._unpark(); this.phase = PHASE.REVEAL;
+  }
+
   /** 이 순간의 위치로 판정만 굳힌다(점수·동전은 아직 건드리지 않음) */
   _lock() {
     const q = this.question;
@@ -349,7 +389,7 @@ export class Game {
   _stealthed(o) { return !!(o.buff && this.t < o.buff.until && o.buff.stealth); }
 
   _enemies(p) {
-    return [...this.players.values()].filter((o) => o !== p && o.connected && !this._sameSide(p, o)); // 같은 팀·아군 봇은 적이 아님
+    return [...this.players.values()].filter((o) => o !== p && o.connected && !o.out && !this._sameSide(p, o)); // 같은 팀·아군 봇은 적이 아님
   }
 
   // 지금 공격을 하면 몇 타째인지, 그 타의 배율과 사거리
@@ -580,6 +620,7 @@ export class Game {
     target.stunUntil = this.t + target.cfg.stunSec;
     target.kx = target.ky = 0; // 쓰러지는 순간 미끄러지던 것도 멈춤
     this.events.push({ e: 'stun', id: target.id });
+    if (this.brawl && this.phase === PHASE.MOVING && this.brawl.ids.has(target.id)) { target.out = true; target.stunUntil = Infinity; this.events.push({ e: 'out', id: target.id }); return; } // 대난투 탈락: 다시 일어나지 않고 동전도 안 떨어짐
     this._dropCoins(target); // 소닉의 링처럼 가진 동전이 전부 튀어나감
   }
 
@@ -770,7 +811,7 @@ export class Game {
     if (this.timerPaused && (this.phase === PHASE.READING || this.phase === PHASE.MOVING)) this.phaseEnd += dt; // 타이머 일시정지
 
     if (this.phase === PHASE.READING && this.t >= this.phaseEnd) this._startMoving();
-    else if (this.phase === PHASE.MOVING && this.t >= this.phaseEnd) { this._lock(); this.phase = PHASE.HOLD; } // 시간이 끝나도 바로 공개하지 않고 진행자를 기다린다
+    else if (this.phase === PHASE.MOVING && this.t >= this.phaseEnd) { if (this.brawl) this._finishBrawl(); else { this._lock(); this.phase = PHASE.HOLD; } } // 시간이 끝나도 바로 공개하지 않고 진행자를 기다린다
 
     const active = [...this.players.values()].filter((p) => p.connected);
 
@@ -778,7 +819,7 @@ export class Game {
       if (p.isBot) this._botThink(p);
       this._step(p, dt);
     }
-    this._collide(active);
+    this._collide(active.filter((p) => !p.out)); // 탈락자는 몸이 부딪히지 않음
     for (const p of active) if (p.cfg.ult && !p.stunned) charge(p, p.cfg.ult.need * (p.cfg.ult.chargeSec ? 1 / p.cfg.ult.chargeSec : ULT_CHARGE.auto) * dt); // 가만히 있어도 초당 3% (chargeSec가 있으면 그 시간에 가득)
     this._updateCoins(dt, active);
     this._updateItems(dt, active);
@@ -786,7 +827,8 @@ export class Game {
     updateUlts(this);
     blockWalls(this, active);
 
-    if (this.phase === PHASE.MOVING) {
+    if (this.brawl && this.phase === PHASE.MOVING && this.brawl.groups0 >= 2 && new Set(this._brawlAlive().map((p) => this._bKey(p))).size <= 1) this._finishBrawl();
+    if (this.phase === PHASE.MOVING && this.question && !this.brawl) {
       for (const p of active) {
         const z = zoneAt(this.question.type, p.x, p.y);
         if (z !== p.zone) { p.zone = z; p.zoneSince = this.t; }
@@ -963,7 +1005,7 @@ export class Game {
     if (p.stunned || p.botMode === 'idle') { p.input = { mx: 0, my: 0, run: false }; return; }
     if (p.botMode === 'guard') { this._guardThink(p); return; }
     // 문제를 푸는 중: 무작위로 구역을 하나 골라 그 안의 한 지점으로 걸어감
-    if (this.phase === PHASE.MOVING && this.question) { // 정지 봇만 빼고 모두 문제를 풂 (공격형은 가는 길에 사거리 안의 상대를 때림)
+    if (this.phase === PHASE.MOVING && this.question && ZONES[this.question.type]) { // 정지 봇만 빼고 모두 문제를 풂 (공격형은 가는 길에 사거리 안의 상대를 때림)
       const q = this.question;
       if (p.ai.q !== q.id) {
         const z = ZONES[q.type][Math.floor(Math.random() * ZONES[q.type].length)];
@@ -1039,7 +1081,7 @@ export class Game {
         tn: p.cfg.tint || null, zs: buffOf(this, p)?.morph ? 1 : (p.cfg.scale || 1) * (buffOf(this, p)?.scale || 1),
         am: Math.floor(p.ammoF + 1e-9), amf: r2(p.ammoF % 1), mam: p.cfg.ammo?.max ?? 0,
         ul: p.cfg.ult ? r2(p.ult / p.cfg.ult.need) : 0, ur: ultReady(p) ? 1 : 0, ub: buffOf(this, p) ? r2(p.buff.until - this.t) : 0, pr: buffOf(this, p)?.morph === 'phoenix' ? p.cfg.ult.radius : 0, pu: buffOf(this, p)?.morph === 'phoenix' ? r2(1 - (p.buff.until - this.t) / p.cfg.ult.sec) : 0, mo: buffOf(this, p)?.morph === 'phoenix' && p.cfg.ult.sec - (p.buff.until - this.t) < 0.7 ? 1 : 0, sl: this._stealthed(p) ? 1 : 0, ch: p.channel ? 1 : 0, cm: this.t < p.charmUntil ? 1 : 0, tt: p.tether && this.t < p.tether.until ? p.tether.by : 0, rv: p.stunned ? r2(Math.max(0, p.stunUntil - this.t)) : 0, ob: p.orbit && this.t < p.orbit.until ? { a: r2(p.orbit.a0 + p.orbit.w * (this.t - p.orbit.t0)), w: p.orbit.w, n: p.orbit.n, r: p.orbit.r } : 0, bn: this.t < p.burnUntil ? 1 : 0, rt: this.t < p.rootUntil ? 1 : 0,
-        si: this.t < (p.silenceUntil || 0) ? 1 : 0, sd: p.shield && this.t < p.shield.until ? r2(p.shield.until - this.t) : 0, tm: p.team || 0, sc: this.totalScore(p), cn: p.coins, sp: r2(Math.max(0, p.speedUntil - this.t)),
+        si: this.t < (p.silenceUntil || 0) ? 1 : 0, sd: p.shield && this.t < p.shield.until ? r2(p.shield.until - this.t) : 0, ot: p.out ? 1 : 0, tm: p.team || 0, sc: this.totalScore(p), cn: p.coins, sp: r2(Math.max(0, p.speedUntil - this.t)),
       });
     }
     const q = this.question
@@ -1050,6 +1092,7 @@ export class Game {
       left: this.phase === PHASE.READING || this.phase === PHASE.MOVING ? r2(Math.max(0, this.phaseEnd - this.t)) : 0,
       q,
       reveal: this.reveal,
+      bw: this.brawl && (this.phase === PHASE.READING || this.phase === PHASE.MOVING) ? { g: new Set(this._brawlAlive().map((p) => this._bKey(p))).size, p: this._brawlAlive().length } : null,
       rank: this.showRank, ha: this.hideAns ? 1 : 0, qr: this.showQr ? 1 : 0, sm: this.screenMode, x2: this.multiplier, tp: this.timerPaused ? 1 : 0, fz: this.frozen ? 1 : 0, nt: this.notice && this.t < this.notice.until ? this.notice.text : null, ud: this.scoreLog.length,
       dist: this.phase === PHASE.MOVING || this.phase === PHASE.HOLD ? this._liveDist() : null,
       teams: this._teamTotals(),
@@ -1090,7 +1133,7 @@ export class Game {
 
   hostInfo() {
     return {
-      questions: this.questions.map((q) => ({ id: q.id, type: q.type, text: q.text, options: q.options, answer: q.answer, time: q.time, mode: q.mode || '개인', image: q.image })),
+      questions: this.questions.map((q) => ({ id: q.id, type: q.type, text: q.text, options: q.options, answer: q.answer, time: q.time, mode: q.mode || '개인', image: q.image, pts: q.pts })),
       teamCount: this.teamCount, log: this.log, history: this.history.slice(-100),
       zones: ZONES,
       botsCanAttack: this.botsCanAttack,

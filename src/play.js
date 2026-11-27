@@ -126,6 +126,7 @@ function hud(s) {
     const mine = s.reveal.results.find((r) => r.id === ME);
     const ans = s.q.type === 'choice' ? `${s.reveal.answer}번` : s.reveal.answer;
     rv.hidden = false;
+    if (s.reveal.brawl) rv.textContent = mine ? (mine.correct ? `우승 +${mine.gain}` : mine.out ? '탈락' : '패배') : '대난투 종료'; else
     rv.textContent = `정답 ${ans}` + (mine ? ` ${mine.correct ? `+${mine.gain}${mine.rank ? ` ${mine.rank}등` : ''}` : (mine.zone == null ? '무응답' : '오답') + (mine.dropped ? ` 🪙-${mine.dropped}` : '')}` : '');
     rv.className = mine?.correct ? 'ok' : 'bad';
   } else rv.hidden = true;

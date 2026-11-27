@@ -11,7 +11,7 @@ import { burstFx, chainFx, dmgText, hitFx, pixText, meleeFx, muzzleFx } from './
 import { tetherLines, auraOff, auraTick, beamFx, blink, burnTick, dashFx, fireRing, heartTick, meteorFall, orbitTick, orcDust, quake, shockRing, snipeAim, speedLines, spinFx, tongues, bhBlast, bhHole, bhThrow, stageFx, auraPulse, groundSlam, phoenixBlast, phoenixTick, rangeDisc, UltZoneLayer, WallLayer, warn as warnFx } from './ultFx.js';
 import { ProjectileLayer } from './projectiles.js';
 import sprites from '../shared/sprites.json';
-import { buildFloor, buildQuizFloor, MAT_MARGIN, matTexture, OBJ_PAD, objectTexture, TILE } from './mapArt.js';
+import { buildFloor, buildQuizFloor, buildBrawlFloor, MAT_MARGIN, matTexture, OBJ_PAD, objectTexture, TILE } from './mapArt.js';
 import { mapObjects } from '../shared/mapObjects.js';
 
 export const BU = 48; // 몸 폭 1칸의 화면 픽셀 수
@@ -48,9 +48,10 @@ export class WorldScene extends Phaser.Scene {
   create() {
     // 바닥: 도트 1개 = 화면 2px (캐릭터와 같은 도트 크기)
     buildFloor(this);
-    buildQuizFloor(this);
+    buildQuizFloor(this); buildBrawlFloor(this);
     this.add.image(0, 0, 'floor').setOrigin(0).setScale(BU / TILE).setDepth(-100);
     this.quizFloor = this.add.image(0, 0, 'floor-quiz').setOrigin(0).setScale(BU / TILE).setDepth(-99).setVisible(false); // 문제가 시작되면 잔디 위를 덮음
+    this.brawlFloor = this.add.image(0, 0, 'floor-brawl').setOrigin(0).setScale(BU / TILE).setDepth(-98).setVisible(false); // 대난투 때는 이것이 덮음
     this.decor = [];
 
     for (const o of mapObjects()) { // 맵 장식물: 아래쪽 기준으로 캐릭터와 앞뒤가 맞게 겹침 (꽃·버섯은 바닥에 깔림)
@@ -350,7 +351,8 @@ export class WorldScene extends Phaser.Scene {
   // ---------- 구역 ----------
   drawZones(s) {
     const quiz = s.phase !== PHASE.LOBBY; // 대기실은 잔디 들판, 문제 중에는 남색 퀴즈 무대
-    if (this.quizFloor.visible !== quiz) { this.quizFloor.setVisible(quiz); this.decor.forEach((o) => o.setVisible(!quiz)); }
+    const brawl = quiz && s.q?.type === 'brawl';
+    if (this.quizFloor.visible !== quiz || this.brawlFloor.visible !== brawl) { this.quizFloor.setVisible(quiz); this.brawlFloor.setVisible(brawl); this.decor.forEach((o) => o.setVisible(!quiz)); }
     const type = s.q?.type || 'ox';
     const ans = s.reveal?.answer;
     const key = `${s.phase}|${type}|${ans ?? ''}`;
@@ -360,7 +362,7 @@ export class WorldScene extends Phaser.Scene {
     this.zoneImgs.forEach((i) => i.destroy());
     this.zoneImgs = [];
 
-    for (const z of ZONES[type]) {
+    for (const z of ZONES[type] || []) {
       const correct = s.phase === PHASE.REVEAL && z.id === ans;
       const alpha = { [PHASE.LOBBY]: 0.35, [PHASE.READING]: 0.6, [PHASE.MOVING]: 0.85 }[s.phase] ?? (correct ? 1 : 0.2);
       this.zoneImgs.push(this.add.image((z.cx - z.r) * BU - MAT_MARGIN * (BU / TILE), (z.cy - z.r) * BU - MAT_MARGIN * (BU / TILE), matTexture(this, type, z)).setOrigin(0).setScale(BU / TILE).setDepth(-80).setAlpha(alpha));

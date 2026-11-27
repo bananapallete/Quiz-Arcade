@@ -1260,6 +1260,29 @@ test('점수 기록: 수동·퀴즈·현실 점수가 게임마다 누가 몇 �
   assert.equal(g.hostInfo().history.length, 2);
 });
 
+test('대난투: 팀 전원이 탈락하면 끝나고, 마지막까지 남은 팀 전원이 점수를 받는다', () => {
+  const g = new Game(chars, [{ type: 'brawl', text: '대난투', time: 60, pts: 5 }]);
+  const mk = (t, team) => { const p = g.join({ token: t, name: t, charId: 'blue' }); p.team = team; return p; };
+  const a1 = mk('a1', 1), a2 = mk('a2', 1), b1 = mk('b1', 2), bot = g.addBot('idle', 'blue');
+  assert.ok(g.ask(1)); assert.equal(bot.connected, false, '봇은 치워짐'); assert.ok(g.snapshot().bw.g === 2);
+  run(g, 3.2); assert.equal(g.phase, PHASE.MOVING);
+  a1.invUntil = a2.invUntil = b1.invUntil = 0; g.knockOut('b1');
+  assert.equal(b1.out, true); assert.equal(b1.stunUntil, Infinity); run(g, 0.2);
+  assert.equal(g.phase, PHASE.REVEAL); assert.ok(g.reveal.brawl);
+  assert.equal(a1.score, 5); assert.equal(a2.score, 5); assert.equal(b1.score, 0); assert.deepEqual(g.reveal.winners.map((w) => w.team), [1]);
+  assert.equal(b1.stunned, false, '끝나면 일어남'); assert.equal(bot.connected, true, '봇 복귀');
+  g.undoScore(); assert.equal(a1.score, 0);
+});
+
+test('대난투: 시간이 끝나면 남은 체력 합이 큰 팀이 이기고, 혼자(한 팀)면 시간까지 계속된다', () => {
+  const g = new Game(chars, [{ type: 'brawl', text: '대난투', time: 20, pts: 3 }]);
+  const a = g.join({ token: 'a', name: 'a', charId: 'blue' }); a.team = 1; const b = g.join({ token: 'b', name: 'b', charId: 'blue' }); b.team = 2;
+  g.ask(1); run(g, 3.2); a.hp = 10; b.hp = 30; run(g, 21);
+  assert.equal(g.phase, PHASE.REVEAL); assert.equal(b.score, 3); assert.equal(a.score, 0);
+  const g2 = new Game(chars, [{ type: 'brawl', text: 'x', time: 20 }]); const s = g2.join({ token: 's', name: 's', charId: 'blue' });
+  g2.ask(1); run(g2, 10); assert.equal(g2.phase, PHASE.MOVING, '한 팀뿐이면 자동 종료 안 함'); run(g2, 14); assert.equal(s.score, 5);
+});
+
 test('난타(격투가): 5초간 앞으로 걸어가며 전방 직선을 연타하고 끝나면 멈춘다', () => {
   const { g, A, B } = duo('brawler', 'blue');
   A.x = 10; A.y = 10; B.x = 12; B.y = 10; A.ult = A.cfg.ult.need;

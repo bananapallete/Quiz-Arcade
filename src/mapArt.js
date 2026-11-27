@@ -54,6 +54,24 @@ export function buildQuizFloor(scene) {
   nearest(tex);
 }
 
+/** 대난투 바닥('floor-brawl'): 어두운 붉은 돌바닥 + 가운데 타원 링 + 불꽃 점. 퀴즈 무대·잔디와 한눈에 구분됨 */
+export function buildBrawlFloor(scene) {
+  const W = MAP.w * TILE, H = MAP.h * TILE, T = [0x4a2a2e, 0x42262a].map(rgb), CRACK = rgb(0x2a1518), RING = rgb(0xff8a3c), EMBER = rgb(0xffc15e), EDGE = rgb(0xff5a2c);
+  const tex = scene.textures.createCanvas('floor-brawl', W, H), ctx = tex.getContext(), img = ctx.createImageData(W, H), d = img.data, cx = W / 2, cy = 13.2 * TILE, rx = 18 * TILE, ry = 7.4 * TILE; // 위쪽 문제 카드에 안 가리게 아래로 내림
+  for (let gy = 0; gy < H; gy++) for (let gx = 0; gx < W; gx++) {
+    const tx = Math.floor(gx / TILE), ty = Math.floor(gy / TILE), x = gx % TILE, y = gy % TILE;
+    let c = T[(tx + ty) % 2];
+    if (x === 0 || y === 0) c = CRACK;
+    else if ((gx * 31 + gy * 17) % 173 === 0) c = EMBER;
+    const e = ((gx - cx) / rx) ** 2 + ((gy - cy) / ry) ** 2;
+    if (Math.abs(e - 1) < 0.018 && (gx + gy) % 12 < 8) c = RING; // 점선 링
+    if (gx < 3 || gy < 3 || gx >= W - 3 || gy >= H - 3) c = EDGE;
+    const i = (gy * W + gx) * 4; d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  nearest(tex);
+}
+
 export const MAT_MARGIN = 8; // 링 바깥 장식(꽃·풀잎)이 들어갈 여백 (도트)
 const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]; // 4x4 디더링 표
 const NAVY = rgb(0x14122b), STONE = [rgb(0xefe3c2), rgb(0xcbbd98)], STONE_LINE = rgb(0x7a6a48);

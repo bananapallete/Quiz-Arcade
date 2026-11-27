@@ -45,6 +45,7 @@ function hud(s) {
 
   if (s.phase === PHASE.REVEAL && s.reveal) {
     reveal.hidden = false;
+    if (s.reveal.brawl) { reveal.innerHTML = `대난투 우승 · ${s.reveal.winners.map((w) => (w.team ? `${w.team}팀` : w.names.join(', '))).join(', ') || '없음'}`; return; }
     const ans = s.q.type === 'choice' ? `${s.reveal.answer}번` : s.reveal.answer;
     const winners = s.reveal.results.filter((r) => r.correct).sort((a, b) => a.rank - b.rank);
     const top = winners.slice(0, 3).map((r) => `${r.rank}등 ${r.name} +${r.gain}`).join('  ');

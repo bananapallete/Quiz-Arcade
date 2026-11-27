@@ -30,13 +30,13 @@ function renderQuestions() {
   $('#qlist').innerHTML = info.questions.map((q) => `
     <div class="q ${q.id === curId ? 'cur' : doneIds.has(q.id) ? 'done' : ''}">
       <i></i><span title="${esc(q.text)}">${q.id}. ${esc(q.text)}</span>
-      <button class="chip ${q.mode === '팀' ? 'c-team' : q.mode === '현실' ? 'c-real' : 'c-ind'}" data-mode="${q.id}" style="cursor:pointer;font-size:11px">${esc(q.mode)}</button>
+      <button class="chip ${q.mode === '팀' || q.mode === '대난투' ? 'c-team' : q.mode === '현실' ? 'c-real' : 'c-ind'}" data-mode="${q.id}" style="cursor:pointer;font-size:11px">${esc(q.mode)}</button>
       <button class="btn sm go" data-pick="${q.id}">선택</button>
     </div>`).join('');
 }
 $('#qlist').addEventListener('click', (e) => {
   const m = e.target.closest('[data-mode]'), p = e.target.closest('[data-pick]');
-  if (m) { const q = info.questions.find((x) => x.id === Number(m.dataset.mode)); if (q && q.type !== 'real') emit('host:setMode', { id: q.id, mode: q.mode === '팀' ? '개인' : '팀' }); }
+  if (m) { const q = info.questions.find((x) => x.id === Number(m.dataset.mode)); if (q && q.type !== 'real' && q.type !== 'brawl') emit('host:setMode', { id: q.id, mode: q.mode === '팀' ? '개인' : '팀' }); }
   if (p) { askId = Number(p.dataset.pick); renderCurrent(); }
 });
 function renderCurrent() {
@@ -57,7 +57,7 @@ $('#reset').addEventListener('click', () => { if (confirm('점수와 동전을 �
 $('#q-add').addEventListener('click', () => {
   const text = $('#q-text').value.trim(), type = $('#q-type').value; if (!text) return;
   const raw = $('#q-ans').value.trim().toUpperCase();
-  emit('host:addQuestion', { type, text, mode: $('#q-mode').value, options: $('#q-opts').value.split(',').map((x) => x.trim()).filter(Boolean), answer: type === 'ox' ? raw : Number(raw), time: Number($('#q-time').value), image: $('#q-img').value.trim() });
+  emit('host:addQuestion', { type, text, mode: $('#q-mode').value, options: $('#q-opts').value.split(',').map((x) => x.trim()).filter(Boolean), answer: type === 'ox' ? raw : Number(raw), pts: type === 'brawl' ? Number(raw) : undefined, time: Number($('#q-time').value), image: $('#q-img').value.trim() });
   $('#q-text').value = ''; $('#q-img').value = '';
 });
 
@@ -126,7 +126,7 @@ let humans = [], lastKey = '', realKey = '';
 socket.on('state', (s) => {
   st = s; rankOn = !!s.rank;
   humans = s.players.filter((p) => !p.b);
-  $('#s-players').textContent = `${humans.length}명 접속`; $('#s-phase').textContent = phaseName[s.phase] || '-'; $('#s-left').textContent = s.left > 0 ? `⏱ ${Math.ceil(s.left)}초` : '-';
+  $('#s-players').textContent = `${humans.length}명 접속`; $('#s-phase').textContent = (phaseName[s.phase] || '-') + (s.bw ? ` · ⚔ ${s.bw.p}명` : ''); $('#s-left').textContent = s.left > 0 ? `⏱ ${Math.ceil(s.left)}초` : '-';
   $('#hideans').classList.toggle('on', !!s.ha); $('#hideans').textContent = s.ha ? '정답 보이기' : '정답 숨기기';
   $('#rank').classList.toggle('on', rankOn); $('#rank').textContent = rankOn ? '🏆 등수 숨기기' : '🏆 등수 공개';
   $('#t-pause').classList.toggle('on', !!s.tp); $('#t-pause').textContent = s.tp ? '▶ 재개' : '⏸ 일시정지';
@@ -142,7 +142,7 @@ socket.on('state', (s) => {
   renderCurrent();
   // 실시간 응답
   const dist = s.dist || (s.reveal && s.reveal.dist) || null, keys = s.q?.type === 'choice' ? [1, 2, 3, 4].slice(0, s.q.options?.length || 4) : ['O', 'X'], tot = Math.max(1, humans.length);
-  $('#distbox').hidden = !s.q || s.q.type === 'real' || s.phase === PHASE.LOBBY;
+  $('#distbox').hidden = !s.q || s.q.type === 'real' || s.q.type === 'brawl' || s.phase === PHASE.LOBBY;
   if (dist) { const sum = Object.values(dist).reduce((a, b) => a + b, 0), na = humans.length - (sum - (dist['-'] || 0)); $('#d-n').textContent = `${humans.length - na + (dist['-'] ? 0 : 0)} / ${humans.length}명 구역에 있음`;
     $('#dist').innerHTML = [...keys, '-'].map((k) => `<div class="dist"><b style="color:${k === 'O' || k === 1 ? '#4a86d9' : k === 'X' || k === 2 ? '#e5483c' : '#666'}">${k === '-' ? '—' : k}</b><div class="t"><i style="width:${((dist[k] || 0) / tot) * 100}%;background:${k === 'O' || k === 1 ? '#4a86d9' : k === 'X' || k === 2 ? '#e5483c' : k === 3 ? '#4fae55' : k === 4 ? '#e0902a' : '#8b8b8b'}"></i></div><span>${dist[k] || 0}</span></div>`).join(''); }
   // 현실 퀴즈 패널
