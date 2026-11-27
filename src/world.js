@@ -294,7 +294,7 @@ export class WorldScene extends Phaser.Scene {
 
   handleEvent(e) {
     { const sv = e.id ? this.views.get(e.id) : null, fv = this.views.get(this.focusId); // 효과음: 나와 가까울수록 크게 (좌표는 칸 단위)
-      sfxEvent(e, { mine: e.id === this.focusId, screen: this.screen, x: e.x ?? (sv ? sv.x / BU : null), y: e.y ?? (sv ? sv.y / BU : null), fx: fv ? fv.x / BU : null, fy: fv ? fv.y / BU : null, charId: sv?.p?.c }); }
+      sfxEvent(e, { mine: (e.by ?? e.id) === this.focusId, screen: this.screen, x: e.x ?? (sv ? sv.x / BU : null), y: e.y ?? (sv ? sv.y / BU : null), fx: fv ? fv.x / BU : null, fy: fv ? fv.y / BU : null, charId: sv?.p?.c }); }
     const now = performance.now();
     const v = this.views.get(e.id);
     if (e.e === 'ult' && v) {

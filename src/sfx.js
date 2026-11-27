@@ -5,6 +5,23 @@ let ctx = null, master = null, voices = 0, muted = false;
 try { muted = localStorage.getItem(KEY) === '1'; } catch { /* 저장 불가 */ }
 const lastAt = {};
 
+// ---------- 실제 동물 울음소리 (public/sfx/animal/*.mp3|ogg|wav) ----------
+// 파일이 없으면 null로 두고 합성음을 그대로 씀. 캐릭터 → [파일 이름, 음높이]
+const ANIMAL = { puppy: ['dog', 1.3], labrador: ['dog', 0.9], shiba: ['dog', 1.05], cat: ['cat', 1], frog: ['frog', 1], pig: ['pig', 1], hippo: ['hippo', 1], chicken: ['chicken', 1], chick: ['chick', 1] };
+const cries = {}; // 이름 → AudioBuffer | null(없음) | 'loading'
+async function loadCry(name) {
+  if (cries[name] !== undefined) return; cries[name] = 'loading';
+  for (const ext of ['mp3', 'ogg', 'wav']) {
+    try { const r = await fetch(`/sfx/animal/${name}.${ext}`); if (!r.ok || !/audio|ogg|mpeg|wav|octet/.test(r.headers.get('content-type') || '')) continue; cries[name] = await ctx.decodeAudioData(await r.arrayBuffer()); return; } catch { /* 다음 확장자 */ }
+  }
+  cries[name] = null;
+}
+function cry(name, vol, rate) {
+  const b = cries[name]; if (!b || b === 'loading') return false;
+  const s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = b; s.playbackRate.value = rate * (0.95 + Math.random() * 0.1); g.gain.value = vol;
+  s.connect(g); g.connect(master); s.start(); done(b.duration / s.playbackRate.value); return true;
+}
+
 export const isMuted = () => muted;
 export function setMuted(m) { muted = !!m; try { localStorage.setItem(KEY, m ? '1' : '0'); } catch { /* 저장 불가 */ } }
 
@@ -13,6 +30,7 @@ export function unlockAudio() {
   try {
     if (!ctx) { ctx = new (window.AudioContext || window.webkitAudioContext)(); master = ctx.createGain(); master.gain.value = 0.32; master.connect(ctx.destination); }
     if (ctx.state === 'suspended') ctx.resume();
+    for (const [name] of Object.values(ANIMAL)) loadCry(name); // 동물 소리 파일 미리 불러오기 (없으면 건너뜀)
   } catch { ctx = null; }
 }
 ['pointerdown', 'keydown', 'touchend'].forEach((ev) => addEventListener(ev, unlockAudio, { passive: true }));
@@ -50,6 +68,9 @@ const BASIC = {
   tongue: (v, p) => { tone(500 * p, 160, 0.09, 'sine', 0.6 * v); noise(0.05, 2000, 800, 0.25 * v); },
   zap: (v, p) => { for (let i = 0; i < 3; i++) tone((1400 + i * 300) * p, 400, 0.07, 'sawtooth', 0.3 * v, i * 0.045); },
   boom: (v, p) => { tone(120 * p, 40, 0.28, 'sine', 0.9 * v); noise(0.3, 1400, 120, 0.55 * v); },
+  coin: (v, p) => { tone(988 * p, 988 * p, 0.07, 'square', 0.22 * v); tone(1319 * p, 1319 * p, 0.16, 'square', 0.22 * v, 0.07); },
+  heal: (v) => { [523, 659, 784, 1047].forEach((f, i) => tone(f, f * 1.01, 0.2, 'sine', 0.3 * v, i * 0.07)); },
+  speed: (v) => { noise(0.3, 600, 4000, 0.4 * v); tone(300, 900, 0.3, 'square', 0.2 * v); },
   pop: (v, p) => { tone(600 * p, 200, 0.07, 'sine', 0.5 * v); },
 };
 
@@ -95,7 +116,8 @@ export function sfxEvent(e, c) {
   let v = 1;
   if (!c.screen && !c.mine && c.fx != null && c.x != null) v = loudness(Math.hypot(c.x - c.fx, c.y - c.fy)); // 멀리 있는 사람 소리는 작게
   if (v < 0.04) return;
-  const p = pitchOf(c.charId);
+  const p = pitchOf(c.charId), an = ANIMAL[c.charId];
+  if (an && (isUlt || e.e === 'atk') && gate('c' + e.id, isUlt ? 300 : 1100)) cry(an[0], Math.min(1, v) * (isUlt ? 0.9 : 0.6), an[1]); // 동물 캐릭터: 궁극기엔 확실히, 평타엔 가끔 울음
   if (isUlt) { const f = ULT[e.t]; if (f && gate('u' + e.id, ULT_GAP)) f(Math.min(1, v * (c.mine ? 1 : 0.9))); return; }
   let k = null;
   if (e.e === 'atk') {
@@ -104,4 +126,6 @@ export function sfxEvent(e, c) {
     else if (e.kind === 'proj') k = e.fx === 'chain' ? 'zap' : e.lob ? 'throw' : e.art === 'boomerang' ? 'whirr' : /arrow/.test(e.art || '') ? 'twang' : e.art === 'orb' ? 'magic' : e.art ? 'throw' : 'spark';
     if (k && gate('a' + (c.mine ? 'm' : 'o'), ATK_GAP)) BASIC[k](v * (c.mine ? 1 : 0.8), p);
   } else if (e.e === 'boom' && gate('b', BOOM_GAP)) BASIC.boom(v * 0.8, 1);
+  else if (e.e === 'coinGet' && gate('coin' + (c.mine ? 'm' : 'o'), 55)) BASIC.coin(v * (c.mine ? 1 : 0.6), 1 + Math.random() * 0.12); // 동전 줍는 소리 (음높이를 살짝 흔들어 단조롭지 않게)
+  else if (e.e === 'itemGet') { if (e.k === 'heart' && gate('heal' + (c.mine ? 'm' : 'o'), 150)) BASIC.heal(v * (c.mine ? 1 : 0.6)); else if (e.k === 'shoe' && gate('shoe', 150)) BASIC.speed(v * (c.mine ? 1 : 0.6)); } // 체력 회복(하트·회복 효과) / 신발
 }

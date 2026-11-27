@@ -29,6 +29,7 @@ if (location.search.includes('debug')) { // 끊김 진단: ?debug 로 열면 화
   setInterval(() => { const g = scene.game.loop, avg = gaps.reduce((a, b) => a + b, 0) / (gaps.length || 1); box.textContent = `fps ${Math.round(g.actualFps)} dpr ${scene.dpr.toFixed(2)}\n서버 ${avg.toFixed(0)}ms (최대 ${Math.max(0, ...gaps).toFixed(0)})`; }, 500);
 } // 테스트용 접근
 let follow = true;
+let spT = 0; // 신발(달리기) 아이템 효과 중이면 0→1: 달리는 시간 동안 줌아웃
 let runT = 0; // 0 평소 → 1 달리는 중 (0.4초에 걸쳐 오감)
 let deadT = 0; // 쓰러지면 0→1 (0.5초에 걸쳐): 줌인 + 흑백
 let eggT = 0; // 알이 된 지 지난 시간(ms): 알이 되면 줌인했다가 1초 뒤 줌아웃
@@ -67,7 +68,8 @@ scene.onFrame = (sc, dt) => {
   if (follow && v) {
     // 세로 화면은 폭 16.5칸, 가로 화면은 폭 24칸이 보이도록 (1칸 = 몸 폭 1개)
     runT = Math.max(0, Math.min(1, runT + (v.p.a === 'run' && me?.skill !== 'dash' ? dt : -dt) / 400)); // 대쉬 캐릭터는 대쉬 때 카메라 줌 변화 없음
-    const ease = runT < 0.5 ? 4 * runT ** 3 : 1 - (-2 * runT + 2) ** 3 / 2; // 이즈 인/아웃
+    spT = Math.max(0, Math.min(1, spT + (v.p.sp > 0 && !v.p.st ? dt : -dt) / 400));
+    const ease = Math.max(runT < 0.5 ? 4 * runT ** 3 : 1 - (-2 * runT + 2) ** 3 / 2, spT < 0.5 ? 4 * spT ** 3 : 1 - (-2 * spT + 2) ** 3 / 2); // 이즈 인/아웃 (달리기 또는 신발 효과 중 줌아웃)
     const dead = !!v.p.st, egg = dead && v.p.s === 'egg'; eggT = egg ? eggT + dt : 0;
     deadT = Math.max(0, Math.min(1, deadT + (dead && (!egg || eggT < 1000) ? dt : -dt) / 500)); // 알은 1초 동안만 줌인, 이후엔 알인 채로 줌아웃
     const de = deadT < 0.5 ? 4 * deadT ** 3 : 1 - (-2 * deadT + 2) ** 3 / 2;
