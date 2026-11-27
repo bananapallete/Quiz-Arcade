@@ -826,7 +826,7 @@ export class Game {
         const u = (this.t - q.t0) / q.T;
         if (u < 1) { q.x = q.sx + (q.tx - q.sx) * u; q.y = q.sy + (q.ty - q.sy) * u; continue; }
         this.projectiles.delete(q.id); // 착탄: 범위 안 모두에게 피해, 중심에서 바깥으로 밀림 (던진 사람은 안 맞음)
-        this.events.push({ e: 'boom', x: r2(q.tx), y: r2(q.ty), r: q.r });
+        this.events.push({ e: 'boom', x: r2(q.tx), y: r2(q.ty), r: q.r, art: q.art });
         for (const o of foes) {
           const d = Math.hypot(o.x - q.tx, o.y - q.ty);
           if (d > q.r + o.cfg.radius) continue;

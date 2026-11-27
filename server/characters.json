@@ -1238,7 +1238,7 @@
   },
   "nurse": {
     "name": "간호사",
-    "sprite": "elf",
+    "sprite": "nurse",
     "tint": "#bdf5e0",
     "radius": 0.5,
     "hp": 55,
@@ -1265,7 +1265,7 @@
         "speed": 8,
         "lob": true,
         "explodeRadius": 1.7,
-        "art": "spark",
+        "art": "nurse_capsule",
         "heal": 4
       },
       "fx": "spark"

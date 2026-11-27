@@ -82,7 +82,7 @@ export class WorldScene extends Phaser.Scene {
 
     for (const s of SPRITES) {
       const n = sprites[s]?.idle ? sprites[s] : null; // 없으면 blue(constants의 프레임 수)
-      if (sprites[s]?.ult) this.anims.create({ key: `${s}-ult`, frames: this.anims.generateFrameNumbers(`${s}-ult`, { start: 0, end: sprites[s].ult - 1 }), frameRate: s === 'shiba' ? 9 : s === 'diva' ? 8 : 16, repeat: -1 }); // 채널링 궁극기 모션
+      if (sprites[s]?.ult) this.anims.create({ key: `${s}-ult`, frames: this.anims.generateFrameNumbers(`${s}-ult`, { start: 0, end: sprites[s].ult - 1 }), frameRate: s === 'shiba' ? 9 : s === 'diva' ? 8 : s === 'nurse' ? 12 : 16, repeat: -1 }); // 채널링 궁극기 모션 (간호사는 응급 처치 때 한 번)
       if (sprites[s]?.morph) this.anims.create({ key: `${s}-morph`, frames: this.anims.generateFrameNumbers(`${s}-morph`, { start: 0, end: sprites[s].morph - 1 }), frameRate: 12, repeat: 0 }); // 병아리 → 불꽃 → 피닉스 변신
       if (sprites[s]?.die) this.anims.create({ key: `${s}-die`, frames: this.anims.generateFrameNumbers(`${s}-die`, { start: 0, end: sprites[s].die - 1 }), frameRate: 9, repeat: 0 });
       SPRITE.attackSteps.forEach((st, i) => {
@@ -327,6 +327,7 @@ export class WorldScene extends Phaser.Scene {
     if (e.e === 'regen' && v) this._regenFx(v, e.amount);
     if (e.e === 'eggBreak') shockRing(this, { x: e.x, y: e.y, r: 1 }, BU); // 알이 깨짐
     if (e.e === 'ghost' && v && (this._brawlOn || e.q)) v.ghostDieUntil = now + 800; // 대난투에서 쓰러졌을 때만 죽음 모션 (달력 탈락은 해당 없음)
+    if (e.e === 'ult' && v && e.t === 'rally' && sprites[v.p?.s]?.ult) { v.ultOnceUntil = now + (sprites[v.p.s].ult / 12) * 1000; v.sprite.play(`${v.p.s}-ult`); } // 간호사 응급 처치: 구급상자 모션 한 번
     if (e.e === 'ult' && v) {
       if (['channel', 'charm', 'magnet', 'tether', 'stage', 'brood', 'rally'].includes(e.t)) auraPulse(this, { ...e, r: e.r || 2.25 }, BU, e.t === 'charm' ? [0xffe6f2, 0xffb3d9, 0xff7ab8, 0xc94c8a] : undefined);
       if (e.t === 'rush') speedLines(this, e, BU);
@@ -497,7 +498,7 @@ export class WorldScene extends Phaser.Scene {
 
       // 모션: 공격 중이면 유지, 아니면 이동 상태에 맞춰
       const dies = (p.st || dying) && sprites[p.s]?.die; // 기절하면 죽음 모션을 한 번 재생하고 누운 채로 둠
-      const chan = p.ch && sprites[p.s]?.ult; // 채널링 궁극기 중엔 전용 모션을 계속 재생
+      const chan = (p.ch || now < (v.ultOnceUntil || 0)) && sprites[p.s]?.ult; // 채널링 궁극기 중엔 전용 모션을 계속 재생 (순간 궁극기는 한 번)
       if (dies) { if (!v.dead) { v.dead = true; v.sprite.play(`${p.s}-die`); } }
       else if (p.mo && sprites[p.s]?.morph) { v.dead = false; v.sprite.play(`${p.s}-morph`, true); }
       else if (chan) { v.dead = false; v.sprite.play(`${p.s}-ult`, true); }

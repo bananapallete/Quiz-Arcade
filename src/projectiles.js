@@ -70,6 +70,6 @@ export class ProjectileLayer {
 
   // 폭발: 불덩이가 퍼지는 링 + 튀는 불씨(도트 네모) + 바닥에 그을음
   _boom(e) { // 도트 폭발: 불꽃(기본) · 별똥별(보라) · 알(노랑)
-    explosion(this.s, e.x * this.bu, e.y * this.bu, e.r, e.art === 'orb' ? 'orb' : e.art === 'egg' ? 'egg' : 'fire', this.bu);
+    explosion(this.s, e.x * this.bu, e.y * this.bu, e.r, e.art === 'orb' ? 'orb' : e.art === 'egg' ? 'egg' : e.art === 'nurse_capsule' ? 'pink' : 'fire', this.bu);
   }
 }

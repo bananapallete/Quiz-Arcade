@@ -5,7 +5,7 @@ import { HEART_PALETTE, ITEM_SHADOW, SHOE_PALETTE, SHOE_ROWS, heartRows } from '
 const SCALE = 3;
 const REST = 0.55; // 바닥에서 뜬 높이 (칸)
 const easeOutBack = (t) => 1 + 2.70158 * (t - 1) ** 3 + 1.70158 * (t - 1) ** 2;
-const FLY = { heart: 0xff3b4e, shoe: 0x3b8bff }; // 날아올 때 색
+const FLY = { heart: 0xff4fd8, shoe: 0x2ef2ff }; // 날아올 때 색: 형광 핑크 · 형광 블루
 const easeOut = (t) => 1 - (1 - t) ** 3;
 const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 const LABEL = { heart: { color: '#ff8fa0' }, shoe: { color: '#8ec5ff', text: '속도 ↑' } };

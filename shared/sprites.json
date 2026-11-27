@@ -174,5 +174,13 @@
   "combo": 6,
   "die": 6,
   "ult": 8
+ },
+ "nurse": {
+  "idle": 4,
+  "walk": 6,
+  "run": 6,
+  "combo": 8,
+  "die": 6,
+  "ult": 8
  }
 }
