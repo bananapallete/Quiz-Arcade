@@ -109,8 +109,8 @@
       "range": 6.5,
       "radius": 2.6,
       "sec": 3,
-      "tick": 0.5,
-      "dmg": 4,
+      "tick": 0.05,
+      "dmg": 1,
       "kind": "rain",
       "desc": "지정한 곳에 3초간 화살비"
     }

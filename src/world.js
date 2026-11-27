@@ -522,7 +522,9 @@ export class WorldScene extends Phaser.Scene {
       if (ff > v.chip) v.chip = ff;
       if (now >= v.chipHold && v.chip > f) v.chip = Math.max(f, v.chip - (v.chipRate * delta) / 1000);
       v.hpLast = f;
-      const hpCol = p.sd > 0 ? 0x4a86d9 : f > 0.6 ? 0x4fd16a : f > 0.3 ? 0xf2c230 : 0xe5483c; // 색 이동: 초록 → 노랑 → 빨강
+      const TCOL = [0, 0xff4d4d, 0x4d8dff, 0x4be37a, 0xffd54a, 0xc77dff, 0xff9f43, 0x4dd8e8, 0xff8fc8], fv0 = this.views.get(this.focusId)?.p, rel = this._brawlOn && !me ? (this.focusId ? (fv0?.tm && p.tm === fv0.tm ? 1 : 2) : p.tm ? 3 : 0) : 0; // 대난투: 1 아군 2 적 3 프로젝터(팀색)
+      const relCol = rel === 1 ? 0x2fb8ff : rel === 2 ? 0xe5342c : rel === 3 ? TCOL[p.tm] : 0;
+      const hpCol = p.sd > 0 ? 0x4a86d9 : relCol || (f > 0.6 ? 0x4fd16a : f > 0.3 ? 0xf2c230 : 0xe5483c); // 색 이동: 초록 → 노랑 → 빨강
       v.bar.fillStyle(THEME.hpEmpty, 1).fillRect(bx0, by, bw, bh);
       v.bar.fillStyle(0xfff1d6, 0.85).fillRect(bx0, by, bw * v.chip, bh);
       v.bar.fillStyle(hpCol, low ? 0.65 + 0.35 * Math.sin((now / 1000) * Math.PI * 6) : 1).fillRect(bx0, by, bw * ff, bh); // 30% 아래는 초당 3번 깜빡임
@@ -545,10 +547,11 @@ export class WorldScene extends Phaser.Scene {
       }
       const lead = p.id === this.leaderId, nm = (lead ? '👑 ' : '') + (p.b ? '🤖 ' : '') + p.n;
       if (v.nameStr !== nm) { v.nameStr = nm; v.name.setText(nm); }
+      { const nc = rel === 1 ? '#0a6fb5' : rel === 2 ? '#c0221b' : rel === 3 ? '#' + TCOL[p.tm].toString(16).padStart(6, '0') : '#1f2d3a'; if (v.nameCol !== nc) { v.nameCol = nc; v.name.setColor(nc); } }
       if (lead && this.sys.game.renderer.type === Phaser.WEBGL && !v.lglow) { v.sprite.preFX.setPadding(24); v.lglow = v.sprite.preFX.addGlow(0xffd54a, 4, 0, false, 0.1, 12); } // 1등: 항상 노란 테두리로 빛남
       else if (!lead && v.lglow) { v.sprite.preFX.remove(v.lglow); v.lglow = null; }
       if (this.renderer.type === Phaser.WEBGL) { // 대난투: 테두리색으로 팀 구분 (폰: 아군 초록·적 빨강, 프로젝터: 팀색)
-        const ft = this.views.get(this.focusId)?.p?.tm, me2 = p.id === this.focusId, col = !this._brawlOn || me2 ? 0 : this.focusId ? (ft && p.tm === ft ? 0x4be37a : 0xff3b3b) : p.tm ? [0, 0xff4d4d, 0x4d8dff, 0x4be37a, 0xffd54a, 0xc77dff, 0xff9f43, 0x4dd8e8, 0xff8fc8][p.tm] : 0;
+        const ft = this.views.get(this.focusId)?.p?.tm, me2 = p.id === this.focusId, col = !this._brawlOn || me2 || this.focusId ? 0 : p.tm ? [0, 0xff4d4d, 0x4d8dff, 0x4be37a, 0xffd54a, 0xc77dff, 0xff9f43, 0x4dd8e8, 0xff8fc8][p.tm] : 0;
         if (v.tcol !== col) { if (v.tglow) { v.sprite.preFX.remove(v.tglow); v.tglow = null; } v.tcol = col; if (col) { v.sprite.preFX.setPadding(24); v.tglow = v.sprite.preFX.addGlow(col, 3, 0, false, 0.1, 10); } }
       }
       if (p.gh && p.rr) { // 대난투 유령 밑에 팀원이 겹쳐야 하는 부활 범위(점선 원)와 진행도(차오르는 부채꼴)
