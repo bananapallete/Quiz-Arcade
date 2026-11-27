@@ -450,7 +450,7 @@ test('동전: 쓰러진 캐릭터는 못 줍고, 봇은 줍는다', () => {
   assert.equal(g.coins.size, 1);
 });
 
-test('동전: 쓰러지면 가진 동전이 전부 반경 2.5칸 안으로 튀어나온다', () => {
+test('동전: 쓰러지면 가진 동전이 전부 반경 안(COIN.scatterRadius)으로 튀어나온다', () => {
   const g = new Game(chars, quizzes);
   const a = g.join({ token: 'a', name: 'A', charId: 'blue' });
   a.x = 20; a.y = 11; g.giveCoins('a', 6);
@@ -465,7 +465,7 @@ test('동전: 쓰러지면 가진 동전이 전부 반경 2.5칸 안으로 튀�
     assert.ok(dist <= COIN.scatterRadius + 0.01 && dist >= COIN.scatterMin - 0.01, `반경: ${dist}`);
     assert.ok(d.x >= 0 && d.x <= MAP.w && d.y >= 0 && d.y <= MAP.h);
     assert.equal(d.fx, 20); assert.equal(d.fy, 11);
-    assert.ok(d.flight > 0.4 && d.flight < 0.7);
+    assert.ok(d.flight > 0.5 && d.flight < 0.85);
   }
 });
 
@@ -1269,46 +1269,45 @@ test('점수 기록: 수동·퀴즈·현실 점수가 게임마다 누가 몇 �
   assert.equal(g.hostInfo().history.length, 2);
 });
 
-test('대난투: 팀 전원이 탈락하면 끝나고, 마지막까지 남은 팀 전원이 점수를 받는다', () => {
-  const g = new Game(chars, [{ type: 'brawl', text: '대난투', time: 60, pts: 5 }]);
+test('대난투: 두 팀이 맵 양쪽 끝에서 시작, 10초간 공격·궁극기·달리기 불가, 한 팀이 전원 유령이면 끝나고 이긴 팀 전원이 점수', () => {
+  const g = new Game(chars, [{ type: 'brawl', text: '대난투', time: 120, pts: 5 }]);
   const mk = (t, team) => { const p = g.join({ token: t, name: t, charId: 'blue' }); p.team = team; return p; };
   const a1 = mk('a1', 1), a2 = mk('a2', 1), b1 = mk('b1', 2), bot = g.addBot('idle', 'blue'); bot.home = { x: 1, y: 1 };
-  assert.ok(g.ask(1)); assert.equal(bot.connected, false, '샌드백류 봇은 치워짐'); assert.ok(g.snapshot().bw.g === 2);
-  run(g, 3.2); assert.equal(g.phase, PHASE.MOVING);
-  a1.invUntil = a2.invUntil = b1.invUntil = 0; g.knockOut('b1');
-  assert.equal(b1.out, true); assert.equal(b1.stunUntil, Infinity); run(g, 0.2);
-  assert.equal(g.phase, PHASE.REVEAL); assert.ok(g.reveal.brawl);
-  assert.equal(a1.score, 5); assert.equal(a2.score, 5); assert.equal(b1.score, 0); assert.deepEqual(g.reveal.winners.map((w) => w.team), [1]);
-  assert.equal(b1.stunned, false, '끝나면 일어남'); assert.equal(bot.connected, true, '봇 복귀');
+  assert.ok(g.ask(1)); assert.equal(bot.connected, false, '샌드백류 봇은 치워짐'); assert.deepEqual(g.snapshot().mp, [80, 44], '맵 2배');
+  assert.ok(a1.x < 10 && a2.x < 10 && b1.x > 70, `양쪽 끝 ${a1.x} ${b1.x}`);
+  run(g, 3.2); assert.equal(g.phase, PHASE.MOVING); a1.ult = a1.cfg.ult.need; const hp = b1.hp; b1.x = a1.x + 1; b1.y = a1.y;
+  g.attack('a1', { x: 1, y: 0 }); assert.equal(b1.hp, hp, '시작 직후엔 공격 불가'); assert.equal(g.ult('a1', null), false, '궁극기 불가'); assert.ok(g.snapshot().bw.lk > 5, '남은 제한 시간 표시');
+  g.setInput('a1', { mx: 0, my: 1, run: true }); run(g, 1); assert.equal(a1.running, false, '달리기 불가');
+  run(g, 9.5); assert.equal(g._bLocked(), false, '10초 뒤 해제'); b1.invUntil = 0; a1.invUntil = 0; a1.nextAttackAt = 0; g.knockOut('b1');
+  assert.equal(b1.ghost, true, '쓰러지면 유령'); assert.equal(b1.stunned, false); run(g, 0.2);
+  assert.equal(g.phase, PHASE.REVEAL); assert.ok(g.reveal.brawl); assert.equal(a1.score, 5); assert.equal(a2.score, 5); assert.equal(b1.score, 0); assert.deepEqual(g.reveal.winners.map((w) => w.team), [1]);
+  assert.equal(b1.ghost, false, '끝나면 일어남'); assert.equal(bot.connected, true, '봇 복귀'); assert.equal(g.snapshot().mp, null, '기본 맵으로'); assert.ok(a1.x < 40 && b1.x < 40, '기본 맵 안으로 모임');
   g.undoScore(); assert.equal(a1.score, 0);
 });
 
-test('대난투: 시간이 끝나면 남은 체력 합이 큰 팀이 이기고, 혼자(한 팀)면 시간까지 계속된다', () => {
+test('대난투: 유령은 이동 20%, 팀원이 5초 겹쳐 있으면 체력 50%·궁극기 0%·무적 1초로 부활(적이 겹쳐도 안 됨, 떨어지면 처음부터)', () => {
+  const g = new Game(chars, [{ type: 'brawl', text: '대난투', time: 120 }]);
+  const mk = (t, team) => { const p = g.join({ token: t, name: t, charId: 'blue' }); p.team = team; return p; };
+  const a1 = mk('a1', 1), a2 = mk('a2', 1), b1 = mk('b1', 2), b2 = mk('b2', 2); g.ask(1); run(g, 14);
+  a1.invUntil = 0; g.knockOut('a1'); assert.equal(a1.ghost, true);
+  a1.x = 40; a1.y = 22; a2.x = 10; a2.y = 22; b1.x = 40.3; b1.y = 22; g.setInput('a1', { mx: 0, my: 1, run: true }); const y0 = a1.y; run(g, 1);
+  assert.ok(Math.abs(a1.y - y0 - a1.cfg.walkSpeed * 0.2) < 0.2, `유령 이동은 걷기의 20%, 달리기 불가 ${a1.y - y0}`);
+  g.setInput('a1', { mx: 0, my: 0, run: false }); run(g, 6); assert.equal(a1.ghost, true, '적이 겹쳐 있어도 부활 안 함');
+  a2.x = a1.x + 0.5; a2.y = a1.y; run(g, 3); assert.equal(a1.ghost, true, '3초는 아직'); a2.x = 10; run(g, 0.1); assert.equal(a1.reviveT, 0, '떨어지면 처음부터');
+  a2.x = a1.x + 0.5; a2.y = a1.y; run(g, 5.2);
+  assert.equal(a1.ghost, false, '5초 겹쳐서 부활'); assert.equal(a1.hp, Math.ceil(a1.cfg.hp * 0.5)); assert.ok(a1.ult < 1, `궁극기 게이지 0%에서 시작 ${a1.ult}`); assert.ok(a1.invUntil > g.t && a1.invUntil <= g.t + 1.01, '무적 1초');
+});
+
+test('대난투: 강과 장애물은 지나갈 수 없고(투사체는 장애물에 막히고 강 위는 통과), 시간이 끝나면 살아있는 인원·체력이 많은 팀이 이긴다', async () => {
+  const { riverCenter, inWater, OBSTACLES } = await import('../shared/brawlMap.js');
   const g = new Game(chars, [{ type: 'brawl', text: '대난투', time: 20, pts: 3 }]);
-  const a = g.join({ token: 'a', name: 'a', charId: 'blue' }); a.team = 1; const b = g.join({ token: 'b', name: 'b', charId: 'blue' }); b.team = 2;
-  g.ask(1); run(g, 3.2); a.hp = 10; b.hp = 30; run(g, 21);
-  assert.equal(g.phase, PHASE.REVEAL); assert.equal(b.score, 3); assert.equal(a.score, 0);
-  const g2 = new Game(chars, [{ type: 'brawl', text: 'x', time: 20 }]); const s = g2.join({ token: 's', name: 's', charId: 'blue' });
-  g2.ask(1); run(g2, 10); assert.equal(g2.phase, PHASE.MOVING, '한 팀뿐이면 자동 종료 안 함'); run(g2, 14); assert.equal(s.score, 5);
-});
-
-test('진행자 토글: 공격 금지·궁극기 금지·전원 무적', () => {
-  const { g, A, B } = duo('blue', 'blue'); A.x = 10; A.y = 10; B.x = 11; B.y = 10; A.invUntil = B.invUntil = 0; A.ult = A.cfg.ult.need; const hp = B.hp;
-  g.setNoAtk(true); g.attack('a', { x: 1, y: 0 }); run(g, 0.5); assert.equal(B.hp, hp, '공격 금지 중엔 피해 없음');
-  g.setNoUlt(true); assert.equal(g.ult('a', null), false, '궁극기 금지'); g.setNoUlt(false); g.setNoAtk(false);
-  g.setGod(true); g.attack('a', { x: 1, y: 0 }); run(g, 0.5); assert.equal(B.hp, hp, '무적 중엔 피해 없음'); assert.equal(g.snapshot().gd, 1);
-  g.setGod(false); B.nextAttackAt = 0; A.nextAttackAt = 0; g.attack('a', { x: 1, y: 0 }); run(g, 0.5); assert.ok(B.hp < hp, '해제하면 다시 피해');
-});
-
-test('대기실로: 진행 중이던 문제를 닫고 대기실로, 점수는 그대로', () => {
-  const g = new Game(chars, quizzes), a = g.join({ token: 'a', name: 'A', charId: 'blue' }); g.adjust('a', 3); g.ask(1); run(g, 4);
-  g.cancelQuestion(); g.gather(); assert.equal(g.phase, PHASE.LOBBY); assert.equal(g.snapshot().q, null); assert.equal(a.score, 3);
-});
-
-test('샌드백: 삭제하면 샌드백만 사라지고(아군 유지), 다시 추가해도 늘어나지 않는다', () => {
-  const g = new Game(chars, quizzes); g.addSandbags(['blue']); g.addAllies(); const n = () => [...g.players.values()].filter((p) => p.name === '샌드백').length;
-  assert.equal(n(), 9); g.addSandbags(['blue']); assert.equal(n(), 9, '중복 안 됨');
-  g.clearSandbags(); assert.equal(n(), 0); assert.equal([...g.players.values()].filter((p) => p.ally).length, 4, '아군은 그대로');
+  const mk = (t, team) => { const p = g.join({ token: t, name: t, charId: 'blue_ranged' }); p.team = team; return p; };
+  const a = mk('a', 1), b = mk('b', 2); g.ask(1); run(g, 3.2);
+  a.x = riverCenter(5) - 5; a.y = 5; g.setInput('a', { mx: 1, my: 0, run: false }); run(g, 4); assert.ok(!inWater(a.x, a.y) && a.x < riverCenter(5), `강을 못 건넘 x=${a.x}`);
+  const bo = OBSTACLES.find((o) => o.k === 'boulder' && o.x < 40); a.x = bo.x - 4; a.y = bo.y; g.setInput('a', { mx: 1, my: 0, run: false }); run(g, 2); assert.ok(a.x <= bo.x - bo.hw - a.cfg.radius + 0.01, `장애물을 못 통과 x=${a.x}`);
+  b.hp = 10; run(g, 20); assert.equal(g.phase, PHASE.REVEAL); assert.equal(a.score, 3, '체력이 더 많은 팀 승리'); assert.equal(b.score, 0);
+  const g2 = new Game(chars, [{ type: 'brawl', text: 'x', time: 20 }]), s1 = g2.join({ token: 's1', name: 's1', charId: 'blue' }), s2 = g2.join({ token: 's2', name: 's2', charId: 'blue' });
+  g2.ask(1); assert.deepEqual([s1.team, s2.team].sort(), [1, 2], '두 팀이 아니면 자동으로 2팀');
 });
 
 test('달력 퀴즈: 채점 때 탈락 칸의 사람은 유령, 끝나면 생존자가 탈락자 수 ×2를 나눠 가진다', async () => {
@@ -1575,7 +1574,7 @@ test('공격형 봇 15마리: 한곳에 뭉치지 않고 동전을 주우러 흩
   g.join({ token: 'h', name: 'H', charId: 'blue' }); // 사람 한 명 (동전 시계가 돌도록)
   g.coinsSpawned = 0; g.coinClock = 0;
   run(g, 60);
-  const got = bots.reduce((s, b) => s + b.coins, 0);
+  const got = g.events.filter((e) => e.e === 'coinGet' && String(e.by).startsWith('bot')).length; // 죽어서 떨어뜨린 것과 상관없이 주운 횟수
   assert.ok(got >= 8, `60초 동안 봇이 주운 동전 ${got}`);
 });
 

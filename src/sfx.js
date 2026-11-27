@@ -37,9 +37,11 @@ export function unlockAudio() {
 
 // ---------- 소리 재료 ----------
 function env(g, t0, dur, vol, attack = 0.005) { g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), t0 + attack); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur); }
+let stretch = 1; // 궁극기 소리는 꼬리를 길게 (감쇠 시간 × stretch)
 function done(dur) { voices++; setTimeout(() => { voices--; }, dur * 1000 + 60); }
 /** 음 하나: f0→f1 Hz로 미끄러짐 */
 function tone(f0, f1, dur, type, vol, delay = 0, vib = 0) {
+  dur *= stretch;
   const t0 = ctx.currentTime + delay, o = ctx.createOscillator(), g = ctx.createGain();
   o.type = type; o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t0 + dur);
   if (vib) { const l = ctx.createOscillator(), lg = ctx.createGain(); l.frequency.value = 22; lg.gain.value = vib; l.connect(lg); lg.connect(o.frequency); l.start(t0); l.stop(t0 + dur); }
@@ -47,6 +49,7 @@ function tone(f0, f1, dur, type, vol, delay = 0, vib = 0) {
 }
 /** 잡음: 필터 주파수가 f0→f1로 변함 (휙 · 쾅) */
 function noise(dur, f0, f1, vol, delay = 0, type = 'bandpass') {
+  dur *= stretch;
   const t0 = ctx.currentTime + delay, n = Math.max(1, Math.floor(ctx.sampleRate * dur)), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
   for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
   const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
@@ -118,7 +121,7 @@ export function sfxEvent(e, c) {
   if (v < 0.04) return;
   const p = pitchOf(c.charId), an = ANIMAL[c.charId];
   if (an && (isUlt || e.e === 'atk') && gate('c' + e.id, isUlt ? 300 : 1100)) cry(an[0], Math.min(1, v) * (isUlt ? 0.9 : 0.6), an[1]); // 동물 캐릭터: 궁극기엔 확실히, 평타엔 가끔 울음
-  if (isUlt) { const f = ULT[e.t]; if (f && gate('u' + e.id, ULT_GAP)) f(Math.min(1, v * (c.mine ? 1 : 0.9))); return; }
+  if (isUlt) { const f = ULT[e.t]; if (f && gate('u' + e.id, ULT_GAP)) { stretch = 1.7; try { f(Math.min(1, v * (c.mine ? 1 : 0.9))); } finally { stretch = 1; } } return; }
   let k = null;
   if (e.e === 'atk') {
     if (e.kind === 'melee') k = e.fx === 'smash' ? 'smash' : e.fx === 'bump' ? 'thump' : e.fx === 'punch' ? 'punch' : 'swing';

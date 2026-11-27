@@ -2,6 +2,7 @@
 // 이미지 파일 없이 코드로 그려서 Phaser 캔버스 텍스처로 만든다.
 import Phaser from 'phaser';
 import { MAP } from '../shared/constants.js';
+import { BRAWL_MAP, riverCenter, riverHalf } from '../shared/brawlMap.js';
 
 export const TILE = 24;
 const rgb = (h) => [(h >> 16) & 255, (h >> 8) & 255, h & 255];
@@ -54,22 +55,91 @@ export function buildQuizFloor(scene) {
   nearest(tex);
 }
 
-/** 대난투 바닥('floor-brawl'): 어두운 붉은 돌바닥 + 가운데 타원 링 + 불꽃 점. 퀴즈 무대·잔디와 한눈에 구분됨 */
+// ---------- 대난투 맵: 잔디 들판 + 건널 수 없는 강(모래 기슭이 잔디로 자연스럽게 이어짐) + 장애물 ----------
+const SAND = [0xe9d79f, 0xdfc98d].map(rgb), SAND_DARK = rgb(0xc7a96b), SAND_WET = rgb(0xc8b07a), SAND_PEBBLE = rgb(0xa88a52);
+const WATER = [0x3a8fd8, 0x2f7fcf, 0x2468b8, 0x1d5aa3].map(rgb), FOAM = rgb(0xe4f4ff), SPARK = rgb(0xa9d8ff);
+const bayer4 = (x, y) => (BAYER[y & 3][x & 3] + 0.5) / 16;
+const sm = (u) => { const t = Math.max(0, Math.min(1, u)); return t * t * (3 - 2 * t); };
+const hash2 = (x, y) => { const h = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return h - Math.floor(h); };
+const mixc = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+
+/** 대난투 바닥('floor-brawl', 80×44칸): 잔디 위로 강이 흐르고, 물가는 젖은 모래 → 마른 모래 → (점점 성기게) 잔디로 이어진다 */
 export function buildBrawlFloor(scene) {
-  const W = MAP.w * TILE, H = MAP.h * TILE, T = [0x4a2a2e, 0x42262a].map(rgb), CRACK = rgb(0x2a1518), RING = rgb(0xff8a3c), EMBER = rgb(0xffc15e), EDGE = rgb(0xff5a2c);
-  const tex = scene.textures.createCanvas('floor-brawl', W, H), ctx = tex.getContext(), img = ctx.createImageData(W, H), d = img.data, cx = W / 2, cy = 13.2 * TILE, rx = 18 * TILE, ry = 7.4 * TILE; // 위쪽 문제 카드에 안 가리게 아래로 내림
-  for (let gy = 0; gy < H; gy++) for (let gx = 0; gx < W; gx++) {
-    const tx = Math.floor(gx / TILE), ty = Math.floor(gy / TILE), x = gx % TILE, y = gy % TILE;
-    let c = T[(tx + ty) % 2];
-    if (x === 0 || y === 0) c = CRACK;
-    else if ((gx * 31 + gy * 17) % 173 === 0) c = EMBER;
-    const e = ((gx - cx) / rx) ** 2 + ((gy - cy) / ry) ** 2;
-    if (Math.abs(e - 1) < 0.018 && (gx + gy) % 12 < 8) c = RING; // 점선 링
-    if (gx < 3 || gy < 3 || gx >= W - 3 || gy >= H - 3) c = EDGE;
-    const i = (gy * W + gx) * 4; d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255;
+  const W = BRAWL_MAP.w * TILE, H = BRAWL_MAP.h * TILE, tex = scene.textures.createCanvas('floor-brawl', W, H), ctx = tex.getContext(), img = ctx.createImageData(W, H), d = img.data;
+  for (let gy = 0; gy < H; gy++) {
+    const ty = gy / TILE, hw = riverHalf(ty), cx = riverCenter(ty);
+    for (let gx = 0; gx < W; gx++) {
+      const tx = gx / TILE, dist = Math.abs(tx - cx) - hw; // 물가까지의 거리(칸): 음수면 물속
+      let c;
+      if (hw > 0.02 && dist < 0) { // 물: 깊을수록 진하게, 물가엔 거품, 흐름을 따라 가는 반짝임
+        const depth = Math.min(1, -dist / Math.max(0.6, hw)), wave = Math.sin(gy * 0.22 + gx * 0.05 + (tx - cx) * 0.8) * 0.5 + 0.5;
+        c = WATER[Math.min(3, Math.floor(depth * 2.2 + wave * 0.9))];
+        if (dist > -0.32 && ((gx + gy * 2) % 7 < 3)) c = FOAM; // 가장자리 거품(점선)
+        else if (hash2(gx >> 1, gy >> 1) > 0.965) c = SPARK;
+      } else {
+        const tileX = Math.floor(tx), tileY = Math.floor(ty), x = gx % TILE, y = gy % TILE;
+        let grass = GRASS[(tileX + tileY) % 2]; const h = (x * 29 + y * 31 + tileX * 7 + tileY * 11) % 37;
+        if (h === 0) grass = LIGHT; else if (h === 1) grass = DARK;
+        if ((tileX * 5 + tileY * 3) % 4 === 0 && y >= 6 && y <= 8 && (x === 10 || x === 12 || (x === 11 && y === 8))) grass = DARK;
+        const reach = 3.6 + (hash2(Math.floor(ty * 2), 7) - 0.5) * 0.9; // 기슭 폭이 구간마다 조금씩 다름
+        const p = hw > 0.02 || dist < reach ? 1 - sm((dist - 1.0) / (reach - 1.0)) : 0; // 모래일 확률: 물가 1칸은 거의 확정 → 멀어질수록 성기게
+        if (p > 0 && p > bayer4(gx, gy) * 0.98 + (hash2(gx, gy) - 0.5) * 0.12) {
+          c = dist < 0.5 ? SAND_WET : SAND[(gx + gy) & 1]; // 물 바로 옆은 젖은(진한) 모래
+          const r = hash2(gx * 3, gy * 5); if (r > 0.985) c = SAND_PEBBLE; else if (r < 0.04) c = SAND_DARK;
+        } else c = grass;
+        if (gx < 3 || gy < 3 || gx >= W - 3 || gy >= H - 3) c = LINE;
+      }
+      const i = (gy * W + gx) * 4; d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255;
+    }
   }
-  ctx.putImageData(img, 0, 0);
-  nearest(tex);
+  ctx.putImageData(img, 0, 0); nearest(tex);
+}
+
+/** 장애물 그림 (바닥 중심 기준): 이끼 낀 바위 · 석벽 · 돌기둥. 각각 'ob-boulder' 'ob-wall' 'ob-pillar' */
+export function buildObstacleTextures(scene) {
+  const INK = rgb(0x23262e), STONE = [0x4f5561, 0x6a717e, 0x8a919e, 0xaeb5c1].map(rgb), MOSS = [rgb(0x4a8030), rgb(0x66a043)];
+  const make = (key, w, h, fn) => {
+    const tex = scene.textures.createCanvas(key, w, h), ctx = tex.getContext(), img = ctx.createImageData(w, h), d = img.data;
+    const put = (x, y, c, a = 255) => { if (x < 0 || y < 0 || x >= w || y >= h) return; const i = (y * w + x) * 4; d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = a; };
+    fn(put, w, h); ctx.putImageData(img, 0, 0); nearest(tex);
+  };
+  const shade = (nx, ny, n) => { const l = -nx * 0.55 - ny * 0.7 + (n - 0.5) * 0.5; return l > 0.42 ? 3 : l > 0.12 ? 2 : l > -0.22 ? 1 : 0; }; // 왼쪽 위에서 빛이 옴
+  // 바위: 2×2칸 바닥 + 위로 조금 솟음
+  make('ob-boulder', 56, 56, (put, w, h) => {
+    const cx = w / 2, cy = 33, rx = 25, ry = 21;
+    for (let y = 40; y < 54; y++) for (let x = 0; x < w; x++) { const e = ((x - cx) / (rx + 2)) ** 2 + ((y - 47) / 6.5) ** 2; if (e < 1) put(x, y, rgb(0x1b3a14), 110); } // 그림자
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const nx = (x - cx) / rx, ny = (y - cy) / ry, e = Math.abs(nx) ** 2.4 + Math.abs(ny) ** 2.4, bump = 1 + (hash2(Math.floor(x / 4), Math.floor(y / 4)) - 0.5) * 0.12;
+      if (e * bump > 1) continue;
+      const edge = e * bump > 0.84; let c = edge ? INK : STONE[shade(nx, ny, hash2(x, y))];
+      if (!edge && ny < -0.15 && hash2(Math.floor(x / 3), Math.floor(y / 3)) > 0.45 + ny * 0.5) c = MOSS[(x + y) & 1]; // 위쪽 이끼
+      if (!edge && ny > 0.55 && (x + y) % 5 === 0) c = STONE[0]; // 아래 갈라진 결
+      put(x, y, c);
+    }
+  });
+  // 석벽: 3×1칸 벽돌 담
+  make('ob-wall', 84, 44, (put, w, h) => {
+    for (let y = 30; y < 42; y++) for (let x = 2; x < w - 2; x++) put(x, y, rgb(0x1b3a14), 100); // 그림자
+    for (let y = 8; y < 36; y++) for (let x = 2; x < w - 2; x++) {
+      const top = y < 16, row = Math.floor((y - 16) / 7), off = row % 2 ? 6 : 0, seam = (y - 16) % 7 === 0 || (x + off) % 13 === 0;
+      let c = top ? STONE[3] : seam ? STONE[0] : STONE[1 + ((x + off) / 13 | 0) % 2];
+      if (y === 8 || y === 35 || x === 2 || x === w - 3) c = INK; else if (top && y === 9) c = STONE[3];
+      if (top && hash2(x >> 2, y >> 1) > 0.78 && x < 40) c = MOSS[(x + y) & 1]; // 윗면 이끼
+      put(x, y, c);
+    }
+  });
+  // 돌기둥: 1칸 바닥, 높이 2칸
+  make('ob-pillar', 28, 64, (put, w, h) => {
+    for (let y = 52; y < 62; y++) for (let x = 0; x < w; x++) { const e = ((x - 14) / 13) ** 2 + ((y - 57) / 4.5) ** 2; if (e < 1) put(x, y, rgb(0x1b3a14), 110); }
+    for (let y = 4; y < 58; y++) for (let x = 3; x < 25; x++) {
+      const base = y > 50, cap = y < 14, u = (x - 3) / 21; let c = STONE[u < 0.28 ? 3 : u < 0.6 ? 2 : u < 0.85 ? 1 : 0];
+      if (cap) c = STONE[u < 0.5 ? 3 : 2]; if (base) c = STONE[1];
+      if (y === 4 || y === 57 || x === 3 || x === 24 || y === 14 || y === 50) c = INK;
+      if (!cap && !base && y > 20 && (x * 7 + y * 3) % 23 === 0) c = STONE[0]; // 갈라진 금
+      if (y > 44 && y < 50 && hash2(x, y) > 0.55) c = MOSS[(x + y) & 1]; // 밑동 이끼
+      put(x, y, c);
+    }
+  });
 }
 
 export const MAT_MARGIN = 8; // 링 바깥 장식(꽃·풀잎)이 들어갈 여백 (도트)

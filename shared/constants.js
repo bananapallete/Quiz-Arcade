@@ -14,9 +14,9 @@ export const COIN = {
   maxTotal: 100, // 습득된 것까지 포함해 이만큼만 생성
   value: 0.5, // 동전 1개의 점수
   pickupRadius: 1.0, // 캐릭터 중심과 동전 중심 사이 거리 (칸)
-  scatterRadius: 2.5, // 튀어나온 동전이 떨어지는 반경 (칸, 48px/칸 기준 120px)
-  scatterMin: 0.8, // 몸 바로 밑에는 떨어지지 않도록
-  flightSec: 0.55, // 튀어나와 바닥에 닿기까지
+  scatterRadius: 4.2, // 튀어나온 동전이 떨어지는 반경 (칸, 48px/칸 기준 약 200px)
+  scatterMin: 1.2, // 몸 바로 밑에는 떨어지지 않도록
+  flightSec: 0.7, // 튀어나와 바닥에 닿기까지 (멀리 날아가니 조금 길게)
   dropLockSec: 0, // 떨어진 동전의 줍기 금지 시간은 없음 (0). 날아가서 땅에 닿는 순간(flightSec)부터 누구나 줍는다
   dropOnNoAnswer: true, // 무응답도 틀린 것으로 보고 떨어뜨림
 };
