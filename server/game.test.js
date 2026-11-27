@@ -364,14 +364,14 @@ test('근접 공격 모션이 재생되는 동안 이동 속도 50%, 끝나면 �
   assert.ok(Math.abs(a.x - x1 - normal) < 1e-6, '모션이 끝나면 원래 속도');
 });
 
-test('원거리 캐릭터는 공격 중에도 느려지지 않는다 (설정에 없으면 1배)', () => {
+test('원거리 캐릭터는 쏜 직후 설정 배율만큼 느려진다', () => {
   const g = new Game(chars, quizzes);
   const a = g.join({ token: 'a', name: 'A', charId: 'blue_ranged' });
   a.x = 5; a.y = 10;
   g.setInput('a', { mx: 1, my: 0, run: false });
   g.attack('a', null);
   const x0 = a.x; g.update(DT);
-  assert.ok(Math.abs(a.x - x0 - 6 * DT) < 1e-6);
+  assert.ok(Math.abs(a.x - x0 - 6 * a.cfg.attack.atkSlow.mul * DT) < 1e-6);
 });
 
 test('조준 미리보기: 자동 조준은 사거리 안의 가장 가까운 적, 없으면 null', () => {
@@ -1631,4 +1631,10 @@ test('대난투 부쉬: 안에서는 적에게 숨고, 맞거나 공격하면 �
   g._updateBush(); assert.equal(A.bushHide, true); assert.equal(g._stealthed(A), true);
   B.x = A.x + 2; B.y = A.y; g._updateBush(); assert.equal(A.bushHide, false, '적이 가까우면 드러남');
   B.x = 60; A.hurtAt = g.t; g._updateBush(); assert.equal(A.bushHide, false, '맞은 직후 드러남');
+});
+
+test('원거리는 쏜 뒤 느려지고 투척형은 아님', () => {
+  const { g, A } = duo('elf', 'blue'); assert.ok(A.cfg.attack.atkSlow); g.setInput('a', { mx: 1, my: 0, run: false }); const x0 = A.x; run(g, 0.2); const free = A.x - x0;
+  A.atkSlowUntil = g.t + 5; A.atkSlowMul = 0.5; const x1 = A.x; run(g, 0.2); assert.ok(A.x - x1 < free * 0.7, '느려짐');
+  assert.ok(!duo('chicken', 'blue').A.cfg.attack.atkSlow && !duo('bomber', 'blue').A.cfg.attack.atkSlow && !duo('nurse', 'blue').A.cfg.attack.atkSlow);
 });

@@ -89,7 +89,11 @@
         "radius": 0.25,
         "art": "archer_arrow"
       },
-      "fx": "arrow"
+      "fx": "arrow",
+      "atkSlow": {
+        "mul": 0.5,
+        "sec": 0.25
+      }
     },
     "ammo": {
       "max": 3,
@@ -140,7 +144,11 @@
         "mul": 0.8,
         "width": 0.35
       },
-      "fx": "bolt"
+      "fx": "bolt",
+      "atkSlow": {
+        "mul": 0.5,
+        "sec": 0.25
+      }
     },
     "scale": 1.05,
     "ammo": {
@@ -188,7 +196,11 @@
         "radius": 0.45,
         "art": "orb"
       },
-      "fx": "orb"
+      "fx": "orb",
+      "atkSlow": {
+        "mul": 0.5,
+        "sec": 0.25
+      }
     },
     "ammo": {
       "max": 3,
@@ -427,6 +439,10 @@
       "charm": {
         "stacks": 3,
         "sec": 2
+      },
+      "atkSlow": {
+        "mul": 0.5,
+        "sec": 0.25
       }
     },
     "pickupRadius": 2,
@@ -604,7 +620,11 @@
           "wait": 0.5
         }
       },
-      "fx": "star"
+      "fx": "star",
+      "atkSlow": {
+        "mul": 0.5,
+        "sec": 0.25
+      }
     },
     "scale": 0.95,
     "ammo": {
@@ -873,6 +893,10 @@
         "len": 3,
         "resist": 0.5,
         "pull": 2.5
+      },
+      "atkSlow": {
+        "mul": 0.5,
+        "sec": 0.25
       }
     },
     "ammo": {
@@ -1153,7 +1177,11 @@
         "pierce": true,
         "art": "arrow"
       },
-      "fx": "arrow"
+      "fx": "arrow",
+      "atkSlow": {
+        "mul": 0.5,
+        "sec": 0.25
+      }
     },
     "ammo": {
       "max": 3,
@@ -1203,7 +1231,11 @@
         "radius": 0.3,
         "art": "note"
       },
-      "fx": "note"
+      "fx": "note",
+      "atkSlow": {
+        "mul": 0.5,
+        "sec": 0.25
+      }
     },
     "ammo": {
       "max": 4,

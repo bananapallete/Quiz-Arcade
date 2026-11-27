@@ -568,6 +568,7 @@ export class Game {
     const { dx, dy, near } = dir, hr = range + (melee && !dir.manual ? HIT_SLACK : 0); // 자동 조준한 근접 공격은 사거리가 조금 후함
     if (Math.abs(dx) > 0.15) p.face = dx > 0 ? 1 : -1;
     p.nextAttackAt = this.t + a.interval / (buffOf(this, p)?.atk ?? 1);
+    if (a.atkSlow) { p.atkSlowUntil = this.t + a.atkSlow.sec; p.atkSlowMul = a.atkSlow.mul; } // 원거리(투척 제외): 쏜 직후 잠깐 느려짐
     p.ammoF -= 1;
     let emp = false; // 3번째 공격마다 다음 공격이 강화 (공주 매혹 · 개구리 혀 묶기)
     if (a.charm || a.tether) { emp = !!p.empNext; p.empNext = false; if (!emp) { p.empCount = (p.empCount || 0) + 1; if (p.empCount >= (a.charm || a.tether).stacks) { p.empCount = 0; p.empNext = true; } } }
@@ -998,7 +999,7 @@ export class Game {
       // 공격 모션 중에는 이동 속도 감소 (캐릭터별 attack.moveSpeedWhileAttacking, 근접 0.5)
       const slow = this.t < p.attackUntil ? (c.attack.moveSpeedWhileAttacking ?? 1) : 1;
       const boost = (this.t < p.speedUntil ? ITEM.shoe.mul : 1) * (buffOf(this, p)?.spd ?? 1); // 신발 · 궁극기 강화
-      const speed = (running ? c.runSpeed : c.walkSpeed) * slow * boost * (p.channel ? p.channel.move : 1) * (this.t < p.charmUntil ? 0.5 : 1) * (this.t < p.slowUntil ? p.slowMul : 1) * (p.stunned ? 0.3 : 1) * (p.ghost && this.brawl ? 0.2 : 1); // 쓰러지면 30% · 대난투 유령은 20% // 진흙에 느려짐
+      const speed = (running ? c.runSpeed : c.walkSpeed) * slow * boost * (p.channel ? p.channel.move : 1) * (this.t < p.charmUntil ? 0.5 : 1) * (this.t < p.slowUntil ? p.slowMul : 1) * (this.t < (p.atkSlowUntil || 0) ? p.atkSlowMul : 1) * (p.stunned ? 0.3 : 1) * (p.ghost && this.brawl ? 0.2 : 1); // 쓰러지면 30% · 대난투 유령은 20% // 진흙에 느려짐
       vx = p.input.mx * speed;
       vy = p.input.my * speed;
       const lock = !running && this.t < p.attackUntil ? this._aimDir(p, null, c.attack.range).near : null; // 공격 모션이 재생되는 동안만 자동 조준 대상을 바라봄 (평소엔 가는 방향)
