@@ -801,7 +801,7 @@ test('맵 장식물: 규칙 배치 — 구역 밖, 중앙 통로엔 꽃만, 나�
   assert.ok(a.length >= 55, `개수 ${a.length}`);
   for (const o of a) {
     assert.ok(o.x > 0 && o.x < MAP.w && o.y > 0 && o.y < MAP.h);
-    for (const z of [...ZONES.ox, ...ZONES.choice]) assert.ok(Math.hypot(o.x - z.cx, o.y - z.cy) > z.r, `${o.kind} (${o.x},${o.y})가 구역 안`);
+    for (const z of ZONES.ox) assert.ok(Math.hypot(o.x - z.cx, o.y - z.cy) > z.r, `${o.kind} (${o.x},${o.y})가 구역 안`);
     if (o.x > CORRIDOR[0] && o.x < CORRIDOR[1]) assert.equal(o.kind, 'flower', '통로엔 꽃만');
   }
   const trees = a.filter((o) => o.kind === 'tree');

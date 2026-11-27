@@ -47,11 +47,11 @@ export const ZONES = {
     { id: 'O', cx: 14, cy: 11, r: 5, label: 'O' },
     { id: 'X', cx: 26, cy: 11, r: 5, label: 'X' },
   ],
-  choice: [
-    { id: 1, cx: 14, cy: 7.5, r: 4.25, label: '1' },
-    { id: 2, cx: 26, cy: 7.5, r: 4.25, label: '2' },
-    { id: 3, cx: 14, cy: 16.5, r: 4.25, label: '3' },
-    { id: 4, cx: 26, cy: 16.5, r: 4.25, label: '4' },
+  choice: [ // 가로 한 줄로 크게: 스킬에 밀려도 구역 안에 남기 쉽다
+    { id: 1, cx: 5, cy: 12, r: 4.8, label: '1' },
+    { id: 2, cx: 15, cy: 12, r: 4.8, label: '2' },
+    { id: 3, cx: 25, cy: 12, r: 4.8, label: '3' },
+    { id: 4, cx: 35, cy: 12, r: 4.8, label: '4' },
   ],
 };
 

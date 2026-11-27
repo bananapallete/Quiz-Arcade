@@ -10,7 +10,7 @@
 //  6. 구역(원) 둘레에 종류별 여유 거리를 두고, 중앙 통로 x 18.6~21.4 에는 꽃 말고 놓지 않는다.
 import { MAP, ZONES } from './constants.js';
 
-const ALL_ZONES = [...ZONES.ox, ...ZONES.choice];
+const ALL_ZONES = ZONES.ox; // 장식은 대기실에만 보이고, 대기실엔 O/X 구역만 있다
 const PAD = { tree: 1.9, bush: 1.3, rock: 1.3, stump: 1.4, flower: 0.9, mushroom: 1.0 };
 const free = (kind, x, y, pad = PAD[kind]) => ALL_ZONES.every((z) => Math.hypot(x - z.cx, y - z.cy) > z.r + pad);
 export const CORRIDOR = [18.6, 21.4]; // 중앙 대기 통로 (꽃만 허용)

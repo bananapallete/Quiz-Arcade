@@ -21,7 +21,7 @@ const CSS = `
 #sq .legend{position:absolute;left:2vw;right:2vw;bottom:2vh;display:flex;gap:1.2vw}
 #sq .zone{flex:1;display:flex;align-items:center;gap:1vw;padding:1.2vh 1.4vw;border:.4vh solid #14122b;border-radius:1.6vh;color:#fff;font-weight:900;font-size:3.4vh;box-shadow:0 .5vh 0 #14122b66;overflow:hidden}
 #sq .zone small{font-size:2.4vh;opacity:.95;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#sq .z-O{background:#4a86d9}#sq .z-X{background:#e5483c}#sq .z-1{background:#4a86d9}#sq .z-2{background:#e5483c}#sq .z-3{background:#4fae55}#sq .z-4{background:#e0902a}
+#sq .z-O{background:#4a86d9}#sq .z-X{background:#e5483c}#sq .z-1{background:#e5483c}#sq .z-2{background:#4a86d9}#sq .z-3{background:#e0a82a}#sq .z-4{background:#22b88f}
 #sq .center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(70vw,1100px);display:grid;gap:1.6vh}
 #sq .panel{background:#f6e6c8;border:.5vh solid #14122b;border-radius:2.4vh;box-shadow:0 .8vh 0 #14122b88;padding:2.4vh 2.4vw}
 #sq .end{text-align:center;font-weight:900;font-size:10vh;color:#fff;-webkit-text-stroke:.7vh #14122b;paint-order:stroke fill;background:#14122bb0;border-radius:3vh;padding:3vh 0}
@@ -43,7 +43,7 @@ const CSS = `
 #sq [hidden]{display:none!important}
 `;
 const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const ZCOL = { O: '#4a86d9', X: '#e5483c', 1: '#4a86d9', 2: '#e5483c', 3: '#4fae55', 4: '#e0902a', '-': '#8b8b8b' };
+const ZCOL = { O: '#4a86d9', X: '#e5483c', 1: '#e5483c', 2: '#4a86d9', 3: '#e0a82a', 4: '#22b88f', '-': '#8b8b8b' }; // 맵 구역 색(mapArt ZONE_COLOR)과 같게
 const TEAMC = ['', '#ff6b6b', '#4a86d9', '#4fd16a', '#f2c230', '#9a62d6', '#ff9a3c', '#4fc9c9', '#c0c0c0'];
 
 export function mountScreenUi() {
