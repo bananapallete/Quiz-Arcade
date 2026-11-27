@@ -408,7 +408,7 @@ export class WorldScene extends Phaser.Scene {
   // ---------- 구역 ----------
   /** 달력 퀴즈 판: 날짜 칸. 채점으로 드러난 칸만 초록(탈락)/노랑(안전)으로 표시, 정산 때는 탈락 칸 전부 공개 */
   drawCalendar(s) {
-    const l = s.cal?.l || s.reveal?.l; if (!l) return;
+    const l = s.cal?.l || s.reveal?.l || s.pv?.l; if (!l) return;
     const rv = s.cal?.rv || {}, bad = new Set(s.reveal?.cal ? s.reveal.bad : []), key = `cal|${s.phase}|${JSON.stringify(rv)}|${[...bad]}`;
     if (key === this.zoneKey) return; this.zoneKey = key;
     const g = this.zoneGfx.clear(); this.zoneImgs.forEach((i) => i.destroy()); this.zoneImgs = [];
@@ -439,13 +439,13 @@ export class WorldScene extends Phaser.Scene {
   }
 
   drawZones(s) {
-    const quiz = s.phase !== PHASE.LOBBY; // 대기실은 잔디 들판, 문제 중에는 남색 퀴즈 무대
-    if (quiz && s.q?.type === 'calendar') { this._showBrawl(false); this.quizFloor.setVisible(true); this._decorOn = false; this.decor.forEach((o) => o.setVisible(false)); this.drawCalendar(s); return; }
-    const brawl = quiz && s.q?.type === 'brawl' && !!s.mp;
+    const quiz = s.phase !== PHASE.LOBBY || !!s.pv, qt = s.pv?.type ?? s.q?.type; // 대기실은 잔디 들판, 문제 중(또는 맵 미리 보기)에는 퀴즈 무대
+    if (quiz && qt === 'calendar') { this._showBrawl(false); this.quizFloor.setVisible(true); this._decorOn = false; this.decor.forEach((o) => o.setVisible(false)); this.drawCalendar(s); return; }
+    const brawl = quiz && qt === 'brawl' && !!s.mp;
     this._showBrawl(brawl);
     if (this.quizFloor.visible !== (quiz && !brawl)) this.quizFloor.setVisible(quiz && !brawl);
     if (this._decorOn !== !quiz) { this._decorOn = !quiz; this.decor.forEach((o) => o.setVisible(!quiz)); } // 문제 중(대난투 포함)엔 대기실 장식(나무·꽃)을 숨김
-    const type = s.q?.type || 'ox';
+    const type = qt || 'ox';
     const ans = s.reveal?.answer;
     const key = `${s.phase}|${type}|${ans ?? ''}`;
     if (key === this.zoneKey) return;

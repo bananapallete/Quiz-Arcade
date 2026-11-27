@@ -1745,3 +1745,15 @@ test('귀상어 해일: 0.05초 간격 다단히트', () => {
   assert.equal(hits.length, A.cfg.ult.hits);
   for (let i = 1; i < hits.length; i++) assert.ok(hits[i] - hits[i - 1] >= 0.05 - 1e-6 && hits[i] - hits[i - 1] < 0.1, `간격 ${hits[i] - hits[i - 1]}`);
 });
+
+test('맵으로 이동: 문제 없이 대기실 그대로, 맵만 선택한 문제의 맵으로 (출제·대기실로 가면 해제)', () => {
+  const g = new Game(chars, quizzes);
+  const a = g.join({ token: 'a', name: 'A', charId: 'blue' }), b = g.join({ token: 'b', name: 'B', charId: 'blue' });
+  const bq = quizzes.findIndex((q) => q.type === 'brawl') + 1, cq = quizzes.findIndex((q) => q.type === 'calendar') + 1;
+  assert.ok(g.previewMap(bq));
+  const s = g.snapshot(); assert.equal(s.phase, PHASE.LOBBY); assert.equal(s.q, null); assert.deepEqual(s.mp, [80, 44]); assert.equal(s.pv.type, 'brawl');
+  assert.ok(a.x < 10 && b.x > 70, '양쪽 끝으로');
+  assert.ok(g.previewMap(cq)); assert.equal(g.snapshot().mp, null); assert.ok(g.snapshot().pv.l.days > 27);
+  g.ask(1); assert.equal(g.snapshot().pv, null);
+  g.previewMap(bq); g.cancelQuestion(); assert.equal(g.snapshot().pv, null); assert.equal(g.snapshot().mp, null);
+});

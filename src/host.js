@@ -43,9 +43,11 @@ function renderCurrent() {
   $('#c-no').textContent = q ? `Q${q.id}` : '-'; $('#c-mode').textContent = q ? q.mode : '-'; $('#c-text').textContent = q ? q.text + (q.options ? '  ' + q.options.map((o, i) => `${i + 1}.${o}`).join(' ') : '') : '문제를 선택해 출제하세요';
   const nx = info.questions.find((x) => x.id === askId), live = st?.q?.id && st.phase !== PHASE.LOBBY; $('#c-next').hidden = !(live && nx && nx.id !== st.q.id); if (nx) $('#c-next').textContent = `다음 ▶ Q${nx.id} ${nx.text.slice(0, 24)}`;
   $('#ask').textContent = askId ? `▶ Q${askId} 출제` : '▶ 출제';
+  $('#premap').disabled = !askId; $('#premap').textContent = askId ? `🗺 Q${askId} 맵으로` : '🗺 맵으로 이동';
   const im = $('#c-img'); im.hidden = !q?.image; if (q?.image) im.style.backgroundImage = `url("${q.image}")`;
 }
 $('#ask').addEventListener('click', () => { if (!askId) return; if (st?.phase === PHASE.REAL && st.real?.pending?.length && !confirm('입력한 현실 퀴즈 점수가 사라져요. 출제할까요?')) return; emit('host:ask', { id: askId }); const ids = info.questions.map((q) => q.id), i = ids.indexOf(askId); askId = ids[i + 1] ?? askId; renderQuestions(); }); // 출제하면 다음 문제가 자동 선택됨
+$('#premap').addEventListener('click', () => { if (!askId) return; const live = [PHASE.READING, PHASE.MOVING, PHASE.HOLD, PHASE.REAL].includes(st?.phase); if (!live || confirm('진행 중인 문제를 닫고 맵을 옮길까요? (점수 변화 없음)')) emit('host:previewMap', { id: askId }); }); // 선택한 문제의 맵으로 (대기실 상태)
 $('#cal-fin').addEventListener('click', () => { if (confirm('지금 상태로 정산하고 끝낼까요?')) emit('host:calFinish'); });
 $('#lobby').addEventListener('click', () => { const live = [PHASE.READING, PHASE.MOVING, PHASE.HOLD, PHASE.REAL].includes(st?.phase); if (!live || confirm('진행 중인 문제를 닫고 대기실로 갈까요? (점수 변화 없음)')) emit('host:lobby'); });
 $('#end').addEventListener('click', () => emit('host:end'));

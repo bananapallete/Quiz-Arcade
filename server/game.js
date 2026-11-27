@@ -162,7 +162,7 @@ export class Game {
   ask(qid) {
     const q = this.questions.find((x) => x.id === qid);
     if (!q) return false;
-    this._unpark(); this._endBrawlWorld(); this._clearUltWorld(); this.brawl = null; this.cal = null; this.tour = null; this.coinRun = null;
+    this._unpark(); this.preview = null; this._endBrawlWorld(); this._clearUltWorld(); this.brawl = null; this.cal = null; this.tour = null; this.coinRun = null;
     this.question = q;
     this.reveal = null; this.locked = null; this.realPending = new Map(); this.realConfirmed = false;
     this.showRank = false; this.hideAns = false; this.screenMode = 'quiz'; this.timerPaused = false;
@@ -256,7 +256,7 @@ export class Game {
   rename(id, name) { const p = this.players.get(id), n = String(name || '').trim().slice(0, 10); if (!p || !n) return false; p.name = n; return true; }
   kick(id) { const p = this.players.get(id); if (!p) return false; this.realPending.delete(id); this.players.delete(id); this._log(`${p.name} 퇴장`); return true; }
   /** 출제를 취소하고 대기실로 (점수 변화 없음) */
-  cancelQuestion() { this._unpark(); this._endBrawlWorld(); this._clearUltWorld(); this.brawl = null; this.cal = null; this.tour = null; this.coinRun = null; for (const p of this.players.values()) { if (p.ghost && p.hp <= 0) p.hp = p.cfg.hp; p.out = false; p.ghost = false; p.stunned = false; p.stunUntil = 0; } this.phase = PHASE.LOBBY; this.question = null; this.reveal = null; this.locked = null; this.realPending = new Map(); this.timerPaused = false; this._log('출제 취소'); return true; }
+  cancelQuestion() { this._unpark(); this.preview = null; this._endBrawlWorld(); this._clearUltWorld(); this.brawl = null; this.cal = null; this.tour = null; this.coinRun = null; for (const p of this.players.values()) { if (p.ghost && p.hp <= 0) p.hp = p.cfg.hp; p.out = false; p.ghost = false; p.stunned = false; p.stunUntil = 0; } this.phase = PHASE.LOBBY; this.question = null; this.reveal = null; this.locked = null; this.realPending = new Map(); this.timerPaused = false; this._log('출제 취소'); return true; }
   /** 동전 비: n개를 sec초에 걸쳐 맵 곳곳에 떨어뜨림 (기본 동전 한도와 별개) */
   coinRain(n = 24, sec = 4) {
     for (let i = 0; i < n; i++) this.tasks.push({ at: this.t + (i / n) * sec, fn: () => { this.coinsSpawned = Math.max(0, this.coinsSpawned - 1); this.spawnCoin(); } });
@@ -306,11 +306,22 @@ export class Game {
   }
 
   gather() {
-    for (const p of this.players.values()) {
-      if (p.home) continue; // 샌드백은 제자리
-      [p.x, p.y] = spawnPos();
+    const ps = [...this.players.values()].filter((p) => !p.home && !p.parked), big = this.map === BRAWL_MAP;
+    const half = Math.ceil(ps.length / 2);
+    ps.forEach((p, i) => { // 대난투 맵이면 양쪽 끝(강·장애물 없는 곳)에 나눠 섬
+      if (big) { const s = brawlSpawn(i < half ? 0 : 1, i < half ? i : i - half, i < half ? half : ps.length - half); p.x = s.x; p.y = s.y; } else [p.x, p.y] = spawnPos();
       p.kx = p.ky = 0;
-    }
+    });
+  }
+
+  /** 진행자 '맵으로 이동': 대기실 그대로(문제 없음)에 맵만 그 문제의 맵으로 */
+  previewMap(qid) {
+    const q = this.questions.find((x) => x.id === qid); if (!q) return false;
+    this.cancelQuestion();
+    this.preview = q;
+    if (q.type === 'brawl') { this.map = BRAWL_MAP; this.solids = true; for (const p of this.players.values()) if (p.isBot && p.connected && p.home) this._park(p); }
+    this.gather();
+    this._log(`Q${q.id} 맵으로 이동`); return true;
   }
 
   /** 대기실 왼쪽 아군 봇: 가만히 서 있고 체력이 반쯤 깎여 있어서 힐·버프·방어 스킬을 시험해 볼 수 있다 (사람과 같은 편) */
@@ -1415,6 +1426,7 @@ export class Game {
       q,
       reveal: this.reveal,
       mp: this.map === MAP ? null : [this.map.w, this.map.h],
+      pv: this.preview && this.phase === PHASE.LOBBY ? { type: this.preview.type, l: this.preview.type === 'calendar' ? calLayout(this.preview) : undefined } : null, // 맵 미리 보기
       pl: r2(this._prep()), pc: isCombat(this.question) ? 1 : 0, // 준비 시간 남은 초 · 전투 모드인가
       tr: this.tour ? { r: this.tour.round, m: this.tour.cur, n: this.tour.alive.length, log: this.tour.log } : null,
       cr: this.coinRun && (this.phase === PHASE.READING || this.phase === PHASE.MOVING) ? Object.keys(this.coinRun.start).map((id) => this.players.get(id)).filter((p) => p && this._present(p)).map((p) => [p.id, p.name, this._coinGot(p)]).sort((a, b) => b[2] - a[2]) : null,

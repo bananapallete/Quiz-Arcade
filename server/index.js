@@ -90,6 +90,7 @@ io.on('connection', (socket) => {
   host('host:end', () => game.endQuestion());
   host('host:reset', () => game.resetScores());
   host('host:gather', () => { game.gather(); io.emit('gathered'); });
+  host('host:previewMap', (d) => { const ok = game.previewMap(Number(d?.id)); if (ok) io.emit('gathered'); return { ok }; });
   host('host:addQuestion', (d) => game.addQuestion(d || {}));
   host('host:addBot', (d) => {
     const n = Math.min(30, Math.max(1, Number(d?.count) || 1));
