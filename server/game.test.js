@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Game, SANDBAG_ATTACK } from './game.js';
 import { CRIT, PHASE, RUN_DRAIN, ULT_CHARGE } from '../shared/constants.js';
-const HUMAN_MUL = ULT_CHARGE.humanMul; ULT_CHARGE.humanMul = 1; // 규칙 테스트는 배수 없이(배포용 값), 배수는 아래 전용 테스트에서 확인
+const HUMAN_MUL = 2; ULT_CHARGE.humanMul = 1; // 규칙 테스트는 배수 없이(배포용 값), 배수는 아래 전용 테스트에서 확인
 
 CRIT.chance = 0; // 테스트는 정확한 피해 숫자를 확인하므로 크리티컬은 꺼둔다 (크리티컬 테스트에서만 켬)
 
