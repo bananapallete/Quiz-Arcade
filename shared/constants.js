@@ -41,6 +41,9 @@ export const REGEN = { delay: 3, every: 1, pct: 0.1 };
 export const CRIT = { chance: 0.1, mul: 1.5 };
 export const fmtScore = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
+export const PREP_SEC = 10; // 문제 시작 뒤 준비 시간: 공격·궁극기 불가, 궁극기 게이지도 안 참 (전투 모드는 달리기도 불가)
+/** 전투 모드(대난투·토너먼트·동전) / 나머지는 퀴즈 모드 */
+export const isCombat = (q) => !!q && (q.type === 'brawl' || q.type === 'coin');
 export const READ_SEC = 3; // 문제를 읽는 시간 (구역이 아직 잠겨 있음)
 
 // 맵 한가운데 원형 구역. 원 안에 중심이 들어가 있으면 그 구역을 고른 것 (cx, cy, r 단위는 칸)

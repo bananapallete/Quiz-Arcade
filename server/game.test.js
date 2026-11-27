@@ -411,7 +411,7 @@ test('조준 미리보기: 3타 차례에는 늘어난 사거리를 보여준다
 });
 
 // ---------- 동전 ----------
-import { COIN, MAP, zoneAt } from '../shared/constants.js';
+import { COIN, MAP, zoneAt, ZONES } from '../shared/constants.js';
 
 test('동전: 참가자가 있으면 3초마다 1개 생성, 없으면 생성 안 됨', () => {
   const g = new Game(chars, quizzes);
@@ -1716,4 +1716,27 @@ test('래브라도 궁극기는 동전뿐 아니라 하트·신발 아이템도 
   assert.ok(!g.items.has(901) && !g.items.has(902), '반경 안 아이템 흡수');
   assert.ok(g.items.has(903), '반경 밖은 그대로');
   assert.ok(a.hp > 10); assert.ok(a.speedUntil > g.t);
+});
+
+test('퀴즈 오답(무응답 포함)은 정답 공개 때 제자리 폭발 → 다음 문제까지 유령', () => {
+  const g = new Game(chars, quizzes);
+  const a = g.join({ token: 'a', name: 'A', charId: 'blue' }), b = g.join({ token: 'b', name: 'B', charId: 'blue' });
+  g.ask(1); run(g, 3.1);
+  const zO = ZONES.ox.find((z) => z.id === 'O'); a.x = zO.cx; a.y = zO.cy; b.x = 2; b.y = 2;
+  run(g, 1); g.endQuestion();
+  assert.equal(a.ghost, false); assert.equal(b.ghost, true, '무응답도 폭발');
+  const ev = g.snapshot().ev; assert.ok(ev.some((e) => e.e === 'boom') && ev.some((e) => e.e === 'ghost' && e.id === 'b'));
+  g.ask(2); assert.equal(b.ghost, false, '다음 문제에서 부활'); assert.equal(b.hp, b.cfg.hp);
+});
+
+test('준비 시간 10초: 퀴즈는 공격·궁극기 불가(달리기 가능), 궁극기 게이지도 멈춤 · 전투 모드는 달리기도 불가', () => {
+  const { g, a, b } = setup();
+  g.ask(1); assert.equal(g.snapshot().pc, 0); assert.ok(g.snapshot().pl > 9);
+  g.attack('a', null); assert.equal(b.hp, b.cfg.hp, '공격 불가');
+  a.ult = 0; g.setInput('a', { mx: 0, my: 1, run: true }); run(g, 5);
+  assert.equal(a.ult, 0, '게이지 멈춤'); assert.ok(a.runGauge < a.cfg.runGauge, '퀴즈는 달리기 가능');
+  run(g, 5.2); assert.equal(g._bLocked(), false); a.invUntil = b.invUntil = 0; a.x = 20; a.y = 10; b.x = 21; b.y = 10; a.nextAttackAt = 0;
+  g.attack('a', null); assert.ok(b.hp < b.cfg.hp, '10초 뒤 공격 가능');
+  const g2 = new Game(chars, [{ type: 'coin', text: 'c', time: 30 }]); const c = g2.join({ token: 'c', name: 'C', charId: 'blue' });
+  g2.ask(1); assert.equal(g2.snapshot().pc, 1); g2.setInput('c', { mx: 1, my: 0, run: true }); run(g2, 4); assert.equal(c.running, false, '전투 모드는 달리기 불가');
 });

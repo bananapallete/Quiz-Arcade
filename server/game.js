@@ -3,8 +3,8 @@
 
 import { blockWalls, buffOf, charge, CHARGE_TAKEN, hit as ultHit, ultReady, minionsSnapshot, updateUlts, useUlt, wallsSnapshot, zonesSnapshot } from './ult.js';
 import { dpsOf } from './balance.js';
-import { BRAWL_LOCK_SEC, BRAWL_MAP, BRAWL_REVIVE_SEC, brawlSpawn, inBush, inObstacle, pushOut } from '../shared/brawlMap.js';
-import { calCell, calCenter, calLayout, fmtScore, REGEN, ULT_CHARGE, RUN_DRAIN, CHAR_CD_SEC, COIN, COMBO_RESET_SEC, CRIT, ITEM, MAP, PHASE, READ_SEC, SPRITE, zoneAt, ZONES } from '../shared/constants.js';
+import { BRAWL_MAP, BRAWL_REVIVE_SEC, brawlSpawn, inBush, inObstacle, pushOut } from '../shared/brawlMap.js';
+import { calCell, calCenter, calLayout, fmtScore, isCombat, PREP_SEC, REGEN, ULT_CHARGE, RUN_DRAIN, CHAR_CD_SEC, COIN, COMBO_RESET_SEC, CRIT, ITEM, MAP, PHASE, READ_SEC, SPRITE, zoneAt, ZONES } from '../shared/constants.js';
 
 const KNOCK_DECAY = 12; // 밀림 속도 감쇠(1/s). 총 밀림 거리 = 처음 속도 / 감쇠
 const ATTACK_ANIM_SEC = 0.25;
@@ -168,6 +168,7 @@ export class Game {
     this.showRank = false; this.hideAns = false; this.screenMode = 'quiz'; this.timerPaused = false;
     this.phase = q.type === 'real' ? PHASE.REAL : PHASE.READING;
     this.phaseEnd = this.t + READ_SEC;
+    this.prepUntil = q.type === 'real' ? 0 : this.t + PREP_SEC; // 준비 시간 (공격·궁극기 불가, 궁극기 게이지도 멈춤)
     this._log(`문제 ${q.id} 출제`);
     for (const p of this.players.values()) { p.out = false; p.ghost = false; p.stunned = false; p.stunUntil = 0; this._refill(p); } // 문제마다 체력·달리기 게이지 가득
     if (q.type === 'brawl' && q.tour) this._tourSetup();
@@ -255,7 +256,7 @@ export class Game {
   rename(id, name) { const p = this.players.get(id), n = String(name || '').trim().slice(0, 10); if (!p || !n) return false; p.name = n; return true; }
   kick(id) { const p = this.players.get(id); if (!p) return false; this.realPending.delete(id); this.players.delete(id); this._log(`${p.name} 퇴장`); return true; }
   /** 출제를 취소하고 대기실로 (점수 변화 없음) */
-  cancelQuestion() { this._unpark(); this._endBrawlWorld(); this._clearUltWorld(); this.brawl = null; this.cal = null; this.tour = null; this.coinRun = null; for (const p of this.players.values()) { p.out = false; p.ghost = false; p.stunned = false; p.stunUntil = 0; } this.phase = PHASE.LOBBY; this.question = null; this.reveal = null; this.locked = null; this.realPending = new Map(); this.timerPaused = false; this._log('출제 취소'); return true; }
+  cancelQuestion() { this._unpark(); this._endBrawlWorld(); this._clearUltWorld(); this.brawl = null; this.cal = null; this.tour = null; this.coinRun = null; for (const p of this.players.values()) { if (p.ghost && p.hp <= 0) p.hp = p.cfg.hp; p.out = false; p.ghost = false; p.stunned = false; p.stunUntil = 0; } this.phase = PHASE.LOBBY; this.question = null; this.reveal = null; this.locked = null; this.realPending = new Map(); this.timerPaused = false; this._log('출제 취소'); return true; }
   /** 동전 비: n개를 sec초에 걸쳐 맵 곳곳에 떨어뜨림 (기본 동전 한도와 별개) */
   coinRain(n = 24, sec = 4) {
     for (let i = 0; i < n; i++) this.tasks.push({ at: this.t + (i / n) * sec, fn: () => { this.coinsSpawned = Math.max(0, this.coinsSpawned - 1); this.spawnCoin(); } });
@@ -346,7 +347,6 @@ export class Game {
   _startMoving() {
     this.phase = PHASE.MOVING;
     this.phaseEnd = this.t + this.question.time;
-    if (this.brawl) this.brawl.lockUntil = this.t + BRAWL_LOCK_SEC; // 대난투: 이 순간부터 10초간 공격·궁극기·달리기 불가
     // 문제가 시작될 때 이미 구역 안에 있던 사람도 이 시각부터 센다
     for (const p of this.players.values()) {
       p.zone = zoneAt(this.question.type, p.x, p.y);
@@ -374,11 +374,15 @@ export class Game {
       ms.forEach((p, i) => { const s = brawlSpawn(side, i, ms.length); p.x = s.x; p.y = s.y; p.face = side === 0 ? 1 : -1; p.kx = p.ky = 0; p.ghost = false; p.reviveT = 0; p.invUntil = this.t + READ_SEC; });
     });
     for (const p of this.players.values()) if (p.isBot && p.connected && p.home) { p.parked = true; p.connected = false; } // 샌드백·아군 봇만 치움 (테스트 봇은 참가)
-    this.brawl = { ids: new Set(hs.map((p) => p.id)), pts: this.question.pts || 5, groups0: 2, lockUntil: Infinity };
+    this.brawl = { ids: new Set(hs.map((p) => p.id)), pts: this.question.pts || 5, groups0: 2 };
   }
 
   /** 시작 뒤 10초(와 읽는 시간) 동안은 공격·궁극기·달리기·대쉬 불가 */
-  _bLocked() { return !!this.brawl && (this.phase === PHASE.READING || this.t < this.brawl.lockUntil); }
+  _bLocked() { return this._prep() > 0; }
+  /** 준비 시간이 몇 초 남았나 (문제 진행 중일 때만) */
+  _prep() { return (this.phase === PHASE.READING || this.phase === PHASE.MOVING) && this.question ? Math.max(0, (this.prepUntil || 0) - this.t) : 0; }
+  /** 달리기까지 막히는가 (전투 모드 준비 시간) */
+  _runLocked() { return this._prep() > 0 && isCombat(this.question); }
 
   /** 유령이 된 팀원과 5초 동안 겹쳐 있으면 체력 50%로 부활 (궁극기 0%, 무적 1초) */
   _brawlRevive(dt) {
@@ -451,8 +455,8 @@ export class Game {
       ms.forEach((p, i) => { const s = brawlSpawn(side, i, ms.length); p.x = s.x; p.y = s.y; p.face = side === 0 ? 1 : -1; p.kx = p.ky = 0; p.ghost = false; p.reviveT = 0; p.stunned = false; p.stunUntil = 0; this._refill(p); p.invUntil = this.t + READ_SEC; });
     });
     for (const p of this.players.values()) if (!ids.has(p.id) && (p.connected || p.parked)) this._park(p);
-    this.brawl = { ids, pts: this.question.pts || 5, groups0: 2, lockUntil: Infinity };
-    if (read) { this.phase = PHASE.READING; this.phaseEnd = this.t + READ_SEC; }
+    this.brawl = { ids, pts: this.question.pts || 5, groups0: 2 };
+    if (read) { this.phase = PHASE.READING; this.phaseEnd = this.t + READ_SEC; this.prepUntil = this.t + PREP_SEC; }
     this._log(`토너먼트 ${t.round}라운드 · ${m[0]}팀 vs ${m[1]}팀`);
   }
 
@@ -584,12 +588,20 @@ export class Game {
       const gain = r.correct ? (BASE_POINT + bonus) * this.multiplier : 0;
       r.p.score += gain; if (gain) undo.push([r.p.id, gain]);
       const dropped = !r.correct && (r.zone != null || COIN.dropOnNoAnswer || (r.p.isBot && r.p.botMode !== 'idle')) ? this._dropCoins(r.p) : 0;
+      if (!r.correct) this._quizBoom(r.p); // 틀리면(무응답 포함) 그 자리에서 폭발 → 다음 문제까지 유령
       return { id: r.p.id, name: r.p.name, team: r.p.team || 0, zone: r.zone, correct: r.correct, rank: r.correct ? r.rank : null, gain, dropped };
     });
     this.reveal = { answer: q.answer, results, dist };
     this.locked = null; this._pushUndo(`문제 ${q.id} 점수`, undo, this._hist('q', `Q${q.id} ${q.text}`, results.map((r) => ({ id: r.id, name: r.name, team: r.team, gain: r.gain, correct: r.correct }))));
     this._log(`문제 ${q.id} 정답 공개`);
     this.phase = PHASE.REVEAL;
+  }
+
+  /** 퀴즈 오답: 제자리 폭발 + 즉사, 다음 문제가 시작될 때까지 유령 */
+  _quizBoom(p) {
+    this.events.push({ e: 'boom', x: r2(p.x), y: r2(p.y), r: 1.3 });
+    p.ghost = true; p.dash = null; p.channel = null; p.flurry = null; p.stunned = false; p.hp = 0;
+    this.events.push({ e: 'ghost', id: p.id, x: r2(p.x), y: r2(p.y), q: 1 });
   }
 
   // ---------- 공격 ----------
@@ -1064,7 +1076,7 @@ export class Game {
       this._step(p, dt);
     }
     if (this.phase !== PHASE.HOLD) this._collide(active.filter((p) => !p.out && !p.ghost && !p.stunned)); // 탈락자·유령·쓰러진 캐릭터는 몸이 부딪히지 않음 (쓰러져 움직여도 밀지 못함) · 시간 종료 후엔 서로 밀지도 않음
-    for (const p of active) if (p.cfg.ult && !p.stunned) charge(p, p.cfg.ult.need * (p.cfg.ult.chargeSec ? 1 / p.cfg.ult.chargeSec : ULT_CHARGE.auto) * dt); // 가만히 있어도 초당 3% (chargeSec가 있으면 그 시간에 가득)
+    if (!this._bLocked()) for (const p of active) if (p.cfg.ult && !p.stunned) charge(p, p.cfg.ult.need * (p.cfg.ult.chargeSec ? 1 / p.cfg.ult.chargeSec : ULT_CHARGE.auto) * dt); // 가만히 있어도 초당 3% (chargeSec가 있으면 그 시간에 가득)
     const living = active.filter((p) => !p.ghost); // 유령은 동전·아이템도 못 주움
     this._updateCoins(dt, living);
     this._updateItems(dt, living);
@@ -1129,7 +1141,7 @@ export class Game {
       vx = p.dash.dx * p.dash.speed; vy = p.dash.dy * p.dash.speed;
       p.moving = true; running = true;
     } else if (p.moving) {
-      running = !p.stunned && !(p.ghost && this.brawl) && !this._bLocked() && runSkill && p.input.run && p.runGauge > 0 && !p.exhausted;
+      running = !p.stunned && !(p.ghost && this.brawl) && !this._runLocked() && runSkill && p.input.run && p.runGauge > 0 && !p.exhausted;
       // 공격 모션 중에는 이동 속도 감소 (캐릭터별 attack.moveSpeedWhileAttacking, 근접 0.5)
       const slow = this.t < p.attackUntil ? (c.attack.moveSpeedWhileAttacking ?? 1) : 1;
       const boost = (this.t < p.speedUntil ? ITEM.shoe.mul : 1) * (buffOf(this, p)?.spd ?? 1); // 신발 · 궁극기 강화
@@ -1401,9 +1413,10 @@ export class Game {
       q,
       reveal: this.reveal,
       mp: this.map === MAP ? null : [this.map.w, this.map.h],
+      pl: r2(this._prep()), pc: isCombat(this.question) ? 1 : 0, // 준비 시간 남은 초 · 전투 모드인가
       tr: this.tour ? { r: this.tour.round, m: this.tour.cur, n: this.tour.alive.length, log: this.tour.log } : null,
       cr: this.coinRun && (this.phase === PHASE.READING || this.phase === PHASE.MOVING) ? Object.keys(this.coinRun.start).map((id) => this.players.get(id)).filter((p) => p && this._present(p)).map((p) => [p.id, p.name, this._coinGot(p)]).sort((a, b) => b[2] - a[2]) : null,
-      bw: this.brawl && (this.phase === PHASE.READING || this.phase === PHASE.MOVING) ? { g: new Set(this._brawlAlive().map((p) => this._bKey(p))).size, p: this._brawlAlive().length, lk: this._bLocked() ? r2(this.phase === PHASE.READING ? BRAWL_LOCK_SEC + Math.max(0, this.phaseEnd - this.t) : Math.max(0, this.brawl.lockUntil - this.t)) : 0, tm: [...new Set([...this.brawl.ids].map((id) => this.players.get(id)?.team))].filter(Boolean).sort((a, b) => a - b).map((t) => { const m = [...this.brawl.ids].map((id) => this.players.get(id)).filter((p) => p && p.team === t); return [t, m.filter((p) => p.connected && !p.ghost).length, m.length]; }) } : null,
+      bw: this.brawl && (this.phase === PHASE.READING || this.phase === PHASE.MOVING) ? { g: new Set(this._brawlAlive().map((p) => this._bKey(p))).size, p: this._brawlAlive().length, lk: r2(this._prep()), tm: [...new Set([...this.brawl.ids].map((id) => this.players.get(id)?.team))].filter(Boolean).sort((a, b) => a - b).map((t) => { const m = [...this.brawl.ids].map((id) => this.players.get(id)).filter((p) => p && p.team === t); return [t, m.filter((p) => p.connected && !p.ghost).length, m.length]; }) } : null,
       cal: this.cal && (this.phase === PHASE.READING || this.phase === PHASE.MOVING) ? { l: this.cal.l, rv: this.cal.rv, r: this.cal.round, a: this._calAlive().length, f: this.cal.found.size, s: this.cal.safe } : null,
       ca: this.noAtk ? 1 : 0, cu: this.noUlt ? 1 : 0, gd: this.god ? 1 : 0,
       rank: this.showRank, ha: this.hideAns ? 1 : 0, qr: this.showQr ? 1 : 0, sm: this.screenMode, x2: this.multiplier, tp: this.timerPaused ? 1 : 0, fz: this.frozen ? 1 : 0, nt: this.notice && this.t < this.notice.until ? this.notice.text : null, ud: this.scoreLog.length,
