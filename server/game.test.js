@@ -1283,6 +1283,14 @@ test('대난투: 시간이 끝나면 남은 체력 합이 큰 팀이 이기고, 
   g2.ask(1); run(g2, 10); assert.equal(g2.phase, PHASE.MOVING, '한 팀뿐이면 자동 종료 안 함'); run(g2, 14); assert.equal(s.score, 5);
 });
 
+test('진행자 토글: 공격 금지·궁극기 금지·전원 무적', () => {
+  const { g, A, B } = duo('blue', 'blue'); A.x = 10; A.y = 10; B.x = 11; B.y = 10; A.invUntil = B.invUntil = 0; A.ult = A.cfg.ult.need; const hp = B.hp;
+  g.setNoAtk(true); g.attack('a', { x: 1, y: 0 }); run(g, 0.5); assert.equal(B.hp, hp, '공격 금지 중엔 피해 없음');
+  g.setNoUlt(true); assert.equal(g.ult('a', null), false, '궁극기 금지'); g.setNoUlt(false); g.setNoAtk(false);
+  g.setGod(true); g.attack('a', { x: 1, y: 0 }); run(g, 0.5); assert.equal(B.hp, hp, '무적 중엔 피해 없음'); assert.equal(g.snapshot().gd, 1);
+  g.setGod(false); B.nextAttackAt = 0; A.nextAttackAt = 0; g.attack('a', { x: 1, y: 0 }); run(g, 0.5); assert.ok(B.hp < hp, '해제하면 다시 피해');
+});
+
 test('난타(격투가): 5초간 앞으로 걸어가며 전방 직선을 연타하고 끝나면 멈춘다', () => {
   const { g, A, B } = duo('brawler', 'blue');
   A.x = 10; A.y = 10; B.x = 12; B.y = 10; A.ult = A.cfg.ult.need;

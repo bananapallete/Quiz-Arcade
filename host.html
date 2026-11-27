@@ -42,6 +42,13 @@
       .real{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.real div{display:grid;grid-template-columns:1fr 64px;gap:6px;align-items:center;padding:4px 8px;border-radius:8px;background:#fff;border:2px solid #d9bd8a;font-weight:800;font-size:14px}
       #auth{margin:auto;width:320px;display:grid;gap:10px;background:var(--cream);padding:20px;border-radius:14px}
       details summary{cursor:pointer;font-weight:900}
+      .sw{display:flex;align-items:center;gap:8px;padding:6px 10px;border:3px solid var(--navy);border-radius:12px;background:var(--cream-hi);color:var(--text);font-weight:900;font-size:13px;cursor:pointer;text-align:left}
+      .sw i{position:relative;flex:none;width:38px;height:22px;border-radius:99px;border:2px solid var(--navy);background:#b9b2a0;transition:background .15s}
+      .sw i::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid var(--navy);box-sizing:content-box;width:12px;height:12px;transition:left .15s}
+      .sw.on i{background:var(--leaf)}.sw.on i::after{left:18px}.sw.red.on i{background:#e5483c}.sw.red.on{background:#ffe1dd}
+      .sws{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+      .q.sel{border-color:#e08a00;background:#fff0c9}.q.sel .btn{background:#ffd54a}
+      #c-next{font-size:13px;font-weight:900;background:#fff0c9;border:2px solid #e08a00;border-radius:8px;padding:3px 8px}
       #sgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
       .sc{display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;gap:2px 6px;align-items:center;padding:5px 7px;border-radius:10px;background:var(--cream-hi);border:2px solid var(--navy);font-weight:800;font-size:13px}
       .sc .nm{grid-column:1/4;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.sc .pt{text-align:center;font-weight:900;font-size:22px}
@@ -73,12 +80,13 @@
         </details>
       </div>
       <div class="col" style="background:transparent;padding:0;gap:10px">
-        <div class="card"><div class="row2"><div><div style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><span class="pill" id="c-no">-</span><span class="pill" id="c-mode">-</span></div><div class="qt" id="c-text">문제를 출제하세요</div></div><div class="th" id="c-img" hidden></div></div>
+        <div class="card"><div class="row2"><div><div style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><span class="pill" id="c-no">-</span><span class="pill" id="c-mode">-</span><span id="c-next" hidden></span></div><div class="qt" id="c-text">문제를 출제하세요</div></div><div class="th" id="c-img" hidden></div></div>
           <div class="t2"><span style="font-weight:900">제한시간</span><div class="tbar"><i id="c-bar"></i></div></div></div>
-        <div class="ctl"><button class="btn go" id="ask">▶ 출제</button><button class="btn sky" id="gather2">⇆ 맵으로 이동</button><button class="btn gold" id="end">✓ 정답 공개</button><button class="btn" id="hideans">정답 숨기기</button><button class="btn" id="rank">🏆 등수 공개</button></div>
+        <div class="ctl" style="grid-template-columns:repeat(3,1fr)"><button class="btn go" id="ask">▶ 출제</button><button class="btn sky" id="gather2">⇆ 맵으로 이동</button><button class="btn gold" id="end">✓ 정답 공개</button></div>
         <div class="card"><h3>진행 <em id="tools-state"></em></h3>
-          <div class="ctl" style="grid-template-columns:repeat(5,1fr)"><button class="btn sm" id="t-pause">⏸ 일시정지</button><button class="btn sm" id="t-m10">−10초</button><button class="btn sm" id="t-p10">＋10초</button><button class="btn sm" id="t-undo">↶ 점수 되돌리기</button><button class="btn sm" id="t-x2">×2 라운드</button></div>
-          <div class="ctl" style="grid-template-columns:repeat(6,1fr)"><button class="btn sm" id="q-prev">◀ 이전 문제</button><button class="btn sm" id="q-next">다음 문제 ▶</button><button class="btn sm" id="q-cancel">출제 취소</button><button class="btn sm" id="t-qr">QR 닫기</button><button class="btn sm gold" id="c-rain">🪙 동전 비</button><button class="btn sm red" id="t-freeze">■ 비상 정지</button></div>
+          <div class="ctl" style="grid-template-columns:repeat(4,1fr)"><button class="btn sm" id="t-m10">−10초</button><button class="btn sm" id="t-p10">＋10초</button><button class="btn sm" id="t-undo">↶ 점수 되돌리기</button><button class="btn sm gold" id="c-rain">🪙 동전 비</button></div>
+          <div class="ctl" style="grid-template-columns:repeat(3,1fr)"><button class="btn sm" id="q-prev">◀ 이전 문제</button><button class="btn sm" id="q-next">다음 문제 ▶</button><button class="btn sm" id="q-cancel">출제 취소</button></div>
+          <div class="sws"><button class="sw" id="t-pause"><i></i>일시정지</button><button class="sw" id="t-x2"><i></i>×2 라운드</button><button class="sw" id="t-qr"><i></i>QR</button><button class="sw" id="hideans"><i></i>정답 숨김</button><button class="sw" id="rank"><i></i>등수 공개</button><button class="sw red" id="t-god"><i></i>전원 무적</button><button class="sw red" id="t-noatk"><i></i>공격 금지</button><button class="sw red" id="t-noult"><i></i>궁극기 금지</button><button class="sw red" id="t-freeze"><i></i>비상 정지</button></div>
           <div style="display:flex;gap:6px"><b style="align-self:center">화면</b><button class="btn sm" data-screen="title">타이틀</button><button class="btn sm" data-screen="quiz">퀴즈</button><button class="btn sm" data-screen="map">맵</button><button class="btn sm" data-screen="rank">순위</button></div>
           <div style="display:grid;grid-template-columns:1fr 70px auto;gap:6px"><input class="inp" id="nt-text" maxlength="80" placeholder="전체 공지 (빔프로젝터·폰에 표시)"><input class="inp" id="nt-sec" type="number" value="8" min="2" max="30"><button class="btn sm go" id="nt-go" style="font-size:14px">공지</button></div>
         </div>

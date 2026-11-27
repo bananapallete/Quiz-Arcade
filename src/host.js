@@ -28,26 +28,31 @@ function setInfo(i) { info = i; renderQuestions(); renderHistory(); $('#t-n').va
 // ---------- 문제 큐 ----------
 function renderQuestions() {
   $('#qlist').innerHTML = info.questions.map((q) => `
-    <div class="q ${q.id === curId ? 'cur' : doneIds.has(q.id) ? 'done' : ''}">
+    <div class="q ${q.id === curId ? 'cur' : q.id === askId ? 'sel' : doneIds.has(q.id) ? 'done' : ''}">
       <i></i><span title="${esc(q.text)}">${q.id}. ${esc(q.text)}</span>
       <button class="chip ${q.mode === '팀' || q.mode === '대난투' ? 'c-team' : q.mode === '현실' ? 'c-real' : 'c-ind'}" data-mode="${q.id}" style="cursor:pointer;font-size:11px">${esc(q.mode)}</button>
-      <button class="btn sm go" data-pick="${q.id}">선택</button>
+      <button class="btn sm go" data-pick="${q.id}">${q.id === askId ? '✓ 선택됨' : '선택'}</button>
     </div>`).join('');
 }
 $('#qlist').addEventListener('click', (e) => {
   const m = e.target.closest('[data-mode]'), p = e.target.closest('[data-pick]');
   if (m) { const q = info.questions.find((x) => x.id === Number(m.dataset.mode)); if (q && q.type !== 'real' && q.type !== 'brawl') emit('host:setMode', { id: q.id, mode: q.mode === '팀' ? '개인' : '팀' }); }
-  if (p) { askId = Number(p.dataset.pick); renderCurrent(); }
+  if (p) { askId = Number(p.dataset.pick); renderCurrent(); renderQuestions(); }
 });
 function renderCurrent() {
   const id = st?.q?.id && st.phase !== PHASE.LOBBY ? st.q.id : askId, q = info.questions.find((x) => x.id === id);
   $('#c-no').textContent = q ? `Q${q.id}` : '-'; $('#c-mode').textContent = q ? q.mode : '-'; $('#c-text').textContent = q ? q.text + (q.options ? '  ' + q.options.map((o, i) => `${i + 1}.${o}`).join(' ') : '') : '문제를 선택해 출제하세요';
+  const nx = info.questions.find((x) => x.id === askId), live = st?.q?.id && st.phase !== PHASE.LOBBY; $('#c-next').hidden = !(live && nx && nx.id !== st.q.id); if (nx) $('#c-next').textContent = `다음 ▶ Q${nx.id} ${nx.text.slice(0, 24)}`;
+  $('#ask').textContent = askId ? `▶ Q${askId} 출제` : '▶ 출제';
   const im = $('#c-img'); im.hidden = !q?.image; if (q?.image) im.style.backgroundImage = `url("${q.image}")`;
 }
-$('#ask').addEventListener('click', () => { if (askId) { emit('host:ask', { id: askId }); } });
+$('#ask').addEventListener('click', () => { if (!askId) return; emit('host:ask', { id: askId }); const ids = info.questions.map((q) => q.id), i = ids.indexOf(askId); askId = ids[i + 1] ?? askId; renderQuestions(); }); // 출제하면 다음 문제가 자동 선택됨
 $('#gather2').addEventListener('click', () => emit('host:gather'));
 $('#end').addEventListener('click', () => emit('host:end'));
 $('#hideans').addEventListener('click', () => emit('host:hideAns', { on: !st?.ha }));
+$('#t-god').addEventListener('click', () => emit('host:god', { on: !st?.gd }));
+$('#t-noatk').addEventListener('click', () => emit('host:noAtk', { on: !st?.ca }));
+$('#t-noult').addEventListener('click', () => emit('host:noUlt', { on: !st?.cu }));
 $('#rank').addEventListener('click', () => emit('host:rank', { on: !rankOn }));
 $('#gather').addEventListener('click', () => emit('host:gather'));
 $('#coin').addEventListener('click', () => emit('host:spawnCoin'));
@@ -127,15 +132,14 @@ socket.on('state', (s) => {
   st = s; rankOn = !!s.rank;
   humans = s.players.filter((p) => !p.b);
   $('#s-players').textContent = `${humans.length}명 접속`; $('#s-phase').textContent = (phaseName[s.phase] || '-') + (s.bw ? ` · ⚔ ${s.bw.p}명` : ''); $('#s-left').textContent = s.left > 0 ? `⏱ ${Math.ceil(s.left)}초` : '-';
-  $('#hideans').classList.toggle('on', !!s.ha); $('#hideans').textContent = s.ha ? '정답 보이기' : '정답 숨기기';
-  $('#rank').classList.toggle('on', rankOn); $('#rank').textContent = rankOn ? '🏆 등수 숨기기' : '🏆 등수 공개';
-  $('#t-pause').classList.toggle('on', !!s.tp); $('#t-pause').textContent = s.tp ? '▶ 재개' : '⏸ 일시정지';
-  $('#t-qr').textContent = s.qr ? 'QR 닫기' : 'QR 열기'; $('#t-qr').classList.toggle('on', !s.qr);
-  $('#t-x2').classList.toggle('on', s.x2 === 2); $('#t-freeze').textContent = s.fz ? '▶ 정지 해제' : '■ 비상 정지'; $('#t-undo').disabled = !s.ud;
+  for (const [id, on] of [['hideans', s.ha], ['rank', rankOn], ['t-pause', s.tp], ['t-qr', s.qr], ['t-x2', s.x2 === 2], ['t-freeze', s.fz], ['t-god', s.gd], ['t-noatk', s.ca], ['t-noult', s.cu]]) $('#' + id).classList.toggle('on', !!on); // 스위치
+  $('#t-undo').disabled = !s.ud;
   document.querySelectorAll('[data-screen]').forEach((b) => b.classList.toggle('on', b.dataset.screen === s.sm));
-  $('#tools-state').textContent = [s.tp ? '타이머 정지됨' : '', s.x2 === 2 ? '점수 ×2' : '', s.fz ? '비상 정지 중' : ''].filter(Boolean).join(' · ');
+  $('#tools-state').textContent = [s.tp ? '타이머 정지됨' : '', s.x2 === 2 ? '점수 ×2' : '', s.gd ? '전원 무적' : '', s.ca ? '공격 금지' : '', s.cu ? '궁극기 금지' : '', s.fz ? '비상 정지 중' : ''].filter(Boolean).join(' · ');
+  const prevCur = curId, prevDone = doneIds.size;
   if (s.q && s.phase !== PHASE.LOBBY) curId = s.q.id; else if (s.phase === PHASE.LOBBY) curId = null;
   if (s.phase === PHASE.REVEAL && s.q) doneIds.add(s.q.id);
+  if (prevCur !== curId || prevDone !== doneIds.size) renderQuestions();
   $('#end').disabled = !(s.phase === PHASE.READING || s.phase === PHASE.MOVING || s.phase === PHASE.HOLD);
   $('#ask').disabled = s.phase === PHASE.READING || s.phase === PHASE.MOVING || s.phase === PHASE.HOLD;
   const total = s.q?.time || 15; $('#c-bar').style.width = s.phase === PHASE.MOVING ? `${(s.left / total) * 100}%` : '0%';

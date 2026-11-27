@@ -84,6 +84,7 @@ let lastState = null;
 socket.on('state', (s) => {
   if (!ME) return;
   lastState = s;
+  document.body.classList.toggle('noatk', !!s.ca); document.body.classList.toggle('noult', !!s.cu); // 진행자가 공격·궁극기를 막으면 버튼을 어둡게
   scene.applyState(s);
   { const e = s.ev?.find((e) => e.e === 'ult' && e.id === ME); if (e) { ultAt = performance.now(); ultDir = PROJ_ULT.includes(e.t) ? { dx: e.dx, dy: e.dy } : null; } }
   hud(s);
@@ -109,7 +110,7 @@ function hud(s) {
     $('#hp').style.width = `${(p.hp / p.mhp) * 100}%`;
     $('#rg').style.width = `${(p.rg / p.mrg) * 100}%`;
     $('#score').textContent = `🪙${p.cn} ${fmtScore(p.sc)}`;
-    $('#flag').textContent = p.st ? '기절' : p.inv ? '무적' : '';
+    $('#flag').textContent = p.st ? '기절' : p.inv || s.gd ? '무적' : '';
   }
   const counting = s.phase === PHASE.READING || s.phase === PHASE.MOVING;
   $('#phase').textContent = ((phaseText[s.phase] || '') + (counting ? ` ${Math.ceil(s.left)}` : '')).trim();

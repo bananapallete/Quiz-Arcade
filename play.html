@@ -123,6 +123,7 @@
   #pickgo { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(16px, env(safe-area-inset-bottom, 0px)); padding: 14px 56px; border: 3px solid var(--leaf-dk); border-radius: 8px; background: var(--leaf); color: var(--text); font-size: 18px; font-weight: 800; box-shadow: 0 4px 0 #4d7226; cursor: pointer; }
   #pickgo:active { transform: translateX(-50%) translateY(3px); box-shadow: 0 1px 0 #4d7226; }
   #charbtn { position: fixed; left: max(12px, env(safe-area-inset-left, 0px)); top: max(8px, env(safe-area-inset-top, 0px)); z-index: 20; padding: 11px 16px; border: 3px solid var(--wood); border-radius: 8px; background: var(--cream); color: var(--text); font: 700 14px system-ui, 'Noto Sans KR', sans-serif; box-shadow: 0 3px 0 var(--wood-dk); cursor: pointer; }
+  body.noatk #btnAtk, body.noult #btnUlt { opacity: 0.18 !important; filter: grayscale(1); pointer-events: none; }
   #charbtn:active { transform: translateY(3px); box-shadow: none; }
   .abtn { border: 0 !important; box-shadow: 0 4px 10px #0005 !important; } /* 버튼 테두리 없음 */
   #toprank { position: fixed; left: max(10px, env(safe-area-inset-left, 0px)); top: 58px; z-index: 15; display: grid; gap: 3px; pointer-events: none; }

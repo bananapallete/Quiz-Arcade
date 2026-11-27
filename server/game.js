@@ -43,7 +43,7 @@ export class Game {
     this.itemClock = 0;
     this.coinsSpawned = 0; // 지금까지 생성한 동전 수 (습득된 것 포함)
     this.showRank = false; // 빔프로젝터에 순위표를 띄울지
-    this.showQr = true; this.hideAns = false; this.timerPaused = false; this.frozen = false; this.multiplier = 1; this.notice = null; this.screenMode = 'quiz'; this.scoreLog = []; this.history = []; this.histSeq = 0; // 진행자 기능
+    this.showQr = true; this.hideAns = false; this.timerPaused = false; this.frozen = false; this.multiplier = 1; this.notice = null; this.screenMode = 'quiz'; this.noAtk = false; this.noUlt = false; this.god = false; this.scoreLog = []; this.history = []; this.histSeq = 0; // 진행자 기능
     this.locked = null; // 시간이 끝난 시점에 굳어진 판정 (정답 공개 때 점수에 반영)
     this.realPending = new Map(); // 현실 퀴즈: 진행자가 입력한 점수 id → 점수
     this.realConfirmed = false;
@@ -210,6 +210,9 @@ export class Game {
   pauseTimer(on) { this.timerPaused = !!on; this._log(on ? '타이머 일시정지' : '타이머 재개'); return true; }
   addTime(sec) { if (this.phase !== PHASE.READING && this.phase !== PHASE.MOVING) return false; this.phaseEnd = Math.max(this.t + 1, this.phaseEnd + Number(sec) || 0); return true; }
   setQr(on) { this.showQr = !!on; return true; }
+  setNoAtk(on) { this.noAtk = !!on; this._log(on ? '공격 금지' : '공격 허용'); return true; }
+  setNoUlt(on) { this.noUlt = !!on; this._log(on ? '궁극기 금지' : '궁극기 허용'); return true; }
+  setGod(on) { this.god = !!on; this._log(on ? '전원 무적' : '무적 해제'); return true; }
   setHideAns(on) { this.hideAns = !!on; return true; } // 정답 공개 후에도 화면에서 정답을 가림
   setFrozen(on) { this.frozen = !!on; this._log(on ? '비상 정지' : '정지 해제'); return true; }
   setMultiplier(n) { this.multiplier = Number(n) === 2 ? 2 : 1; this._log(this.multiplier === 2 ? '점수 2배 라운드' : '점수 2배 해제'); return true; }
@@ -467,6 +470,7 @@ export class Game {
   }
 
   _tryAttack(p, aim) {
+    if (this.noAtk) return; // 진행자가 공격을 막음
     const a = p.cfg.attack;
     if (this.t < p.nextAttackAt || this.t < (p.silenceUntil || 0) || p.stunned || this.t < p.rootUntil || this.t < p.charmUntil || p.channel || this._dashing(p) || p.ammoF < 1) return; // 탄창이 비면 못 쏨
     if (p.running && !a.canAttackWhileRunning) return;
@@ -734,7 +738,7 @@ export class Game {
   }
 
   _applyHit(target, attacker, rawDmg, knock, dx, dy, fx) {
-    if (this.t < target.invUntil) { // 무적: 피해도 밀림도 없음
+    if (this.t < target.invUntil || (this.god && !target.isBot)) { // 무적: 피해도 밀림도 없음
       this.events.push({ e: 'block', id: target.id, x: r2(target.x), y: r2(target.y) });
       return;
     }
@@ -782,7 +786,7 @@ export class Game {
   // ---------- 궁극기 ----------
   ult(id, aim) {
     const p = this.players.get(id);
-    if (!p || p.stunned || this.t < p.rootUntil || this.t < p.charmUntil || this.t < (p.silenceUntil || 0) || p.channel || this._dashing(p) || !ultReady(p)) return false;
+    if (this.noUlt || !p || p.stunned || this.t < p.rootUntil || this.t < p.charmUntil || this.t < (p.silenceUntil || 0) || p.channel || this._dashing(p) || !ultReady(p)) return false;
     useUlt(this, p, aim);
     return true;
   }
@@ -1093,6 +1097,7 @@ export class Game {
       q,
       reveal: this.reveal,
       bw: this.brawl && (this.phase === PHASE.READING || this.phase === PHASE.MOVING) ? { g: new Set(this._brawlAlive().map((p) => this._bKey(p))).size, p: this._brawlAlive().length } : null,
+      ca: this.noAtk ? 1 : 0, cu: this.noUlt ? 1 : 0, gd: this.god ? 1 : 0,
       rank: this.showRank, ha: this.hideAns ? 1 : 0, qr: this.showQr ? 1 : 0, sm: this.screenMode, x2: this.multiplier, tp: this.timerPaused ? 1 : 0, fz: this.frozen ? 1 : 0, nt: this.notice && this.t < this.notice.until ? this.notice.text : null, ud: this.scoreLog.length,
       dist: this.phase === PHASE.MOVING || this.phase === PHASE.HOLD ? this._liveDist() : null,
       teams: this._teamTotals(),
