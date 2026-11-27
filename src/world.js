@@ -419,7 +419,7 @@ export class WorldScene extends Phaser.Scene {
       buildBrawlFloor(this); buildObstacleTextures(this);
       const floor = this.add.image(0, 0, 'floor-brawl').setOrigin(0).setScale(BU / TILE).setDepth(-98);
       const obs = OBSTACLES.map((o) => { const k = 'ob-' + o.k, img = this.add.image(o.x * BU, (o.y + o.hh) * BU - 2, k).setOrigin(0.5, k === 'ob-pillar' ? 0.9 : k === 'ob-wall' ? 0.82 : 0.9).setScale(BU / TILE).setDepth((o.y + o.hh) * BU); return img; });
-      const bush = this.add.image(0, 0, 'brawl-bush').setOrigin(0).setScale(BU / TILE).setDepth(900000).setAlpha(0.55); // 캐릭터 위에 덮어 숨김
+      const bush = this.add.image(0, 0, 'brawl-bush').setOrigin(0).setScale(BU / TILE).setDepth(900000).setAlpha(0.75); // 캐릭터 위에 덮어 숨김
       this.brawlObjs = [floor, ...obs, bush];
     }
     if (!this.brawlObjs || this._brawlOn === on) return;
@@ -568,6 +568,7 @@ export class WorldScene extends Phaser.Scene {
       const bk = Math.max(0, 1 - (now - v.bump) / 250);
       v.coinIcon.setVisible(shown > 0).setPosition(bx0 + bw + (p.sp > 0 ? 40 : 18), by + 7).setDepth(v.y + 1).setScale(1.5 * (1 + 0.45 * bk));
       v.coinTxt.setVisible(shown > 0).setText(`×${shown}`).setPosition(bx0 + bw + (p.sp > 0 ? 52 : 30), by + 7).setDepth(v.y + 1);
+      { const hid = !!p.sl && !!this.focusId && !me && !(p.tm && p.tm === this.views.get(this.focusId)?.p?.tm); v.bar.setVisible(!hid); v.name.setVisible(!hid); v.shoe.setVisible(!hid && p.sp > 0); if (hid) { v.coinIcon.setVisible(false); v.coinTxt.setVisible(false); } } // 은신·부쉬에 숨은 적은 이름·체력바도 숨김
     }
     this.coins.update(now);
     this.items.update(now);
