@@ -2,7 +2,7 @@ import { autoReload } from './autoReload.js';
 import { io } from 'socket.io-client';
 import QRCode from 'qrcode';
 import { fmtScore, isCombat, MAP, PHASE } from '../shared/constants.js';
-import { BU, startWorld } from './world.js';
+import { BU, startWorld, WORLD_H, WORLD_W } from './world.js';
 import { mountScreenUi, renderScreenUi } from './screenUi.js';
 
 const $ = (s) => document.querySelector(s);
@@ -27,7 +27,7 @@ fetch('/api/info').then((r) => r.json()).then(async (info) => {
 // ---------- 중계 카메라: 전투 모드에선 유령이 아닌 1등을 따라가고, 진행자가 고른 참가자가 있으면 그 사람을 ----------
 let last = null, castId = null;
 const castTag = document.createElement('div'); castTag.id = 'castTag'; castTag.hidden = true;
-castTag.style.cssText = 'position:fixed;left:2vw;bottom:13vh;z-index:14;pointer-events:none;background:#14122bd0;color:#fff;border:.4vh solid #ffd54a;border-radius:99px;padding:.6vh 1.6vw;font:900 2.6vh system-ui,"Noto Sans KR",sans-serif';
+castTag.style.cssText = 'position:fixed;left:2vw;bottom:2vh;z-index:14;pointer-events:none;background:#14122bd0;color:#fff;border:.4vh solid #ffd54a;border-radius:99px;padding:.6vh 1.6vw;font:900 2.6vh system-ui,"Noto Sans KR",sans-serif';
 document.body.append(castTag);
 function castTarget(s) {
   if (!s || s.rank || s.sm === 'map') return null;
@@ -43,7 +43,9 @@ scene.onFrame = (sc, dt) => {
   castId = v ? t.id : null; castTag.hidden = !v; if (v) castTag.textContent = `📺 ${t.n}`;
   const tz = v ? 1.3 : big ? 0.5 : 1, tx = v ? v.x : (big ? last.mp[0] : MAP.w) * BU / 2, ty = v ? v.y - 0.5 * BU : (big ? last.mp[1] : MAP.h) * BU / 2;
   const k = 1 - Math.exp(-(dt / 1000) * 5), m = cam.midPoint; // 부드럽게 따라감
-  cam.setZoom(cam.zoom + (tz - cam.zoom) * k); cam.centerOn(m.x + (tx - m.x) * k, m.y + (ty - m.y) * k);
+  const z = cam.zoom + (tz - cam.zoom) * k, mw = (big ? last.mp[0] : MAP.w) * BU, mh = (big ? last.mp[1] : MAP.h) * BU, hw = WORLD_W / 2 / z, hh = WORLD_H / 2 / z;
+  const clamp = (c, h, L) => (L <= 2 * h ? L / 2 : Math.min(L - h, Math.max(h, c))); // 맵 바깥(빈 곳)이 보이지 않게
+  cam.setZoom(z); cam.centerOn(clamp(m.x + (tx - m.x) * k, hw, mw), clamp(m.y + (ty - m.y) * k, hh, mh));
 };
 
 socket.on('state', (s) => {

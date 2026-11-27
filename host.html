@@ -51,7 +51,7 @@
       #c-next{font-size:13px;font-weight:900;background:#fff0c9;border:2px solid #e08a00;border-radius:8px;padding:3px 8px}
       #sgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
       .sc{display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;gap:2px 6px;align-items:center;padding:5px 7px;border-radius:10px;background:var(--cream-hi);border:2px solid var(--navy);font-weight:800;font-size:13px}
-      .sc .nm{grid-column:1/4;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:flex;gap:4px;align-items:center}.sc .nm i{font-style:normal;cursor:pointer;opacity:.35;font-size:14px}.sc .nm i.on{opacity:1}.sc .nm span{overflow:hidden;text-overflow:ellipsis}.sc .pt{text-align:center;font-weight:900;font-size:22px}
+      .sc .nm{grid-column:1/4;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:flex;gap:4px;align-items:center}.sc .nm i{font-style:normal;cursor:pointer;opacity:.55;font-size:16px}.sc .nm i.on{opacity:1}.sc .nm span{overflow:hidden;text-overflow:ellipsis}.sc .pt{text-align:center;font-weight:900;font-size:22px}
       .sc b{width:34px;height:30px;border-radius:8px;border:2px solid var(--navy);display:grid;place-items:center;background:#fff;font-size:18px;cursor:pointer;user-select:none}.sc b.m{background:#ffb3ab}.sc b.p{background:#b5e8a0}.sc b:active{transform:translateY(2px)}
       #tboard{display:flex;gap:6px;flex-wrap:wrap}.tc{flex:1 1 110px;min-height:70px;border:2px dashed var(--navy);border-radius:10px;padding:5px;display:flex;gap:4px;flex-wrap:wrap;align-content:flex-start}.tc.over{background:#fff3c4}.tc h4{margin:0;width:100%;font-size:12px}
       .chip{color:var(--text);padding:3px 8px;border-radius:99px;border:2px solid var(--navy);background:#fff;font-weight:800;font-size:13px;cursor:grab}
@@ -71,7 +71,7 @@
           <div style="display:grid;gap:6px;margin-top:8px">
             <div style="display:flex;gap:6px"><select id="q-type" class="inp" style="flex:1"><option value="ox">O/X</option><option value="choice">객관식</option><option value="real">현실</option><option value="brawl">대난투</option><option value="tourney">토너먼트</option><option value="coin">동전 모으기</option></select></div>
             <input id="q-text" class="inp" placeholder="문제" /><input id="q-opts" class="inp" placeholder="객관식 보기 (쉼표로 구분)" />
-            <div style="display:flex;gap:6px"><input id="q-ans" class="inp" placeholder="정답 · 점수" style="flex:1" /><input id="q-time" class="inp" type="number" value="15" style="width:70px" /></div>
+            <div style="display:flex;gap:6px"><input id="q-ans" class="inp" placeholder="정답 · 점수" style="flex:1" /><input id="q-time" class="inp" type="number" value="15" min="5" max="900" title="제한시간(초)" style="width:70px" /><span style="align-self:center;font-weight:900">초</span></div>
             <input id="q-img" class="inp" placeholder="이미지 주소 (선택)" /><button class="btn go" id="q-add">추가</button>
           </div>
         </details>
@@ -88,7 +88,7 @@
           <div class="ctl" style="grid-template-columns:repeat(4,1fr)"><button class="btn sm" id="t-m10">−10초</button><button class="btn sm" id="t-p10">＋10초</button><button class="btn sm" id="t-undo">↶ 점수 되돌리기</button><button class="btn sm gold" id="c-rain">🪙 동전 비</button></div>
           <div class="ctl" style="grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)"><button class="btn sm" id="q-prev">◀ 이전 문제</button><button class="btn sm" id="q-next">다음 문제 ▶</button><button class="btn sm gold" id="cal-fin" hidden>🏁 정산</button></div>
           <div class="sws"><button class="sw" id="t-pause"><i></i>일시정지</button><button class="sw" id="t-x2"><i></i>×2 라운드</button><button class="sw" id="t-qr"><i></i>QR</button><button class="sw" id="hideans"><i></i>정답 숨김</button><button class="sw red" id="t-god"><i></i>전원 무적</button><button class="sw red" id="t-noatk"><i></i>공격 금지</button><button class="sw red" id="t-noult"><i></i>궁극기 금지</button><button class="sw red" id="t-freeze"><i></i>비상 정지</button></div>
-          <div style="display:flex;gap:6px;align-items:center"><b>중계</b><button class="btn sm" data-cast="auto">자동 1등</button><button class="btn sm" data-cast="off">전체 맵</button><span id="cast-now" style="font-weight:900;font-size:13px"></span></div>
+          <div style="display:flex;gap:6px;align-items:center"><b>📺 중계</b><button class="btn sm" data-cast="auto">자동 1등</button><button class="btn sm" data-cast="off">전체 맵</button><select class="inp" id="cast-sel" style="flex:1;padding:3px 8px"><option value="">참가자 고르기</option></select></div>
           <div style="display:flex;gap:6px"><b style="align-self:center">화면</b><button class="btn sm" data-screen="title">타이틀</button><button class="btn sm" data-screen="quiz">퀴즈</button><button class="btn sm" data-screen="map">맵</button><button class="btn sm" data-screen="rank">순위</button></div>
           <div style="display:grid;grid-template-columns:1fr 70px auto;gap:6px"><input class="inp" id="nt-text" maxlength="80" placeholder="전체 공지 (빔프로젝터·폰에 표시)"><input class="inp" id="nt-sec" type="number" value="8" min="2" max="30"><button class="btn sm go" id="nt-go" style="font-size:14px">공지</button></div>
         </div>

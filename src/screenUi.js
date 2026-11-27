@@ -1,5 +1,5 @@
 // 빔프로젝터 화면 UI: 상단에 문제·시간(숫자+게이지)·이미지, 아래에 구역 안내. 시간이 끝나면 '시간 종료' 대기, 진행자가 누르면 정답+응답 분포, 등수는 진행자가 켰을 때만.
-import { fmtScore, PHASE, READ_SEC } from '../shared/constants.js';
+import { fmtScore, isCombat, PHASE, READ_SEC } from '../shared/constants.js';
 
 const CSS = `
 #sq{position:fixed;inset:0;z-index:12;pointer-events:none;font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#5a3a24}
@@ -15,6 +15,7 @@ const CSS = `
 #sq .gauge.ok i{background:linear-gradient(#9af0a4,#4fd16a)}#sq .gauge.low i{background:linear-gradient(#ff8f84,#e5483c)}
 #sq .main{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:1.4vw}
 #sq .main.noimg{grid-template-columns:1fr}
+#sq.fight .main{display:none}#sq.fight .gauge{height:1.2vh;border-width:.25vh}#sq.fight .head{gap:.8vh}#sq.fight .legend{left:auto;max-width:60vw}#sq.fight .zone{flex:none;padding:.6vh 1.2vw;font-size:2.4vh;border-width:.3vh;background-color:#14122bcc!important}#sq.fight .zone small{font-size:2vh} /* 전투 중 중계: 문제 카드는 숨기고 상태만 작게 */
 #sq .card{background:#f6e6c8;border:.45vh solid #14122b;border-radius:2vh;box-shadow:0 .6vh 0 #14122b66;padding:2vh 1.8vw;font-weight:900;font-size:4vh;line-height:1.3;word-break:keep-all;display:grid;align-content:center}
 #sq .img{background:#fff;border:.45vh solid #14122b;border-radius:2vh;box-shadow:0 .6vh 0 #14122b66;padding:.8vh;min-height:20vh;max-height:30vh}
 #sq .img div{width:100%;height:100%;border-radius:1.2vh;background:#e9f7ff center/contain no-repeat}
@@ -71,6 +72,7 @@ export function renderScreenUi(el, s) {
   const mode = s.sm || 'quiz', nt = el.querySelector('.notice');
   el.querySelector('.title').hidden = mode !== 'title'; el.querySelector('.x2').hidden = s.x2 !== 2; el.querySelector('.frz').hidden = !s.fz;
   nt.hidden = !s.nt; if (s.nt) nt.textContent = s.nt;
+  el.classList.toggle('fight', isCombat(s.q) && (s.phase === PHASE.READING || s.phase === PHASE.MOVING) && !s.rank);
   if (mode === 'map') { for (const c of ['.head', '.legend', '.end', '.rev', '.rank']) el.querySelector(c).hidden = true; return; } // 맵만 보여 줌
   const q = s.q, ph = s.phase, live = !!q && ph !== PHASE.LOBBY, head = el.querySelector('.head'), legend = el.querySelector('.legend'), end = el.querySelector('.end'), rev = el.querySelector('.rev'), rank = el.querySelector('.rank');
   head.hidden = !live;

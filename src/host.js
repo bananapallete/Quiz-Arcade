@@ -65,6 +65,7 @@ $('#sb-add').addEventListener('click', () => emit('host:addSandbags'));
 $('#sb-del').addEventListener('click', () => emit('host:clearSandbags'));
 $('#reset-coins').addEventListener('click', () => { if (confirm('모두의 획득 동전을 0으로 할까요? (동전 점수도 빠짐)')) emit('host:resetCoins'); });
 $('#reset').addEventListener('click', () => { if (confirm('점수와 동전을 모두 초기화할까요?')) emit('host:reset'); });
+$('#q-type').addEventListener('change', () => { const t = $('#q-type').value; $('#q-time').value = { brawl: 240, tourney: 90, coin: 60 }[t] ?? 15; $('#q-ans').placeholder = ['brawl', 'tourney', 'coin'].includes(t) ? '점수' : t === 'real' ? '-' : '정답 (O/X · 1~4)'; }); // 방식마다 기본 제한시간(초)
 $('#q-add').addEventListener('click', () => {
   const text = $('#q-text').value.trim(), type = $('#q-type').value; if (!text) return;
   const raw = $('#q-ans').value.trim().toUpperCase();
@@ -81,6 +82,7 @@ $('#aw-go').addEventListener('click', () => {
 
 // 점수 그리드 ±단계
 document.querySelectorAll('[data-cast]').forEach((b) => b.addEventListener('click', () => emit('host:cast', { m: b.dataset.cast })));
+$('#cast-sel').addEventListener('change', (e) => emit('host:cast', e.target.value ? { id: e.target.value } : { m: 'auto' })); // 고른 참가자를 빔프로젝터로 중계
 $('#sgrid').addEventListener('click', (e) => { const c = e.target.closest('[data-castid]'); if (c) { emit('host:cast', st?.cs?.id === c.dataset.castid ? { m: 'auto' } : { id: c.dataset.castid }); return; } const b = e.target.closest('[data-sg]'); if (b) emit('host:adjust', { id: b.dataset.id, delta: Number(b.dataset.sg) * (Number($('#adj-step').value) || 1) }); });
 // 팀 끌어놓기
 let extraTeams = 0, dragging = false, dirtyBoard = false;
@@ -149,7 +151,7 @@ socket.on('state', (s) => {
   $('#t-undo').disabled = !s.ud;
   document.querySelectorAll('[data-screen]').forEach((b) => b.classList.toggle('on', b.dataset.screen === s.sm));
   document.querySelectorAll('[data-cast]').forEach((b) => b.classList.toggle('on', b.dataset.cast === s.cs?.m));
-  $('#cast-now').textContent = s.cs?.m === 'id' ? `📺 ${humans.find((p) => p.id === s.cs.id)?.n ?? '-'}` : '';
+  { const sel = $('#cast-sel'), k = humans.map((p) => p.id + p.n).join(); if (sel.dataset.k !== k) { sel.dataset.k = k; sel.innerHTML = '<option value="">참가자 고르기</option>' + [...humans].sort((a, b) => a.n.localeCompare(b.n)).map((p) => `<option value="${p.id}">${esc(p.n)}</option>`).join(''); } if (document.activeElement !== sel) sel.value = s.cs?.m === 'id' ? s.cs.id : ''; }
   $('#tools-state').textContent = [s.tp ? '타이머 정지됨' : '', s.x2 === 2 ? '점수 ×2' : '', s.gd ? '전원 무적' : '', s.ca ? '공격 금지' : '', s.cu ? '궁극기 금지' : '', s.fz ? '비상 정지 중' : ''].filter(Boolean).join(' · ');
   const prevCur = curId, prevDone = doneIds.size;
   if (s.q && s.phase !== PHASE.LOBBY) curId = s.q.id; else if (s.phase === PHASE.LOBBY) curId = null;
