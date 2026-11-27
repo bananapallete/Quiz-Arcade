@@ -832,7 +832,7 @@
     },
     "ammo": {
       "max": 3,
-      "reload": 0.6
+      "reload": 0.857
     },
     "role": "speed",
     "atkInfo": "빠른 3연타",
