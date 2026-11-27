@@ -371,7 +371,7 @@ function updateMinions(g) {
       }
     }
     if (tx != null) {
-      const d = Math.hypot(tx - m.x, ty - m.y), reach = kind === 'enemy' ? 0.55 : kind === 'coin' ? 0.3 : 1.2;
+      const d = Math.hypot(tx - m.x, ty - m.y), reach = kind === 'enemy' ? (u.reach ?? 0.55) : kind === 'coin' ? 0.3 : 1.2;
       if (d > reach) { const s = Math.min(d - reach, u.speed * dt); m.x += ((tx - m.x) / d) * s; m.y += ((ty - m.y) / d) * s; m.act = 1; if (Math.abs(tx - m.x) > 0.05) m.face = tx > m.x ? 1 : -1; }
       else if (kind === 'enemy' && g.t >= m.peckAt) { m.peckAt = g.t + u.gap; m.act = 2; const dx = (tgt.x - m.x) / (d || 1), dy = (tgt.y - m.y) / (d || 1); hit(g, tgt, o, u.dmg, 0, dx, dy, 'peck'); g.events.push({ e: 'peck', id: m.id, x: r2(m.x), y: r2(m.y) }); }
       else if (kind === 'enemy') m.act = 2;
