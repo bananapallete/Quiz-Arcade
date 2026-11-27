@@ -182,7 +182,7 @@ export class Game {
     };
     if (type === 'real') item.answer = null;
     if (type === 'brawl') item.pts = Math.max(1, Number(q.pts) || 5);
-    if (type === 'calendar') { item.days = Math.min(31, Math.max(28, Number(q.days) || 30)); item.start = Math.min(6, Math.max(0, Number(q.start) || 0)); item.bad = (q.bad || []).map(Number).filter((d) => d >= 1 && d <= item.days); }
+    if (type === 'calendar') { item.days = Math.min(31, Math.max(28, Number(q.days) || 30)); item.month = Math.min(12, Math.max(0, Number(q.month) || 0)); item.start = Math.min(6, Math.max(0, Number(q.start) || 0)); item.bad = (q.bad || []).map(Number).filter((d) => d >= 1 && d <= item.days); }
     this.questions.push(item);
     return item;
   }

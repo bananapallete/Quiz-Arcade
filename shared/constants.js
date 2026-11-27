@@ -57,8 +57,8 @@ export const ZONES = {
 
 /** 달력 퀴즈 판: 문제 카드 아래를 7열 × 주 수만큼 칸으로 나눔 (days일, 1일이 start요일(0=일)에 시작) */
 export function calLayout(q) {
-  const start = q.start || 0, days = q.days || 30, rows = Math.ceil((start + days) / 7), x0 = 1.1, y0 = 5.7;
-  return { x0, y0, w: (MAP.w - 2.2) / 7, h: (MAP.h - 1.8 - y0) / rows, rows, start, days }; // 아래는 하단 안내 막대 자리
+  const start = q.start || 0, days = q.days || 30, rows = Math.ceil((start + days) / 7), x0 = 1.1, y0 = 6.5; // 위쪽 0.8칸은 요일 줄
+  return { x0, y0, w: (MAP.w - 2.2) / 7, h: (MAP.h - 1.8 - y0) / rows, rows, start, days, month: q.month || 0 }; // 아래는 하단 안내 막대 자리
 }
 /** 그 위치의 날짜(없으면 null) */
 export function calCell(l, x, y) {

@@ -370,6 +370,9 @@ export class WorldScene extends Phaser.Scene {
     const rv = s.cal?.rv || {}, bad = new Set(s.reveal?.cal ? s.reveal.bad : []), key = `cal|${s.phase}|${JSON.stringify(rv)}|${[...bad]}`;
     if (key === this.zoneKey) return; this.zoneKey = key;
     const g = this.zoneGfx.clear(); this.zoneImgs.forEach((i) => i.destroy()); this.zoneImgs = [];
+    '일월화수목금토'.split('').forEach((ch, c) => this.zoneImgs.push(this.add.text((l.x0 + (c + 0.5) * l.w) * BU, (l.y0 - 0.42) * BU, ch, { fontFamily: 'sans-serif', fontSize: `${Math.round(BU * 0.5)}px`, color: c === 0 ? '#ff9a90' : c === 6 ? '#8ab4ff' : '#e8ebff', fontStyle: '900', stroke: '#0d0f2a', strokeThickness: 4 }).setOrigin(0.5).setDepth(-79))); // 요일 줄
+    const empty = l.rows * 7 - (l.start + l.days); // 마지막 줄에 남는 빈 칸이 2칸 이상이면 거기에 월을 크게 표시
+    if (l.month && empty >= 2) this.zoneImgs.push(this.add.text((l.x0 + (7 - empty / 2) * l.w) * BU, (l.y0 + (l.rows - 0.5) * l.h) * BU, `${l.month}월`, { fontFamily: 'sans-serif', fontSize: `${Math.round(BU * 1.7)}px`, color: '#ffffff', fontStyle: '900', stroke: '#0d0f2a', strokeThickness: 8 }).setOrigin(0.5).setAlpha(0.55).setDepth(-79));
     for (let d = 1; d <= l.days; d++) {
       const i = d - 1 + l.start, x = (l.x0 + (i % 7) * l.w) * BU + 3, y = (l.y0 + Math.floor(i / 7) * l.h) * BU + 3, cw = l.w * BU - 6, ch = l.h * BU - 6, st = bad.has(d) || rv[d] === 2 ? 2 : rv[d] === 1 ? 1 : 0;
       g.fillStyle(st === 2 ? 0x6a9a2a : st === 1 ? 0xffe27a : 0x0d0f2a, st === 2 ? 0.8 : st === 1 ? 0.3 : 0.5).fillRect(x, y, cw, ch);
