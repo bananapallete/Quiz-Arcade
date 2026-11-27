@@ -12,7 +12,7 @@ const $ = (s) => document.querySelector(s);
 addBtnIcons();
 const qtop = mountQuizTop();
 const socket = io();
-import { isMuted, setMuted, unlockAudio } from './sfx.js';
+import { isMuted, setMuted, setMuffled, unlockAudio } from './sfx.js';
 import { mountFade } from './fade.js'; mountFade(socket);
 const LS = 'quiz_player';
 const load = () => { try { return JSON.parse(localStorage.getItem(LS) || 'null'); } catch { return null; } };
@@ -74,7 +74,7 @@ scene.onFrame = (sc, dt) => {
     const dead = !!v.p.st, egg = dead && v.p.s === 'egg'; eggT = egg ? eggT + dt : 0;
     deadT = Math.max(0, Math.min(1, deadT + (dead && (!egg || eggT < 1000) ? dt : -dt) / 500)); // 알은 1초 동안만 줌인, 이후엔 알인 채로 줌아웃
     const de = deadT < 0.5 ? 4 * deadT ** 3 : 1 - (-2 * deadT + 2) ** 3 / 2;
-    deadMs = dead ? deadMs + dt : 0;
+    deadMs = dead ? deadMs + dt : 0; setMuffled(dead || !!v.p.gh); // 죽거나 유령이면 소리가 먹먹하게(문 너머에서 들리는 것처럼)
     if (dead) { // 죽음 줌: 0.5초 줌인(1.45배) → 3초 동안 서서히 1.3배 줌아웃 → 1초 동안 서서히 다시 줌인 (알은 2.5배 줌인 후 위에서 1초 뒤 줌아웃)
       const sec = deadMs / 1000, k = (a, b, u) => { const t = Math.max(0, Math.min(1, u)); return a + (b - a) * t * t * (3 - 2 * t); };
       lastDz = egg ? 2.5 : sec < 0.5 ? 1.45 : sec < 3.5 ? k(1.45, 1.45 / 1.3, (sec - 0.5) / 3) : sec < 4.5 ? k(1.45 / 1.3, 1.45, sec - 3.5) : 1.45;

@@ -1,7 +1,7 @@
 // 효과음: 파일 없이 WebAudio로 합성한 8비트풍 소리. 평타·투척·궁극기 소리를 내고, 나와 멀수록 작아져 일정 거리 밖은 안 들린다.
 // 빔프로젝터(screen)는 궁극기 소리만 낸다. 폰은 처음 화면을 터치한 뒤부터 소리가 난다 (브라우저 정책).
 const KEY = 'quiz_sfx_muted';
-let ctx = null, master = null, voices = 0, muted = false;
+let ctx = null, master = null, muffle = null, muffled = false, voices = 0, muted = false;
 try { muted = localStorage.getItem(KEY) === '1'; } catch { /* 저장 불가 */ }
 const lastAt = {};
 
@@ -50,13 +50,20 @@ function ultClip(path, vol) { // 파일로 된 궁극기 소리를 bus에 올림
   const s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = b; g.gain.value = vol; s.connect(g); g.connect(bus); s.start(); done(b.duration); return b.duration;
 }
 
+/** 죽은 상태의 소리: 저역통과 필터(low-pass)로 고음을 깎아 "문 너머에서 들리는 클럽 소리"처럼 먹먹하게 (머플드 / 오클루전 효과) */
+export function setMuffled(on) {
+  if (!ctx || !muffle || muffled === !!on) return; muffled = !!on; const t = ctx.currentTime;
+  muffle.frequency.cancelScheduledValues(t); muffle.frequency.setTargetAtTime(on ? 520 : 22000, t, on ? 0.12 : 0.2); // 천천히 먹먹해지고, 살아나면 서서히 맑아짐
+  master.gain.cancelScheduledValues(t); master.gain.setTargetAtTime(on ? 0.26 : 0.32, t, 0.15);
+}
+export const _muffleFreq = () => (muffle ? muffle.frequency.value : null); // 시험용
 export const isMuted = () => muted;
 export function setMuted(m) { muted = !!m; try { localStorage.setItem(KEY, m ? '1' : '0'); } catch { /* 저장 불가 */ } }
 
 /** 첫 터치/클릭 때 호출: 오디오를 깨움 */
 export function unlockAudio() {
   try {
-    if (!ctx) { ctx = new (window.AudioContext || window.webkitAudioContext)(); master = ctx.createGain(); master.gain.value = 0.32; master.connect(ctx.destination); }
+    if (!ctx) { ctx = new (window.AudioContext || window.webkitAudioContext)(); master = ctx.createGain(); master.gain.value = 0.32; muffle = ctx.createBiquadFilter(); muffle.type = 'lowpass'; muffle.Q.value = 0.7; muffle.frequency.value = 22000; master.connect(muffle); muffle.connect(ctx.destination); }
     if (ctx.state === 'suspended') ctx.resume();
     for (const n of CLIPS.animal) { loadClip('animal/' + n); loadClip('animal/' + n + '_ult'); } DIVA_ULT.forEach((n) => loadClip('ult/' + n)); // 소리 파일 미리 불러오기 (없으면 건너뜀)
   } catch { ctx = null; }
