@@ -113,6 +113,13 @@ const BASIC = {
   coin: (v, p) => { tone(988 * p, 988 * p, 0.07, 'square', 0.22 * v); tone(1319 * p, 1319 * p, 0.16, 'square', 0.22 * v, 0.07); },
   heal: (v) => { [523, 659, 784, 1047].forEach((f, i) => tone(f, f * 1.01, 0.2, 'sine', 0.3 * v, i * 0.07)); },
   speed: (v) => { noise(0.3, 600, 4000, 0.4 * v); tone(300, 900, 0.3, 'square', 0.2 * v); },
+  // 궁극기 타격음 (다단히트 한 대 한 대): 짧게 끝나야 연달아 나도 뭉치지 않음
+  hitArrow: (v, p) => { tone(1500 * p, 600 * p, 0.05, 'triangle', 0.4 * v); noise(0.03, 3500, 1800, 0.2 * v); },
+  hitFire: (v, p) => { noise(0.1, 2600 * p, 900, 0.4 * v); tone(260 * p, 120, 0.08, 'sawtooth', 0.15 * v); },
+  hitThump: (v, p) => { tone(190 * p, 70, 0.09, 'square', 0.4 * v); noise(0.04, 1400, 500, 0.3 * v); },
+  hitZap: (v, p) => { tone(1800 * p, 500, 0.06, 'sawtooth', 0.35 * v); noise(0.03, 5000, 2500, 0.2 * v); },
+  hitSmash: (v, p) => { tone(120 * p, 45, 0.22, 'sine', 0.9 * v); noise(0.14, 900, 160, 0.5 * v); },
+  hitTick: (v, p) => { tone(700 * p, 420 * p, 0.04, 'square', 0.25 * v); },
   pop: (v, p) => { tone(600 * p, 200, 0.07, 'sine', 0.5 * v); },
 };
 
@@ -154,7 +161,7 @@ export const loudness = (d) => (d <= 3 ? 1 : Math.max(0, 1 - (d - 3) / 13) ** 2)
 export function sfxEvent(e, c) {
   if (muted || !ctx || ctx.state !== 'running' || voices > 28) return;
   const isUlt = e.e === 'ult';
-  if (c.screen && !isUlt && !['stun', 'ghost', 'channelEnd'].includes(e.e)) return; // 빔프로젝터는 궁극기 소리만 (끊김 신호는 받음)
+  if (c.screen && !isUlt && !(e.e === 'hit' && e.u) && !['stun', 'ghost', 'channelEnd'].includes(e.e)) return; // 빔프로젝터는 궁극기 소리(발동·타격)만 (끊김 신호는 받음)
   let v = 1;
   if (!c.screen && !c.mine && c.fx != null && c.x != null) v = loudness(Math.hypot(c.x - c.fx, c.y - c.fy)); // 멀리 있는 사람 소리는 작게
   if (v < 0.04) return;
@@ -175,6 +182,10 @@ export function sfxEvent(e, c) {
     else if (e.kind === 'ranged') k = e.fx === 'tongue' ? 'tongue' : 'spark';
     else if (e.kind === 'proj') k = e.fx === 'chain' ? 'zap' : e.lob ? 'throw' : e.art === 'boomerang' ? 'whirr' : /arrow/.test(e.art || '') ? 'twang' : e.art === 'orb' ? 'magic' : e.art ? 'throw' : 'spark';
     if (k && gate('a' + (c.mine ? 'm' : 'o'), ATK_GAP)) BASIC[k](v * (c.mine ? 1 : 0.8), p);
+  } else if (e.e === 'hit') { // 궁극기로 맞은 타격은 한 대마다 소리 (파란티 번개, 궁수 화살비, 흑발·강아지·시바 회전, 격투가 난타, 오크 강타, 부메랑, 닭 쪼기 …)
+    if (!e.u || e.fx === 'note' || !gate('h' + (c.mine ? 'm' : 'o'), 40)) return; // 디바 무대의 음표 틱은 곡이 있으니 제외
+    const fx = String(e.fx || ''), big = e.dmg >= 12, k = big || /smash/.test(fx) ? 'hitSmash' : /arrow|rain|boomerang/.test(fx) ? 'hitArrow' : /fire|flame|burn|crescent|bottle/.test(fx) ? 'hitFire' : /spark|chain|zap|beam/.test(fx) ? 'hitZap' : /peck/.test(fx) ? 'hitTick' : 'hitThump'; // 기본(펀치·회전·할퀴기)은 퍽 하는 소리
+    BASIC[k](v * (c.mine ? 0.85 : 0.6), p * (0.95 + Math.random() * 0.1));
   } else if (e.e === 'regen') { if (c.mine && gate('regen', 400)) BASIC.heal(0.45); } // 자동 회복: 내 것만 작게
   else if (e.e === 'boom' && gate('b', BOOM_GAP)) BASIC.boom(v * 0.8, 1);
   else if (e.e === 'coinGet' && gate('coin' + (c.mine ? 'm' : 'o'), 55)) BASIC.coin(v * (c.mine ? 1 : 0.6), 1 + Math.random() * 0.12); // 동전 줍는 소리 (음높이를 살짝 흔들어 단조롭지 않게)

@@ -874,7 +874,7 @@ export class Game {
       target.kx += dx * knock * KNOCK_DECAY;
       target.ky += dy * knock * KNOCK_DECAY;
     }
-    this.events.push({ e: 'hit', id: target.id, by: attacker.id, dmg, crit, guard, fx, x: r2(target.x), y: r2(target.y) });
+    this.events.push({ e: 'hit', id: target.id, by: attacker.id, dmg, crit, guard, fx, x: r2(target.x), y: r2(target.y), u: this.ultDepth > 0 ? 1 : 0 }); // u: 궁극기로 맞은 타격 (클라이언트가 타수마다 소리를 냄)
   }
 
   // ---------- 궁극기 ----------
