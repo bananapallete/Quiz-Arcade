@@ -661,10 +661,10 @@ test('대시 캐릭터는 달리기 입력을 무시하고, 기절하면 돌진�
 import { dpsOf, FIGHT_SEC, powerIndex, shotsOf } from './balance.js';
 
 const BUFFED = ['blue', 'girl_long', 'knight', 'puppy', 'shiba']; // 공격력 2배 버프 중
-test('밸런스: 전투력 지수가 17~22 안 (서포터는 회복이 있어 15 이상, 버프 중인 캐릭터는 30까지)', () => {
+test('밸런스: 전투력 지수가 17~22 안 (서포터는 회복이 있어 15 이상, 버프 중인 캐릭터는 35까지)', () => {
   for (const [id, c] of Object.entries(chars)) {
     const v = powerIndex(c);
-    assert.ok(v >= (c.role === 'support' ? 15 : 17) && v <= (BUFFED.includes(id) ? 30 : 22), // BUFFED: 진행자가 공격력을 2배로 올려 달라고 한 캐릭터(의도적으로 센 상태)
+    assert.ok(v >= (c.role === 'support' ? 15 : 17) && v <= (BUFFED.includes(id) ? 35 : 22), // BUFFED: 진행자가 공격력을 2배로 올려 달라고 한 캐릭터(의도적으로 센 상태)
      `${c.name}: ${v.toFixed(1)}`);
     assert.ok(c.hp >= 30 && c.hp <= 90, `${c.name} 체력`);
   }

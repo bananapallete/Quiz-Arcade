@@ -650,7 +650,7 @@
       "type": "melee",
       "dmgMin": 6,
       "dmgMax": 6,
-      "interval": 0.86,
+      "interval": 0.25,
       "range": 2,
       "knockback": 0,
       "canAttackWhileRunning": true,
@@ -662,7 +662,7 @@
     "scale": 1.15,
     "ammo": {
       "max": 3,
-      "reload": 1.0
+      "reload": 0.6
     },
     "guard": 0.4,
     "role": "tank",
