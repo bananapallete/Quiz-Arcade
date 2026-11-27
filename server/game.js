@@ -890,7 +890,7 @@ export class Game {
       if (p.isBot) this._botThink(p);
       this._step(p, dt);
     }
-    if (this.phase !== PHASE.HOLD) this._collide(active.filter((p) => !p.out && !p.ghost)); // 탈락자·유령은 몸이 부딪히지 않음 · 시간 종료 후엔 서로 밀지도 않음
+    if (this.phase !== PHASE.HOLD) this._collide(active.filter((p) => !p.out && !p.ghost && !p.stunned)); // 탈락자·유령·쓰러진 캐릭터는 몸이 부딪히지 않음 (쓰러져 움직여도 밀지 못함) · 시간 종료 후엔 서로 밀지도 않음
     for (const p of active) if (p.cfg.ult && !p.stunned) charge(p, p.cfg.ult.need * (p.cfg.ult.chargeSec ? 1 / p.cfg.ult.chargeSec : ULT_CHARGE.auto) * dt); // 가만히 있어도 초당 3% (chargeSec가 있으면 그 시간에 가득)
     const living = active.filter((p) => !p.ghost); // 유령은 동전·아이템도 못 주움
     this._updateCoins(dt, living);
@@ -944,16 +944,16 @@ export class Game {
     let vx = 0, vy = 0, running = false;
     const len = Math.hypot(p.input.mx, p.input.my);
     const rooted = this.t < p.rootUntil; // 궁극기에 묶임: 못 움직이고 못 공격
-    p.moving = !p.stunned && !rooted && len > 0.1;
+    p.moving = !rooted && len > 0.1; // 쓰러져 있어도 느리게(30%) 움직일 수 있음
     if (rooted && !dashing) { /* 묶임 */ } else if (dashing) { // 돌진/도약 중에는 입력과 상관없이 정해진 속도로 일직선
       vx = p.dash.dx * p.dash.speed; vy = p.dash.dy * p.dash.speed;
       p.moving = true; running = true;
     } else if (p.moving) {
-      running = runSkill && p.input.run && p.runGauge > 0 && !p.exhausted;
+      running = !p.stunned && runSkill && p.input.run && p.runGauge > 0 && !p.exhausted;
       // 공격 모션 중에는 이동 속도 감소 (캐릭터별 attack.moveSpeedWhileAttacking, 근접 0.5)
       const slow = this.t < p.attackUntil ? (c.attack.moveSpeedWhileAttacking ?? 1) : 1;
       const boost = (this.t < p.speedUntil ? ITEM.shoe.mul : 1) * (buffOf(this, p)?.spd ?? 1); // 신발 · 궁극기 강화
-      const speed = (running ? c.runSpeed : c.walkSpeed) * slow * boost * (p.channel ? p.channel.move : 1) * (this.t < p.charmUntil ? 0.5 : 1) * (this.t < p.slowUntil ? p.slowMul : 1); // 진흙에 느려짐
+      const speed = (running ? c.runSpeed : c.walkSpeed) * slow * boost * (p.channel ? p.channel.move : 1) * (this.t < p.charmUntil ? 0.5 : 1) * (this.t < p.slowUntil ? p.slowMul : 1) * (p.stunned ? 0.3 : 1); // 진흙에 느려짐
       vx = p.input.mx * speed;
       vy = p.input.my * speed;
       const lock = !running && this.t < p.attackUntil ? this._aimDir(p, null, c.attack.range).near : null; // 공격 모션이 재생되는 동안만 자동 조준 대상을 바라봄 (평소엔 가는 방향)

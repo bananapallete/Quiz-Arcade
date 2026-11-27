@@ -224,8 +224,8 @@ const RUN = {
   },
 
   snipe(g, p, u, dx, dy, near) { // 제자리에서 aim초 조준(못 움직임) 뒤 굵은 관통 빔
-    p.rootUntil = Math.max(p.rootUntil, g.t + u.aim + 0.25);
-    g.events.push({ e: 'snipeAim', id: p.id, x: r2(p.x), y: r2(p.y), dx: r2(dx), dy: r2(dy), sec: u.aim, range: u.range, width: u.width });
+    p.rootUntil = Math.max(p.rootUntil, g.t + u.aim + 0.25); // aim이 0이면 즉시 발사 (뒤로 0.25초만 못 움직임)
+    if (u.aim > 0) g.events.push({ e: 'snipeAim', id: p.id, x: r2(p.x), y: r2(p.y), dx: r2(dx), dy: r2(dy), sec: u.aim, range: u.range, width: u.width });
     later(g, u.aim, () => {
       if (p.stunned) return;
       let ax = dx, ay = dy;

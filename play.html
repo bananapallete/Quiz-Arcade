@@ -133,6 +133,11 @@
   #toprank div.me { background: #b4d36acc; }
   #toprank span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #toprank i { font-style: normal; font-variant-numeric: tabular-nums; }
+  #charmfx { position: fixed; inset: 0; z-index: 24; pointer-events: none; opacity: 0; transition: opacity .25s; background: radial-gradient(ellipse at center, rgba(255,111,181,.18) 30%, rgba(255,90,170,.5) 100%); animation: charmPulse 1s ease-in-out infinite; }
+  body.charmed #charmfx { opacity: 1; }
+  @keyframes charmPulse { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }
+  #charmMsg { white-space: nowrap; position: fixed; left: 50%; top: 30%; transform: translate(-50%, -50%); z-index: 31; padding: 8px 18px; border-radius: 99px; border: 3px solid #14122b; background: #ff6fb5; color: #fff; font: 900 24px/1.2 system-ui, 'Noto Sans KR', sans-serif; text-shadow: 0 2px 0 #14122b88; pointer-events: none; box-shadow: 0 4px 0 #14122b88; }
+  #charmMsg[hidden] { display: none; }
   #ultframe { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 25; pointer-events: none; image-rendering: pixelated; opacity: 0; }
   #top, #banner, #reveal, #phase { display: none !important; } /* 상단 UI(quizTop)로 대체 */
   #charbtn { top: max(8px, env(safe-area-inset-top, 0px)) !important; bottom: auto !important; left: auto !important; right: max(10px, env(safe-area-inset-right, 0px)); padding: 7px 11px; font-size: 12px; } /* 우측 상단 모서리 */
@@ -145,7 +150,7 @@
   #btnAtk { font-size: 16px; }
 </style>
 
-<div id="deathMsg" hidden></div>
+<div id="deathMsg" hidden></div><div id="charmfx"></div><div id="charmMsg" hidden>💘 매혹당했습니다</div>
 <div id="nick" hidden><div class="mbox"><input id="nickin" type="text" maxlength="10" placeholder="닉네임" autocomplete="off" enterkeyhint="done"><button id="nickgo" type="button">확인</button></div></div>
 <div id="pick"><div class="box"><input id="pickname" type="text" maxlength="10" placeholder="닉네임" autocomplete="off" enterkeyhint="done"><div id="pickroot"></div><button id="pickgo" type="button">시작</button></div></div>
 <button id="charbtn" type="button">캐릭터 변경</button>

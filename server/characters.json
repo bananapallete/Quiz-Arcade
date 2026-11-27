@@ -154,11 +154,11 @@
       "need": 100,
       "chargeSec": 30,
       "type": "snipe",
-      "aim": 0.8,
+      "aim": 0,
       "range": 18,
       "width": 1.2,
       "dmg": 8,
-      "desc": "조준 후 멀리 관통하는 저격 (피해 8)"
+      "desc": "즉시 발사하는 멀리 관통 저격 (피해 8)"
     }
   },
   "witch": {

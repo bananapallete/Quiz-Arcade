@@ -71,13 +71,13 @@ test('체력 0 → 기절 5초 → 체력 회복 + 무적 3초', () => {
   assert.ok(b.hp < b.cfg.hp);
 });
 
-test('기절 중에는 이동 불가', () => {
+test('기절(사망) 중에는 30% 속도로만 움직이고, 달릴 수 없다', () => {
   const { g, b } = setup();
-  b.stunned = true; b.stunUntil = g.t + 2;
-  g.setInput('b', { mx: 1, my: 0, run: false });
+  b.x = 10; b.y = 10; b.stunned = true; b.stunUntil = g.t + 5;
+  g.setInput('b', { mx: 1, my: 0, run: true });
   const x0 = b.x;
   run(g, 1);
-  assert.ok(Math.abs(b.x - x0) < 0.01);
+  assert.ok(Math.abs(b.x - x0 - b.cfg.walkSpeed * 0.3) < 0.15, `걷기 속도의 30% 이동 ${b.x - x0}`);
 });
 
 test('새총: 투사체가 날아가야 맞고(피할 수 있음), 사거리 5, 밀림 없음, 피해 1', () => {
@@ -1428,16 +1428,14 @@ test('별 궤도(단발 소녀): 몸 주위를 도는 별이 가까운 상대를
   assert.equal(A.orbit, null, '5초 뒤 끝');
 });
 
-test('저격(엘프): 조준하는 동안 못 움직이고, 뒤에 일직선 관통 빔', () => {
+test('저격(엘프): 즉시 발사해서 일직선으로 관통하고, 쏜 뒤 0.25초만 못 움직인다', () => {
   const { g, A, B } = duo('elf', 'blue');
   const C = g.join({ token: 'c', name: 'C', charId: 'blue' });
   A.x = 5; A.y = 10; B.x = 9; B.y = 10; C.x = 14; C.y = 10.3;
   A.ult = A.cfg.ult.need; g.ult('a', { x: 1, y: 0 });
-  g.setInput('a', { mx: 0, my: 1, run: false }); const y0 = A.y; run(g, 0.5);
-  assert.ok(Math.abs(A.y - y0) < 0.2, '조준 중 못 움직임');
-  assert.equal(B.hp, B.cfg.hp, '아직 안 쐈음');
-  run(g, 0.4);
-  assert.equal(B.cfg.hp - B.hp, A.cfg.ult.dmg); assert.equal(C.cfg.hp - C.hp, A.cfg.ult.dmg, '관통');
+  assert.equal(B.cfg.hp - B.hp, A.cfg.ult.dmg, '발동 즉시 맞음'); assert.equal(C.cfg.hp - C.hp, A.cfg.ult.dmg, '관통');
+  g.setInput('a', { mx: 0, my: 1, run: false }); const y0 = A.y; run(g, 0.2); assert.ok(Math.abs(A.y - y0) < 0.2, '쏜 직후 잠깐 못 움직임');
+  run(g, 0.5); assert.ok(A.y - y0 > 1, '그 뒤엔 움직임');
 });
 
 test('방패 성벽(기사): 상대의 투사체와 이동을 막고, 주인은 지나갈 수 있다', () => {
