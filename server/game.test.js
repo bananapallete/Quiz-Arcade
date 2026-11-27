@@ -1792,3 +1792,14 @@ test('동전 초기화: 획득 동전만 0, 문제 점수는 그대로', () => {
   assert.equal(g.totalScore(a), 5);
   g.resetCoins(); assert.equal(a.coins, 0); assert.equal(a.score, 3); assert.equal(g.totalScore(a), 3);
 });
+
+test('대난투 봇은 도망보다 전투: 체력 30%여도 싸우고, 15% 아래에서만 빠진다 (평소엔 35%부터 도망)', () => {
+  const g = new Game(chars, [{ type: 'brawl', text: 'b', time: 120 }]);
+  const bot = g.addBot('aggro', 'blue'), foe = g.join({ token: 'f', name: 'F', charId: 'blue' });
+  bot.team = 1; foe.team = 2; bot.x = 10; bot.y = 10; foe.x = 14; foe.y = 10;
+  bot.hp = Math.floor(bot.cfg.hp * 0.3); assert.equal(g._botFlee(bot), true, '평소(대난투 아님)엔 30%면 도망');
+  bot.ai.fleeing = false; g.ask(1); bot.x = 10; bot.y = 10; foe.x = 14; foe.y = 10; bot.hp = Math.floor(bot.cfg.hp * 0.3);
+  assert.equal(g._botFlee(bot), false, '대난투에선 30%여도 싸움');
+  bot.hp = Math.floor(bot.cfg.hp * 0.1); assert.equal(g._botFlee(bot), true, '15% 아래면 잠깐 빠짐');
+  foe.hp = 1; foe.x = 11; bot.ai.fleeing = false; assert.equal(g._botFlee(bot), false, '사거리 안에 더 약한 적이 있으면 마무리');
+});

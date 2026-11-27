@@ -1284,10 +1284,15 @@ export class Game {
   /** 봇이 노릴 줍기 대상: 가까운 동전(줍을 수 있는 것), 체력이 80% 미만이면 하트, 신발 */
   /** 체력이 35% 아래면 도망(60% 회복할 때까지): 가까운 적에게서 멀어지고(벽·모서리는 피함), 안전하게 닿을 수 있는 하트가 있으면 그쪽으로, 달리기·대쉬·궁극기로 탈출. 구석에 몰리면 맞서 싸움 */
   _botFlee(p) {
-    const c = p.cfg, ai = p.ai;
-    if (ai.fleeing ? p.hp >= c.hp * 0.6 : p.hp > c.hp * 0.35) { ai.fleeing = false; return false; }
+    const c = p.cfg, ai = p.ai, fight = !!this.brawl; // 대난투·토너먼트: 도망보다 전투 — 거의 죽어갈 때(15%)만 잠깐 빠졌다가(35%) 다시 싸움
+    const lo = fight ? 0.15 : 0.35, hi = fight ? 0.35 : 0.6;
+    if (ai.fleeing ? p.hp >= c.hp * hi : p.hp > c.hp * lo) { ai.fleeing = false; return false; }
     const foes = this._enemies(p).filter((o) => !this._stealthed(o) && !o.stunned && Math.hypot(o.x - p.x, o.y - p.y) < 12);
     if (!foes.length && !ai.fleeing) return false;
+    if (fight) { // 사거리 안에 나보다 약한(체력 비율이 낮은) 적이 있으면 도망 대신 마무리하러 감
+      const reach = (c.attack.range ?? 1.5) + 0.8;
+      if (foes.some((o) => Math.hypot(o.x - p.x, o.y - p.y) <= reach && o.hp / o.cfg.hp <= p.hp / c.hp)) { ai.fleeing = false; return false; }
+    }
     ai.fleeing = true;
     let fx = 0, fy = 0, dn = Infinity, nearest = null;
     for (const o of foes) { const dx = p.x - o.x, dy = p.y - o.y, d = Math.max(0.3, Math.hypot(dx, dy)); fx += (dx / d) / d; fy += (dy / d) / d; if (d < dn) { dn = d; nearest = o; } } // 가까운 적일수록 강하게 밀어냄
