@@ -56,6 +56,7 @@ $('#t-noult').addEventListener('click', () => emit('host:noUlt', { on: !st?.cu }
 $('#rank').addEventListener('click', () => emit('host:rank', { on: !rankOn }));
 $('#gather').addEventListener('click', () => emit('host:gather'));
 $('#coin').addEventListener('click', () => emit('host:spawnCoin'));
+$('#sbots').addEventListener('click', () => emit('host:addBot', { mode: 'wander', charId: 'random', count: 8 })); // 문제를 풀고 점수를 받는 봇
 $('#abots').addEventListener('click', () => { emit('host:botAttack', { on: true }); emit('host:addBot', { mode: 'aggro', charId: 'random', count: 15 }); });
 $('#b-clear').addEventListener('click', () => emit('host:clearBots'));
 $('#reset').addEventListener('click', () => { if (confirm('점수와 동전을 모두 초기화할까요?')) emit('host:reset'); });
@@ -130,7 +131,7 @@ $('#plist').addEventListener('click', (e) => {
 let humans = [], lastKey = '', realKey = '';
 socket.on('state', (s) => {
   st = s; rankOn = !!s.rank;
-  humans = s.players.filter((p) => !p.b);
+  humans = s.players.filter((p) => p.ct); // 사람 + 점수 받는 테스트 봇
   $('#s-players').textContent = `${humans.length}명 접속`; $('#s-phase').textContent = (phaseName[s.phase] || '-') + (s.bw ? ` · ⚔ ${s.bw.p}명` : ''); $('#s-left').textContent = s.left > 0 ? `⏱ ${Math.ceil(s.left)}초` : '-';
   for (const [id, on] of [['hideans', s.ha], ['rank', rankOn], ['t-pause', s.tp], ['t-qr', s.qr], ['t-x2', s.x2 === 2], ['t-freeze', s.fz], ['t-god', s.gd], ['t-noatk', s.ca], ['t-noult', s.cu]]) $('#' + id).classList.toggle('on', !!on); // 스위치
   $('#t-undo').disabled = !s.ud;

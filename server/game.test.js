@@ -548,7 +548,15 @@ test('봇: 문제가 나오면 무작위 구역으로 걸어가고, 틀린 구�
   assert.ok(right.every((b) => b.coins === 2), '맞힌 봇은 동전 유지');
   assert.ok(bots.filter((b) => !right.includes(b)).every((b) => b.coins === 0), '틀린 봇은 동전을 떨어뜨림');
   assert.equal(g.coins.size, (bots.length - right.length) * 2);
-  assert.ok(g.reveal.results.every((r) => !r.id.startsWith('bot')), '봇은 결과 점수에 안 들어감');
+  const br = g.reveal.results.filter((r) => r.id.startsWith('bot')); assert.equal(br.length, bots.length, '테스트 봇도 결과에 들어감');
+  assert.ok(br.every((r) => r.correct === right.some((b) => b.id === r.id)) && right.every((b) => b.score > 0), '맞힌 봇은 점수를 받음');
+  assert.ok(g.leaderboard().some((e) => e.id.startsWith('bot')), '봇도 등수에 오름');
+});
+
+test('샌드백·아군 봇은 점수·등수에 안 들어간다', () => {
+  const g = new Game(chars, quizzes); g.addSandbags(['blue']); g.addAllies(); const a = g.join({ token: 'a', name: 'A', charId: 'blue' });
+  g.ask(1); run(g, 20); g.endQuestion();
+  assert.deepEqual(g.reveal.results.map((r) => r.id), ['a']); assert.deepEqual(g.leaderboard().map((e) => e.id), ['a']); assert.equal(g.snapshot().players.find((p) => p.n === '샌드백').ct, 0);
 });
 
 test('봇: 정지·공격형 테스트 봇은 문제를 풀지 않는다', () => {

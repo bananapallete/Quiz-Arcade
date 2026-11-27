@@ -80,6 +80,9 @@ export class Game {
   _sameSide(a, b) { return !!(a.team && a.team === b.team) || !!((a.ally && (!b.isBot || b.ally)) || (b.ally && !a.isBot)); }
   _allies(p) { return [...this.players.values()].filter((o) => o === p || (o.connected && !o.stunned && this._sameSide(p, o))); }
 
+  /** 점수·등수·팀에 들어가는 참가자: 사람 + 테스트용 봇 (샌드백·아군 봇은 제외) */
+  contestants() { return [...this.players.values()].filter((p) => !p.home); }
+
   humans() {
     return [...this.players.values()].filter((p) => !p.isBot);
   }
@@ -106,7 +109,7 @@ export class Game {
     if (charId === 'random') { const ids = Object.keys(this.characters); charId = ids[Math.floor(Math.random() * ids.length)]; }
     if (!this.characters[charId]) charId = Object.keys(this.characters)[0];
     const id = `bot-${++this.botSeq}`;
-    return this._spawn({ id, name: this.characters[charId].name, charId, isBot: true, botMode: mode });
+    return this._spawn({ id, name: `봇${this.botSeq}`, charId, isBot: true, botMode: mode }); // 이름은 봇1, 봇2…: 등수·팀에서 구분됨
   }
 
   clearBots() {
@@ -231,7 +234,7 @@ export class Game {
   /** 팀 구성: n팀으로 접속자를 무작위로 균형 있게 나눔 (n=0이면 해제) */
   autoTeams(n) {
     this.teamCount = Math.max(0, Math.min(8, Math.floor(Number(n)) || 0));
-    const hs = this.humans().filter((p) => p.connected).sort(() => Math.random() - 0.5);
+    const hs = this.contestants().filter((p) => p.connected).sort(() => Math.random() - 0.5);
     hs.forEach((p, i) => { p.team = this.teamCount ? (i % this.teamCount) + 1 : 0; });
     this._log(this.teamCount ? `${this.teamCount}팀 구성` : '팀 해제'); return true;
   }
@@ -248,7 +251,7 @@ export class Game {
 
   /** 현실 퀴즈: 점수를 입력(누적) → 확인 → 공개 */
   realSet(id, pts) { const n = Number(pts); if (this.phase !== PHASE.REAL || !this.players.has(id) || !Number.isFinite(n)) return false; this.realConfirmed = false; if (n) this.realPending.set(id, n); else this.realPending.delete(id); return true; }
-  realTeam(team, pts) { for (const p of this.humans()) if (p.team === Number(team)) this.realSet(p.id, pts); return true; }
+  realTeam(team, pts) { for (const p of this.contestants()) if (p.team === Number(team)) this.realSet(p.id, pts); return true; }
   realConfirm() { if (this.phase !== PHASE.REAL) return false; this.realConfirmed = true; return true; }
   realReveal() {
     if (this.phase !== PHASE.REAL || !this.realConfirmed) return false;
@@ -321,7 +324,7 @@ export class Game {
 
   /** 참가자(접속한 사람)를 팀별로 타원 둘레에 나눠 세우고, 봇은 잠시 치움. 읽는 동안은 무적 */
   _brawlSetup() {
-    const hs = this.humans().filter((p) => p.connected), groups = new Map();
+    const hs = this.contestants().filter((p) => p.connected), groups = new Map();
     for (const p of hs) { const k = this._bKey(p); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); }
     const gs = [...groups.values()], cx = MAP.w / 2, cy = 13.2, clamp = (v, a, b) => Math.max(a, Math.min(b, v));
     gs.forEach((ms, i) => {
@@ -355,7 +358,7 @@ export class Game {
     const q = this.question;
     const ranked = [];
     for (const p of this.players.values()) {
-      if (p.isBot || !p.connected) continue;
+      if (p.home || !p.connected) continue; // 샌드백·아군 봇만 빼고 봇도 점수를 받음
       const zone = zoneAt(q.type, p.x, p.y);
       ranked.push({ p, zone, correct: zone === q.answer, since: zone === p.zone ? p.zoneSince : this.t });
     }
@@ -371,12 +374,9 @@ export class Game {
       const bonus = r.correct && r.rank <= BONUS.length ? BONUS[r.rank - 1] : 0;
       const gain = r.correct ? (BASE_POINT + bonus) * this.multiplier : 0;
       r.p.score += gain; if (gain) undo.push([r.p.id, gain]);
-      const dropped = !r.correct && (r.zone != null || COIN.dropOnNoAnswer) ? this._dropCoins(r.p) : 0;
+      const dropped = !r.correct && (r.zone != null || COIN.dropOnNoAnswer || (r.p.isBot && r.p.botMode !== 'idle')) ? this._dropCoins(r.p) : 0;
       return { id: r.p.id, name: r.p.name, team: r.p.team || 0, zone: r.zone, correct: r.correct, rank: r.correct ? r.rank : null, gain, dropped };
     });
-    for (const p of this.players.values()) { // 문제를 푸는 봇: 틀린 구역에 있으면 동전을 떨어뜨림
-      if (p.isBot && p.botMode !== 'idle' && !p.home && p.connected && zoneAt(q.type, p.x, p.y) !== q.answer) this._dropCoins(p);
-    }
     this.reveal = { answer: q.answer, results, dist };
     this.locked = null; this._pushUndo(`문제 ${q.id} 점수`, undo, this._hist('q', `Q${q.id} ${q.text}`, results.map((r) => ({ id: r.id, name: r.name, team: r.team, gain: r.gain, correct: r.correct }))));
     this._log(`문제 ${q.id} 정답 공개`);
@@ -1085,7 +1085,7 @@ export class Game {
         tn: p.cfg.tint || null, zs: buffOf(this, p)?.morph ? 1 : (p.cfg.scale || 1) * (buffOf(this, p)?.scale || 1),
         am: Math.floor(p.ammoF + 1e-9), amf: r2(p.ammoF % 1), mam: p.cfg.ammo?.max ?? 0,
         ul: p.cfg.ult ? r2(p.ult / p.cfg.ult.need) : 0, ur: ultReady(p) ? 1 : 0, ub: buffOf(this, p) ? r2(p.buff.until - this.t) : 0, pr: buffOf(this, p)?.morph === 'phoenix' ? p.cfg.ult.radius : 0, pu: buffOf(this, p)?.morph === 'phoenix' ? r2(1 - (p.buff.until - this.t) / p.cfg.ult.sec) : 0, mo: buffOf(this, p)?.morph === 'phoenix' && p.cfg.ult.sec - (p.buff.until - this.t) < 0.7 ? 1 : 0, sl: this._stealthed(p) ? 1 : 0, ch: p.channel ? 1 : 0, cm: this.t < p.charmUntil ? 1 : 0, tt: p.tether && this.t < p.tether.until ? p.tether.by : 0, rv: p.stunned ? r2(Math.max(0, p.stunUntil - this.t)) : 0, ob: p.orbit && this.t < p.orbit.until ? { a: r2(p.orbit.a0 + p.orbit.w * (this.t - p.orbit.t0)), w: p.orbit.w, n: p.orbit.n, r: p.orbit.r } : 0, bn: this.t < p.burnUntil ? 1 : 0, rt: this.t < p.rootUntil ? 1 : 0,
-        si: this.t < (p.silenceUntil || 0) ? 1 : 0, sd: p.shield && this.t < p.shield.until ? r2(p.shield.until - this.t) : 0, ot: p.out ? 1 : 0, tm: p.team || 0, sc: this.totalScore(p), cn: p.coins, sp: r2(Math.max(0, p.speedUntil - this.t)),
+        si: this.t < (p.silenceUntil || 0) ? 1 : 0, sd: p.shield && this.t < p.shield.until ? r2(p.shield.until - this.t) : 0, ot: p.out ? 1 : 0, ct: p.home ? 0 : 1, tm: p.team || 0, sc: this.totalScore(p), cn: p.coins, sp: r2(Math.max(0, p.speedUntil - this.t)),
       });
     }
     const q = this.question
@@ -1120,19 +1120,19 @@ export class Game {
   }
 
   leaderboard() {
-    return this.humans().filter((p) => p.connected).map((p) => ({ id: p.id, name: p.name, score: this.totalScore(p), coins: p.coins, team: p.team || 0 })).sort((a, b) => b.score - a.score);
+    return this.contestants().filter((p) => p.connected).map((p) => ({ id: p.id, name: p.name, score: this.totalScore(p), coins: p.coins, team: p.team || 0 })).sort((a, b) => b.score - a.score);
   }
 
   /** 지금 구역별 인원 (진행자 화면의 실시간 응답) */
   _liveDist() {
     const d = {}; const q = this.question; if (!q) return d;
-    for (const p of this.humans()) { if (!p.connected) continue; const z = zoneAt(q.type, p.x, p.y); d[z ?? '-'] = (d[z ?? '-'] || 0) + 1; }
+    for (const p of this.contestants()) { if (!p.connected) continue; const z = zoneAt(q.type, p.x, p.y); d[z ?? '-'] = (d[z ?? '-'] || 0) + 1; }
     return d;
   }
 
   _teamTotals() {
     if (!this.teamCount) return [];
-    const tot = {}; for (const p of this.humans()) if (p.connected && p.team) tot[p.team] = Math.round(((tot[p.team] || 0) + this.totalScore(p)) * 10) / 10;
+    const tot = {}; for (const p of this.contestants()) if (p.connected && p.team) tot[p.team] = Math.round(((tot[p.team] || 0) + this.totalScore(p)) * 10) / 10;
     return Array.from({ length: this.teamCount }, (_, i) => ({ t: i + 1, score: tot[i + 1] || 0 }));
   }
 
