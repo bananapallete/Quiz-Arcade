@@ -31,15 +31,19 @@ const ultVoices = []; // { id, bus, t0, end }
 let bus = null, busLen = 0; // 지금 만드는 궁극기 소리의 묶음 / 합성 소리의 길이
 function cutNow(o, sec = 0.03) { const t = ctx.currentTime; o.bus.gain.cancelScheduledValues(t); o.bus.gain.setValueAtTime(o.bus.gain.value, t); o.bus.gain.linearRampToValueAtTime(0, t + sec); setTimeout(() => { try { o.bus.disconnect(); } catch { /* 이미 끊김 */ } }, sec * 1000 + 80); }
 /** 가장 먼저 시작한 궁극기 소리부터 즉시 끄고, 새 소리가 들어갈 자리를 만든다 */
-function makeRoom() { const now = ctx.currentTime; for (let i = ultVoices.length - 1; i >= 0; i--) if (ultVoices[i].end <= now) ultVoices.splice(i, 1); while (ultVoices.length >= MAX_ULT) cutNow(ultVoices.shift()); }
+function makeRoom() { // 보호된 소리(크림슨 디바)는 다른 궁극기 소리 때문에 꺼지지 않음 → 보호 안 된 것 중 가장 오래된 것을 끔. 끌 게 없으면 false
+  const now = ctx.currentTime; for (let i = ultVoices.length - 1; i >= 0; i--) if (ultVoices[i].end <= now) ultVoices.splice(i, 1);
+  while (ultVoices.length >= MAX_ULT) { const i = ultVoices.findIndex((o) => !o.keep); if (i < 0) return false; cutNow(ultVoices.splice(i, 1)[0]); }
+  return true;
+}
 /** 궁극기 소리 하나 시작. play()는 소리를 bus에 만들고 길이(초)를 돌려줌. 궁극기 지속시간(dur)보다 길면 그때 페이드아웃으로 끝냄 */
-function playUlt(id, dur, play) {
-  makeRoom();
+function playUlt(id, dur, play, keep = false) {
+  if (!makeRoom() && !keep) return; // 자리가 없고(모두 보호된 소리) 이 소리도 보호 대상이 아니면 재생 안 함
   const b = ctx.createGain(), t0 = ctx.currentTime; b.connect(master); bus = b; busLen = 0;
   let len = 0; try { len = play() || busLen; } finally { bus = null; }
   const end = dur > 0 && len > dur ? dur : len; // 궁극기가 끝나는 때(소리가 더 짧으면 소리 끝)
   b.gain.setValueAtTime(1, t0 + Math.max(0, end - FADE_OUT)); b.gain.linearRampToValueAtTime(0, t0 + end + 0.02); // 끝날 땐 페이드아웃
-  ultVoices.push({ id, bus: b, t0, end: t0 + end });
+  ultVoices.push({ id, bus: b, t0, end: t0 + end, keep });
   setTimeout(() => { try { b.disconnect(); } catch { /* 이미 끊김 */ } }, (end + 0.3) * 1000);
 }
 /** 궁극기 시전자가 쓰러지는 등 도중에 끊기면 그 소리를 부드럽게 끔 */
@@ -161,7 +165,7 @@ export function sfxEvent(e, c) {
     if (!gate('u' + e.id, ULT_GAP)) return;
     const vol = Math.min(1, v * (c.mine ? 1 : 0.9)), dur = (e.sec || 0) + (e.intro || 0);
     const path = c.charId === 'gaga' ? 'ult/' + DIVA_ULT[Math.floor(Math.random() * DIVA_ULT.length)] : an ? `animal/${an[0]}_ult` : null; // 디바: 세 곡 중 무작위 · 동물: 전용 궁극기 소리
-    if (path && clip(path)) playUlt(e.id, dur, () => ultClip(path, vol * (c.charId === 'gaga' ? 0.85 : 0.9)));
+    if (path && clip(path)) playUlt(e.id, dur, () => ultClip(path, vol * (c.charId === 'gaga' ? 0.85 : 0.9)), c.charId === 'gaga'); // 디바 소리는 다른 궁극기 소리에 끊기지 않음
     else { const f = ULT[e.t]; if (f) { stretch = 1.7; try { playUlt(e.id, dur, () => { f(vol); return busLen; }); } finally { stretch = 1; } } } // 파일이 없으면 합성음
     return;
   }
@@ -177,3 +181,4 @@ export function sfxEvent(e, c) {
   else if (e.e === 'itemGet') { if (e.k === 'heart' && gate('heal' + (c.mine ? 'm' : 'o'), 150)) BASIC.heal(v * (c.mine ? 1 : 0.6)); else if (e.k === 'shoe' && gate('shoe', 150)) BASIC.speed(v * (c.mine ? 1 : 0.6)); } // 체력 회복(하트·회복 효과) / 신발
 }
 export const _loaded = () => Object.entries(cries).filter(([, v]) => v && v !== 'loading').map(([k]) => k); // 시험용: 불러온 소리 파일
+export const _ultIds = () => ultVoices.filter((o) => o.end > ctx.currentTime).map((o) => o.id + (o.keep ? '*' : '')); // 시험용
