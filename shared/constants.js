@@ -36,6 +36,8 @@ export const ITEM = {
   shoe: { sec: 5, mul: 1.4 }, // 5초 동안 이동 속도 1.4배
 };
 // 크리티컬: 맞을 때마다 이 확률로 피해가 배수로 커지고, 크리티컬일 때만 화면이 흔들린다
+// 자동 회복(브롤스타즈처럼): 이 시간 동안 피해를 받지 않으면 every초마다 최대 체력의 pct만큼 회복
+export const REGEN = { delay: 3, every: 1, pct: 0.1 };
 export const CRIT = { chance: 0.1, mul: 1.5 };
 export const fmtScore = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 

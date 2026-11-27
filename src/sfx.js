@@ -171,7 +171,8 @@ export function sfxEvent(e, c) {
     else if (e.kind === 'ranged') k = e.fx === 'tongue' ? 'tongue' : 'spark';
     else if (e.kind === 'proj') k = e.fx === 'chain' ? 'zap' : e.lob ? 'throw' : e.art === 'boomerang' ? 'whirr' : /arrow/.test(e.art || '') ? 'twang' : e.art === 'orb' ? 'magic' : e.art ? 'throw' : 'spark';
     if (k && gate('a' + (c.mine ? 'm' : 'o'), ATK_GAP)) BASIC[k](v * (c.mine ? 1 : 0.8), p);
-  } else if (e.e === 'boom' && gate('b', BOOM_GAP)) BASIC.boom(v * 0.8, 1);
+  } else if (e.e === 'regen') { if (c.mine && gate('regen', 400)) BASIC.heal(0.45); } // 자동 회복: 내 것만 작게
+  else if (e.e === 'boom' && gate('b', BOOM_GAP)) BASIC.boom(v * 0.8, 1);
   else if (e.e === 'coinGet' && gate('coin' + (c.mine ? 'm' : 'o'), 55)) BASIC.coin(v * (c.mine ? 1 : 0.6), 1 + Math.random() * 0.12); // 동전 줍는 소리 (음높이를 살짝 흔들어 단조롭지 않게)
   else if (e.e === 'itemGet') { if (e.k === 'heart' && gate('heal' + (c.mine ? 'm' : 'o'), 150)) BASIC.heal(v * (c.mine ? 1 : 0.6)); else if (e.k === 'shoe' && gate('shoe', 150)) BASIC.speed(v * (c.mine ? 1 : 0.6)); } // 체력 회복(하트·회복 효과) / 신발
 }

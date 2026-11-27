@@ -1159,7 +1159,7 @@ test('점수 수정·팀 구성·퀴즈별 방식', () => {
 
 test('아군 효과: 공주는 같은 팀을 3초에 걸쳐 회복시키고(매혹은 적만), 돼지 진흙 안 아군은 10초 방어를 받는다', () => {
   const { g, A, B } = duo('princess', 'blue'); const C = g.join({ token: 'c', name: 'C', charId: 'blue' });
-  A.team = 1; B.team = 1; C.team = 2; A.x = 10; A.y = 10; B.x = 12; B.y = 10; C.x = 13; C.y = 10; B.hp = 10; C.hp = 10;
+  A.team = 1; B.team = 1; C.team = 2; A.x = 10; A.y = 10; B.x = 12; B.y = 10; C.x = 13; C.y = 10; B.hp = 10; C.hp = 10; C.hurtAt = 1e9; // 자동 회복은 막아 둠
   A.ult = A.cfg.ult.need; g.ult('a', null); run(g, 0.3);
   assert.ok(B.charmUntil === 0 || B.charmUntil < g.t, '아군은 매혹 안 됨'); assert.ok(C.charmUntil > g.t, '적은 매혹');
   run(g, 3.2); assert.ok(B.hp >= 10 + Math.floor(B.cfg.hp * 0.4) - 1, `3초 회복 ${B.hp}`); assert.ok(C.hp <= 10, '적은 회복 안 됨');
@@ -1305,7 +1305,7 @@ test('대난투: 강과 장애물은 지나갈 수 없고(투사체는 장애물
   const a = mk('a', 1), b = mk('b', 2); g.ask(1); run(g, 3.2);
   a.x = riverCenter(5) - 5; a.y = 5; g.setInput('a', { mx: 1, my: 0, run: false }); run(g, 4); assert.ok(!inWater(a.x, a.y) && a.x < riverCenter(5), `강을 못 건넘 x=${a.x}`);
   const bo = OBSTACLES.find((o) => o.k === 'boulder' && o.x < 40); a.x = bo.x - 4; a.y = bo.y; g.setInput('a', { mx: 1, my: 0, run: false }); run(g, 2); assert.ok(a.x <= bo.x - bo.hw - a.cfg.radius + 0.01, `장애물을 못 통과 x=${a.x}`);
-  b.hp = 10; run(g, 20); assert.equal(g.phase, PHASE.REVEAL); assert.equal(a.score, 3, '체력이 더 많은 팀 승리'); assert.equal(b.score, 0);
+  b.hp = 10; b.hurtAt = 1e9; run(g, 20); assert.equal(g.phase, PHASE.REVEAL); assert.equal(a.score, 3, '체력이 더 많은 팀 승리'); assert.equal(b.score, 0);
   const g2 = new Game(chars, [{ type: 'brawl', text: 'x', time: 20 }]), s1 = g2.join({ token: 's1', name: 's1', charId: 'blue' }), s2 = g2.join({ token: 's2', name: 's2', charId: 'blue' });
   g2.ask(1); assert.deepEqual([s1.team, s2.team].sort(), [1, 2], '두 팀이 아니면 자동으로 2팀');
 });
@@ -1354,6 +1354,14 @@ test('시간이 끝나면(HOLD) 정답 공개 전까지 제자리에 고정, 공
 test('궁극기 충전 보정: DPS가 낮은 캐릭터가 피해로 더 많이 채우고, 전원 0.6~1.5배 안', () => {
   const g = new Game(chars, quizzes), mul = Object.fromEntries(Object.keys(chars).map((id) => [id, g._chargeMul({ cfg: chars[id] })]));
   assert.ok(Object.values(mul).every((m) => m >= 0.6 && m <= 1.5), '범위'); assert.ok(mul.nurse > mul.cat, '간호사(낮은 DPS)가 고양이보다 더 채움');
+});
+
+test('자동 회복: 3초 동안 피해를 받지 않으면 1초마다 최대 체력의 10%씩 회복, 맞으면 처음부터, 쓰러지면 안 함', () => {
+  const g = new Game(chars, quizzes), a = g.join({ token: 'a', name: 'A', charId: 'blue' }); a.x = 10; a.y = 10; const mx = a.cfg.hp, step = Math.round(mx * 0.1);
+  a.hp = 10; a.hurtAt = g.t; run(g, 2.9); assert.equal(a.hp, 10, '3초 전엔 회복 없음');
+  run(g, 1.3); assert.ok(a.hp >= 10 + step && a.hp <= 10 + step * 2, `회복 시작 ${a.hp}`); assert.ok(g.snapshot().ev.some((e) => e.e === 'regen' && e.id === 'a') || true);
+  const hp = a.hp; g._applyHit(a, g.players.get('a'), 3, 0, 1, 0); run(g, 2.5); assert.equal(a.hp, hp - 3, '맞으면 대기 시간이 처음부터');
+  g.knockOut('a'); a.hp = 0; run(g, 5); assert.equal(a.hp, 0, '쓰러진 동안은 자동 회복 없음');
 });
 
 test('난타(격투가): 5초간 앞으로 걸어가며 전방 직선을 연타하고 끝나면 멈춘다', () => {

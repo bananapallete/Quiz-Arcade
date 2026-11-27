@@ -4,7 +4,7 @@
 import { blockWalls, buffOf, charge, CHARGE_TAKEN, hit as ultHit, ultReady, minionsSnapshot, updateUlts, useUlt, wallsSnapshot, zonesSnapshot } from './ult.js';
 import { dpsOf } from './balance.js';
 import { BRAWL_LOCK_SEC, BRAWL_MAP, BRAWL_REVIVE_SEC, brawlSpawn, inObstacle, pushOut } from '../shared/brawlMap.js';
-import { calCell, calCenter, calLayout, fmtScore, ULT_CHARGE, RUN_DRAIN, CHAR_CD_SEC, COIN, COMBO_RESET_SEC, CRIT, ITEM, MAP, PHASE, READ_SEC, SPRITE, zoneAt, ZONES } from '../shared/constants.js';
+import { calCell, calCenter, calLayout, fmtScore, REGEN, ULT_CHARGE, RUN_DRAIN, CHAR_CD_SEC, COIN, COMBO_RESET_SEC, CRIT, ITEM, MAP, PHASE, READ_SEC, SPRITE, zoneAt, ZONES } from '../shared/constants.js';
 
 const KNOCK_DECAY = 12; // 밀림 속도 감쇠(1/s). 총 밀림 거리 = 처음 속도 / 감쇠
 const ATTACK_ANIM_SEC = 0.25;
@@ -125,7 +125,7 @@ export class Game {
     const cfg = this.characters[charId];
     const spawn = spawnPos();
     const p = {
-      id, name, charId, cfg, isBot, botMode: botMode || null,
+      id, name, charId, cfg, isBot, botMode: botMode || null, hurtAt: -99, regenT: 0,
       connected: true,
       x: spawn[0], y: spawn[1],
       team: 0, kx: 0, ky: 0, // 팀(0=없음) · 밀림 속도
@@ -359,7 +359,7 @@ export class Game {
       const near = ps.some((a) => !a.ghost && a.team === gh.team && Math.hypot(a.x - gh.x, a.y - gh.y) <= a.cfg.radius + gh.cfg.radius + 0.4);
       gh.reviveT = near ? (gh.reviveT || 0) + dt : 0;
       if (gh.reviveT >= BRAWL_REVIVE_SEC) {
-        gh.ghost = false; gh.reviveT = 0; gh.hp = Math.ceil(gh.cfg.hp * 0.5); gh.ult = 0; gh.invUntil = this.t + 1; gh.stunned = false;
+        gh.ghost = false; gh.reviveT = 0; gh.hurtAt = this.t; gh.hp = Math.ceil(gh.cfg.hp * 0.5); gh.ult = 0; gh.invUntil = this.t + 1; gh.stunned = false;
         this.events.push({ e: 'revive', id: gh.id, x: r2(gh.x), y: r2(gh.y) });
       }
     }
@@ -865,6 +865,7 @@ export class Game {
       const tt = emp ? attacker.cfg?.attack?.tether : null; // 강화된 다음 공격(개구리): 적중하면 혀로 묶음
       if (tt) { target.tether = { by: attacker.id, until: this.t + tt.sec, len: tt.len, resist: tt.resist, pull: tt.pull }; this.events.push({ e: 'tetherStart', id: attacker.id, x: r2(target.x), y: r2(target.y), r: 1 }); }
       if (cm) { target.charmUntil = this.t + cm.sec; target.charmBy = attacker.id; this.events.push({ e: 'charm', id: attacker.id, x: r2(target.x), y: r2(target.y), r: 0.9 }); }
+      target.hurtAt = this.t; target.regenT = 0; // 맞으면 자동 회복 대기 시간이 처음부터
       target.hp = Math.max(0, target.hp - dmg);
       if (target.hp === 0) this._ko(target);
     }
@@ -952,6 +953,10 @@ export class Game {
       p.invUntil = this.t + c.invincibleSec;
     }
 
+    if (!p.stunned && !p.ghost && p.hp > 0 && p.hp < c.hp && this.t - p.hurtAt >= REGEN.delay) { // 일정 시간 맞지 않으면 자동 회복
+      p.regenT += dt;
+      if (p.regenT >= REGEN.every) { p.regenT -= REGEN.every; const h = Math.min(c.hp - p.hp, Math.max(1, Math.round(c.hp * REGEN.pct))); p.hp += h; this.events.push({ e: 'regen', id: p.id, amount: h, x: r2(p.x), y: r2(p.y) }); }
+    } else p.regenT = 0;
     const am = c.ammo; // 탄창 장전: 쏜 직후에도 계속 차오름
     if (am) p.ammoF = Math.min(am.max, p.ammoF + dt / am.reload);
     if (p.stunned) p.dash = null;

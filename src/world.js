@@ -133,6 +133,19 @@ export class WorldScene extends Phaser.Scene {
     } else if (!on && v.rglow) { v.rpulse?.stop(); v.rpulse = null; v.sprite.preFX.remove(v.rglow); v.rglow = null; }
   }
 
+  /** 자동 회복 연출: 민트색 + 기호 8개가 96px 떠오르고, +N 숫자가 옆에 떴다 사라지고, 몸이 0.5초 민트빛으로 빛남 */
+  _regenFx(v, amount) {
+    const MINT = 0x7dffd0, y0 = v.y - 0.55 * BU, g = this.add.graphics().setDepth(v.y + 4);
+    const pl = Array.from({ length: 8 }, (_, i) => ({ a: (i / 8) * Math.PI * 2 + Math.random() * 0.5, r: (0.3 + Math.random() * 0.45) * BU, d: 0.65 + Math.random() * 0.35 }));
+    this.tweens.addCounter({ from: 0, to: 1, duration: 650, ease: 'Sine.easeOut', onUpdate: (tw) => { const u = tw.getValue(); g.clear(); for (const q of pl) { const px = v.x + Math.cos(q.a) * q.r, py = y0 + Math.sin(q.a) * q.r * 0.6 - 96 * u * q.d, s = 5; g.fillStyle(MINT, 1 - u * u).fillRect(px - 1.5, py - s, 3, s * 2).fillRect(px - s, py - 1.5, s * 2, 3); } }, onComplete: () => g.destroy() });
+    const t = this.add.text(v.x + 0.7 * BU, y0 - 4, `+${amount}`, { fontFamily: 'sans-serif', fontSize: '26px', color: '#7dffd0', fontStyle: '900', stroke: '#14122b', strokeThickness: 5 }).setOrigin(0.5).setDepth(v.y + 5);
+    this.tweens.add({ targets: t, y: t.y - 40, alpha: 0, duration: 700, ease: 'Cubic.easeOut', onComplete: () => t.destroy() });
+    if (this.sys.game.renderer.type === Phaser.WEBGL && !v.hglow) {
+      v.sprite.preFX.setPadding(24); const gl = v.hglow = v.sprite.preFX.addGlow(MINT, 6, 0, false, 0.12, 14);
+      this.tweens.add({ targets: gl, outerStrength: 0, duration: 500, ease: 'Cubic.easeIn', onComplete: () => { try { v.sprite.preFX.remove(gl); } catch { /* 이미 사라짐 */ } v.hglow = null; } });
+    }
+  }
+
   _glowOff(v) {
     if (!v) return;
     this._charmGlow(v, false); this._readyGlow(v, false);
@@ -299,6 +312,7 @@ export class WorldScene extends Phaser.Scene {
       sfxEvent(e, { mine: (e.by ?? e.id) === this.focusId, screen: this.screen, x: e.x ?? (sv ? sv.x / BU : null), y: e.y ?? (sv ? sv.y / BU : null), fx: fv ? fv.x / BU : null, fy: fv ? fv.y / BU : null, charId: sv?.p?.c }); }
     const now = performance.now();
     const v = this.views.get(e.id);
+    if (e.e === 'regen' && v) this._regenFx(v, e.amount);
     if (e.e === 'ghost' && v && this._brawlOn) v.ghostDieUntil = now + 800; // 대난투에서 쓰러졌을 때만 죽음 모션 (달력 탈락은 해당 없음)
     if (e.e === 'ult' && v) {
       if (['channel', 'charm', 'magnet', 'tether', 'stage', 'brood', 'rally'].includes(e.t)) auraPulse(this, { ...e, r: e.r || 2.25 }, BU, e.t === 'charm' ? [0xffe6f2, 0xffb3d9, 0xff7ab8, 0xc94c8a] : undefined);
@@ -496,19 +510,20 @@ export class WorldScene extends Phaser.Scene {
       const bx0 = v.x - bw / 2; // 바 왼쪽 끝
       const bx = v.x;
       const f = Math.max(0, p.hp / p.mhp), low = f <= 0.3;
+      if (v.hpF === undefined) v.hpF = f; v.hpF = f < v.hpF ? f : v.hpF + (f - v.hpF) * Math.min(1, delta / 130); const ff = v.hpF; // 회복할 때 체력바가 0.4초쯤에 걸쳐 차오름
       v.bar.clear().setDepth(v.y + 1);
       v.bar.fillStyle(THEME.ink, 1).fillRect(bx0 - bd, by - bd, bw + bd * 2, bh + bd * 2); // 남색 테두리
       // 지연 칩: 체력은 바로 깎이고, 깎인 만큼 연한 조각이 0.25초 남았다가 0.3초에 걸쳐 줄어듦
       if (v.hpLast === undefined) { v.hpLast = f; v.chip = f; v.chipHold = 0; v.chipRate = 0; }
       if (f < v.hpLast) { v.chipHold = now + 250; v.chipRate = Math.max(0.05, v.chip - f) / 0.3; }
-      if (f > v.chip) v.chip = f;
+      if (ff > v.chip) v.chip = ff;
       if (now >= v.chipHold && v.chip > f) v.chip = Math.max(f, v.chip - (v.chipRate * delta) / 1000);
       v.hpLast = f;
       const hpCol = p.sd > 0 ? 0x4a86d9 : f > 0.6 ? 0x4fd16a : f > 0.3 ? 0xf2c230 : 0xe5483c; // 색 이동: 초록 → 노랑 → 빨강
       v.bar.fillStyle(THEME.hpEmpty, 1).fillRect(bx0, by, bw, bh);
       v.bar.fillStyle(0xfff1d6, 0.85).fillRect(bx0, by, bw * v.chip, bh);
-      v.bar.fillStyle(hpCol, low ? 0.65 + 0.35 * Math.sin((now / 1000) * Math.PI * 6) : 1).fillRect(bx0, by, bw * f, bh); // 30% 아래는 초당 3번 깜빡임
-      v.bar.fillStyle(THEME.hpShine, 0.55).fillRect(bx0, by, bw * f, Math.max(2, bh * 0.28)); // 윗면 하이라이트
+      v.bar.fillStyle(hpCol, low ? 0.65 + 0.35 * Math.sin((now / 1000) * Math.PI * 6) : 1).fillRect(bx0, by, bw * ff, bh); // 30% 아래는 초당 3번 깜빡임
+      v.bar.fillStyle(THEME.hpShine, 0.55).fillRect(bx0, by, bw * ff, Math.max(2, bh * 0.28)); // 윗면 하이라이트
       v.shoe.setVisible(p.sp > 0).setPosition(bx0 + bw + 14, by + bh / 2).setDepth(v.y + 2).setAlpha(p.sp < 1 ? 0.5 + 0.5 * Math.sin(now / 60) : 1); // 신발 효과 중
       if (me) { // 탄창 · 대쉬 게이지는 내 것만 (빔프로젝터엔 내 캐릭터가 없어서 안 나옴)
         const h = GH, bar2 = (x0, y0, w, f, col) => v.bar.fillStyle(THEME.ink, 1).fillRect(x0 - 1.5, y0 - 1.5, w + 3, h + 3).fillStyle(THEME.hpEmpty, 1).fillRect(x0, y0, w, h).fillStyle(col, 1).fillRect(x0, y0, w * f, h);
