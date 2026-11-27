@@ -845,16 +845,18 @@ export class Game {
       let gone = (!q.boom && q.travel >= q.maxDist) || q.x < 0 || q.y < 0 || q.x > this.map.w || q.y > this.map.h;
       let blocked = !!(this.solids && inObstacle(q.x, q.y)); // 대난투 장애물은 투사체도 막음 (강은 막지 않음)
       for (const w of this.walls.values()) { // 방패 성벽은 상대의 투사체를 막는다
-        if (w.owner !== q.owner && Math.abs(q.x - w.x) <= w.hx + (q.radius || 0.2) && Math.abs(q.y - w.y) <= w.hy + (q.radius || 0.2)) { blocked = true; this.events.push({ e: 'wallHit', x: r2(q.x), y: r2(q.y) }); break; }
+        const wo = this.players.get(w.owner);
+        if (w.owner !== q.owner && !(wo && ownerP && this._sameSide(wo, ownerP)) && Math.abs(q.x - w.x) <= w.hx + (q.radius || 0.2) && Math.abs(q.y - w.y) <= w.hy + (q.radius || 0.2)) { blocked = true; this.events.push({ e: 'wallHit', x: r2(q.x), y: r2(q.y) }); break; }
       }
       if (blocked) { this.projectiles.delete(q.id); continue; }
       for (const o of foes) {
-        if (q.hit.has(o.id)) continue;
+        const mh = q.multi && q.multiAt.get(o.id); // 다단히트(귀상어 해일): gap초마다 최대 n번
+        if (q.multi ? mh && (mh.n >= q.multi.n || this.t - mh.t < q.multi.gap - 1e-6) : q.hit.has(o.id)) continue;
         // 이번 틱에 지나온 선분과 상대 사이 거리 (빠른 투사체가 통과하지 않게)
         const sx = q.x - px, sy = q.y - py, l2 = sx * sx + sy * sy;
         const k = l2 > 0 ? Math.max(0, Math.min(1, ((o.x - px) * sx + (o.y - py) * sy) / l2)) : 0;
         if (Math.hypot(o.x - (px + sx * k), o.y - (py + sy * k)) > q.radius + o.cfg.radius) continue;
-        q.hit.add(o.id);
+        q.hit.add(o.id); if (q.multi) q.multiAt.set(o.id, { n: (mh?.n || 0) + 1, t: this.t });
         if (q.ult) ultHit(this, o, this.players.get(q.owner) || { id: q.owner }, this._projDamage(q), q.knock, q.dx, q.dy, q.art); else this._projHit(q, o, this.players.get(q.owner) || { id: q.owner }, this._projDamage(q), q.knock, q.dx, q.dy, q.art);
         if (q.root) { o.rootUntil = Math.max(o.rootUntil, this.t + q.root); if (q.carried) q.carried.set(o.id, this.t + (q.carry ?? q.root)); }
         if (!q.pierce) { gone = true; break; }

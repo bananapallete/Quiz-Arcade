@@ -159,7 +159,10 @@ const RUN = {
         for (const o of g._enemies(p)) {
           const vx = o.x - p.x, vy = o.y - p.y, along = vx * f.dx + vy * f.dy, perp = Math.abs(vx * f.dy - vy * f.dx);
           if (o.stunned || along < 0 || along > u.range || perp > u.width / 2 + o.cfg.radius) continue;
-          hit(g, o, p, u.dmg, u.knock, f.dx, f.dy, u.fx);
+          if (u.suck) { // 빨아들임: 주먹 앞 0.9칸 지점으로 끌어옴 (밀어내지 않음)
+            const tx = p.x + f.dx * 0.9 - o.x, ty = p.y + f.dy * 0.9 - o.y, d = Math.hypot(tx, ty) || 1;
+            hit(g, o, p, u.dmg, Math.min(u.knock, d), tx / d, ty / d, u.fx);
+          } else hit(g, o, p, u.dmg, u.knock, f.dx, f.dy, u.fx);
         }
       });
     }
@@ -280,7 +283,7 @@ const RUN = {
 
   wave(g, p, u, dx, dy) { // 맵을 쓸고 가는 거대한 파도: 폭이 넓은 관통 투사체, 맞으면 묶인 채 파도에 휩쓸려 함께 밀려감
     const id = ++g.projSeq;
-    g.projectiles.set(id, { id, ult: true, owner: p.id, art: 'wave', dmgMin: u.dmg, dmgMax: u.dmg, knock: 0, root: u.root, carry: u.carry, kind: 'bolt', x: p.x, y: p.y, dx, dy, vx: dx * u.speed, vy: dy * u.speed, speed: u.speed, travel: 0, maxDist: u.range, radius: u.width / 2, pierce: true, hit: new Set(), carried: new Map() });
+    g.projectiles.set(id, { id, ult: true, owner: p.id, art: 'wave', dmgMin: u.dmg, dmgMax: u.dmg, knock: 0, root: u.root, carry: u.carry, kind: 'bolt', x: p.x, y: p.y, dx, dy, vx: dx * u.speed, vy: dy * u.speed, speed: u.speed, travel: 0, maxDist: u.range, radius: u.width / 2, pierce: true, hit: new Set(), carried: new Map(), multi: u.hits ? { n: u.hits, gap: u.gap ?? 0.05 } : null, multiAt: new Map() });
   },
 
   magnet(g, p, u) { // 반경 안의 맵 동전·하트·신발은 전부, 다른 사람이 든 동전은 한 명당 최대 steal개를 흡수하고 잠깐 빨라짐

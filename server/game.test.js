@@ -642,7 +642,7 @@ test('모든 캐릭터는 달리기, 근접은 원거리보다 달리기 게이�
 
 import { dpsOf, FIGHT_SEC, powerIndex, shotsOf } from './balance.js';
 
-const BUFFED = ['blue', 'girl_long', 'knight', 'puppy', 'shiba']; // 공격력 2배 버프 중
+const BUFFED = ['blue', 'girl_long', 'knight', 'puppy', 'shiba', 'orc']; // 공격력 2배 버프 중
 test('밸런스: 전투력 지수가 17~22 안 (서포터는 회복이 있어 15 이상, 버프 중인 캐릭터는 35까지)', () => {
   for (const [id, c] of Object.entries(chars)) {
     const v = powerIndex(c);
@@ -928,7 +928,7 @@ test('해일(귀상어): 폭이 넓은 파도가 줄 선 상대를 모두 맞히
   assert.equal(B.x, bx2, '조금 밀린 뒤엔 파도가 지나가고 적은 제자리에 묶여 남음');
   run(g, 2);
   assert.ok(B.hp < B.cfg.hp && C.hp < C.cfg.hp, '둘 다 맞음 (폭이 넓음)');
-  assert.equal(B.cfg.hp - B.hp, A.cfg.ult.dmg);
+  assert.equal(B.cfg.hp - B.hp, A.cfg.ult.dmg * A.cfg.ult.hits, '0.05초 간격 다단히트 합');
   assert.ok(B.rootUntil > 0);
 });
 
@@ -1372,15 +1372,16 @@ test('대난투 유령 봇은 살아 있는 팀원에게 걸어가 겹쳐서 부
   for (let i = 0; i < 30 * 100; i++) g.update(1 / 30); assert.equal(a.ghost, false, `유령이 팀원에게 가서 부활 x=${a.x}`);
 });
 
-test('난타(격투가): 5초간 앞으로 걸어가며 전방 직선을 연타하고 끝나면 멈춘다', () => {
+test('난타(격투가): 5초간 앞으로 걸어가며 전방 직선을 연타하고, 적을 밀어내지 않고 앞으로 빨아들인다', () => {
   const { g, A, B } = duo('brawler', 'blue');
-  A.x = 10; A.y = 10; B.x = 12; B.y = 10; A.ult = A.cfg.ult.need;
+  A.x = 10; A.y = 10; B.x = 12.5; B.y = 10.6; A.ult = A.cfg.ult.need;
   g.setInput('a', { mx: 1, my: 0, run: false }); g.ult('a', null);
   const x0 = A.x, hp = B.hp; run(g, 1);
-  assert.ok(A.x > x0 + 1.5, '앞으로 전진');
+  assert.ok(A.x > x0 + 1, '앞으로 전진');
   assert.ok(B.hp < hp, '앞의 적을 연타');
+  assert.ok(B.x - A.x < 1.4 && Math.abs(B.y - A.y) < 0.2, `주먹 앞으로 빨려옴: ${B.x - A.x} ${B.y - A.y}`);
   g.setInput('a', { mx: 0, my: 0, run: false }); run(g, 1.5);
-  assert.ok(A.x > x0 + 3, '입력이 없어도 계속 전진');
+  assert.ok(A.x > x0 + 2, '입력이 없어도 계속 전진');
   run(g, 3.2);
   const xe = A.x; run(g, 0.5);
   assert.equal(A.x, xe, '5초 뒤엔 멈춤');
@@ -1395,20 +1396,6 @@ test('공격 모션이 재생되는 동안만 뒤의 자동 조준 대상을 바
   assert.equal(A.face, -1, '공격 모션 중엔 뒤의 대상을 봄');
   run(g, 0.5); A.x = 20; B.x = 19; g.setInput('a', { mx: 1, my: 0, run: false }); run(g, 0.05);
   assert.equal(A.face, 1, '모션이 끝나면 다시 가는 방향');
-});
-
-test('난타(격투가): 5초간 앞으로 걸어가며 전방 직선을 연타하고 끝나면 멈춘다', () => {
-  const { g, A, B } = duo('brawler', 'blue');
-  A.x = 10; A.y = 10; B.x = 12; B.y = 10; A.ult = A.cfg.ult.need;
-  g.setInput('a', { mx: 1, my: 0, run: false }); g.ult('a', null);
-  const x0 = A.x, hp = B.hp; run(g, 1);
-  assert.ok(A.x > x0 + 1.5, '앞으로 전진');
-  assert.ok(B.hp < hp, '앞의 적을 연타');
-  g.setInput('a', { mx: 0, my: 0, run: false }); run(g, 1.5);
-  assert.ok(A.x > x0 + 3, '입력이 없어도 계속 전진');
-  run(g, 3.2);
-  const xe = A.x; run(g, 0.5);
-  assert.equal(A.x, xe, '5초 뒤엔 멈춤');
 });
 
 test('궁극기 직접 조준: 드래그 방향·거리대로 중심이 정해진다', () => {
@@ -1739,4 +1726,22 @@ test('준비 시간 10초: 퀴즈는 공격·궁극기 불가(달리기 가능),
   g.attack('a', null); assert.ok(b.hp < b.cfg.hp, '10초 뒤 공격 가능');
   const g2 = new Game(chars, [{ type: 'coin', text: 'c', time: 30 }]); const c = g2.join({ token: 'c', name: 'C', charId: 'blue' });
   g2.ask(1); assert.equal(g2.snapshot().pc, 1); g2.setInput('c', { mx: 1, my: 0, run: true }); run(g2, 4); assert.equal(c.running, false, '전투 모드는 달리기 불가');
+});
+
+test('기사 방패 성벽: 상대의 직선 투사체는 막고 포물선 투사체는 못 막는다', () => {
+  const { g, A, B } = duo('knight', 'witch');
+  A.x = 10; A.y = 10; B.x = 16; B.y = 10;
+  g.walls.set(1, { id: 1, owner: 'a', x: 12, y: 10, hx: 0.4, hy: 2, until: g.t + 5 });
+  g.projectiles.set(1, { id: 1, owner: 'b', kind: 'bolt', x: 15, y: 10, dx: -1, dy: 0, vx: -10, vy: 0, speed: 10, travel: 0, maxDist: 8, radius: 0.2, dmgMin: 5, dmgMax: 5, knock: 0, hit: new Set() });
+  run(g, 0.6); assert.equal(A.hp, A.cfg.hp, '직선 투사체는 막힘');
+  g.projectiles.set(2, { id: 2, owner: 'b', kind: 'lob', sx: 15, sy: 10, tx: 10, ty: 10, x: 15, y: 10, t0: g.t, T: 0.3, r: 1.2, dmgMin: 5, dmgMax: 5, knock: 0, hit: new Set() });
+  run(g, 0.5); assert.ok(A.hp < A.cfg.hp, '포물선은 넘어옴');
+});
+
+test('귀상어 해일: 0.05초 간격 다단히트', () => {
+  const { g, A, B } = duo('hammerhead', 'blue');
+  A.x = 5; A.y = 10; B.x = 9; B.y = 10; A.ult = A.cfg.ult.need; g.ult('a', { x: 1, y: 0 });
+  const hits = []; for (let i = 0; i < 30; i++) { const h = B.hp; g.update(DT); if (B.hp < h) hits.push(g.t); }
+  assert.equal(hits.length, A.cfg.ult.hits);
+  for (let i = 1; i < hits.length; i++) assert.ok(hits[i] - hits[i - 1] >= 0.05 - 1e-6 && hits[i] - hits[i - 1] < 0.1, `간격 ${hits[i] - hits[i - 1]}`);
 });
