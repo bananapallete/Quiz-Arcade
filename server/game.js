@@ -917,7 +917,7 @@ export class Game {
     const active = [...this.players.values()].filter((p) => p.connected);
 
     for (const p of active) {
-      if (p.isBot) this._botThink(p);
+      if (p.isBot) { this._botThink(p); this._botUnstick(p); }
       this._step(p, dt);
     }
     if (this.phase !== PHASE.HOLD) this._collide(active.filter((p) => !p.out && !p.ghost && !p.stunned)); // 탈락자·유령·쓰러진 캐릭터는 몸이 부딪히지 않음 (쓰러져 움직여도 밀지 못함) · 시간 종료 후엔 서로 밀지도 않음
@@ -1080,6 +1080,50 @@ export class Game {
   }
 
   /** 봇이 노릴 줍기 대상: 가까운 동전(줍을 수 있는 것), 체력이 80% 미만이면 하트, 신발 */
+  /** 체력이 35% 아래면 도망(60% 회복할 때까지): 가까운 적에게서 멀어지고(벽·모서리는 피함), 안전하게 닿을 수 있는 하트가 있으면 그쪽으로, 달리기·대쉬·궁극기로 탈출. 구석에 몰리면 맞서 싸움 */
+  _botFlee(p) {
+    const c = p.cfg, ai = p.ai;
+    if (ai.fleeing ? p.hp >= c.hp * 0.6 : p.hp > c.hp * 0.35) { ai.fleeing = false; return false; }
+    const foes = this._enemies(p).filter((o) => !this._stealthed(o) && !o.stunned && Math.hypot(o.x - p.x, o.y - p.y) < 12);
+    if (!foes.length && !ai.fleeing) return false;
+    ai.fleeing = true;
+    let fx = 0, fy = 0, dn = Infinity, nearest = null;
+    for (const o of foes) { const dx = p.x - o.x, dy = p.y - o.y, d = Math.max(0.3, Math.hypot(dx, dy)); fx += (dx / d) / d; fy += (dy / d) / d; if (d < dn) { dn = d; nearest = o; } } // 가까운 적일수록 강하게 밀어냄
+    const M = 3.5, W = this.map.w, H = this.map.h; // 벽에 몰리지 않게 가장자리에서 안쪽으로 밀어냄
+    if (p.x < M) fx += (M - p.x) * 0.25; if (p.x > W - M) fx -= (p.x - (W - M)) * 0.25; if (p.y < M) fy += (M - p.y) * 0.25; if (p.y > H - M) fy -= (p.y - (H - M)) * 0.25;
+    let heart = null, hd = 14;
+    for (const it of this.items.values()) { // 하트: 나보다 적이 훨씬 가까운 곳은 피함
+      if (it.k !== 'heart') continue; const d = Math.hypot(it.x - p.x, it.y - p.y); if (d >= hd) continue;
+      if (foes.every((o) => Math.hypot(o.x - it.x, o.y - it.y) > d * 0.8)) { heart = it; hd = d; }
+    }
+    let mx = fx, my = fy; const fl = Math.hypot(fx, fy) || 1; mx /= fl; my /= fl;
+    if (heart) { const hx = (heart.x - p.x) / Math.max(0.1, hd), hy = (heart.y - p.y) / Math.max(0.1, hd); mx = mx * 0.4 + hx * 0.6; my = my * 0.4 + hy * 0.6; const l = Math.hypot(mx, my) || 1; mx /= l; my /= l; }
+    if (nearest && dn < 1.3 && Math.hypot(fx, fy) < 0.15 && this.botsCanAttack && p.botMode === 'aggro') { this._tryAttack(p, null); p.input = { mx: 0, my: 0, run: false }; return true; } // 막다른 곳이면 맞서 싸움
+    const canRun = c.skill?.type === 'run' && p.runGauge > 0.3 && !p.exhausted;
+    p.input = { mx, my, run: canRun && !!nearest && dn < 6 };
+    if (c.skill?.type === 'dash' && nearest && dn < 3 && this.t >= p.skillReadyAt) this.skill(p.id); // 대쉬로 거리 벌리기
+    if (nearest && ultReady(p) && dn <= (c.ult.range ?? 5) && p.botMode === 'aggro') this.ult(p.id, null);
+    return true;
+  }
+
+  /** 대난투 맵의 장애물·강에 막혀 걸음이 안 나가면(0.4초에 0.35칸 미만) 0.9초 동안 옆으로 비껴 걸어 돌아감 */
+  _botUnstick(p) {
+    if (!this.solids || !p.input) return;
+    const ai = p.ai, mag = Math.hypot(p.input.mx, p.input.my);
+    if (this.t - (ai.stT ?? -1) >= 0.4) {
+      if (ai.stT !== undefined && ai.wasMoving && !p.stunned && Math.hypot(p.x - ai.stX, p.y - ai.stY) < 0.35) { ai.slideUntil = this.t + 0.9; ai.slideDir = Math.random() < 0.5 ? 1 : -1; }
+      ai.stT = this.t; ai.stX = p.x; ai.stY = p.y; ai.wasMoving = mag > 0.1;
+    }
+    if (this.t < (ai.slideUntil ?? 0) && mag > 0.1) { const s = ai.slideDir, mx = (-p.input.my * s) * 0.9 + p.input.mx * 0.2, my = (p.input.mx * s) * 0.9 + p.input.my * 0.2, l = Math.hypot(mx, my) || 1; p.input = { ...p.input, mx: mx / l, my: my / l }; }
+  }
+
+  /** 대난투 유령 봇: 가장 가까운 살아 있는 팀원에게 걸어가 겹쳐 선다 (겹쳐 있으면 제자리) */
+  _botToAlly(p) {
+    let best = null, bd = Infinity;
+    for (const o of this.brawl.ids) { const a = this.players.get(o); if (!a || a === p || !a.connected || a.ghost || a.team !== p.team) continue; const d = Math.hypot(a.x - p.x, a.y - p.y); if (d < bd) { best = a; bd = d; } }
+    p.input = !best || bd < 0.5 ? { mx: 0, my: 0, run: false } : { mx: (best.x - p.x) / bd, my: (best.y - p.y) / bd, run: false };
+  }
+
   _botPickup(p, range) {
     let best = null, bd = range;
     const consider = (o, w = 1) => { const d = Math.hypot(o.x - p.x, o.y - p.y) * w; if (d < bd) { best = { x: o.x, y: o.y, d: Math.hypot(o.x - p.x, o.y - p.y) }; bd = d; } };
@@ -1139,6 +1183,8 @@ export class Game {
       }
       return;
     }
+    if (this.brawl && p.ghost) { this._botToAlly(p); return; } // 대난투 유령 봇: 살아 있는 팀원에게 가서 겹쳐 부활
+    if (this._botFlee(p)) return; // 체력이 낮으면 도망 + 하트 찾기
     const humans = this._enemies(p).filter((o) => !this._stealthed(o)); // 공격형 봇은 봇끼리도 서로 공격 (은신한 상대는 못 찾음)
     p.ai.greed ??= Math.random(); // 봇마다 욕심(0 싸움꾼 ~ 1 수집가): 동전을 노리는 거리와 쫓아가는 거리가 달라 흩어진다
     const loot = p.botMode === 'idle' ? null : this._botPickup(p, p.botMode === 'aggro' ? 8 + p.ai.greed * 6 : 6); // 동전·아이템 줍기

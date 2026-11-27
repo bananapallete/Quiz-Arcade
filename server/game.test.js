@@ -1374,6 +1374,23 @@ test('자동 회복: 3초 동안 피해를 받지 않으면 1초마다 최대 �
   g.knockOut('a'); a.hp = 0; run(g, 5); assert.equal(a.hp, 0, '쓰러진 동안은 자동 회복 없음');
 });
 
+test('봇 도망: 체력이 낮으면 적에게서 멀어지고, 안전한 하트가 있으면 먹으러 가며, 회복하면(60%) 다시 싸운다', () => {
+  const g = new Game(chars, quizzes); g.botsCanAttack = true; g.itemClock = -999; // 아이템이 저절로 생기지 않게
+  const bot = g.addBot('aggro', 'blue'), foe = g.join({ token: 'f', name: 'F', charId: 'orc' }); bot.x = 20; bot.y = 11; foe.x = 22; foe.y = 11; foe.invUntil = bot.invUntil = 0; bot.hp = 8; bot.hurtAt = 1e9; foe.hurtAt = 1e9;
+  const d0 = Math.hypot(bot.x - foe.x, bot.y - foe.y); for (let i = 0; i < 30; i++) { g.update(1 / 30); foe.x = 22; foe.y = 11; foe.invUntil = 0; } // 적은 제자리
+  assert.ok(Math.hypot(bot.x - foe.x, bot.y - foe.y) > d0 + 2, `도망 ${d0} → ${Math.hypot(bot.x - foe.x, bot.y - foe.y)}`); assert.equal(bot.ai.fleeing, true);
+  const heart = g.spawnItem('heart', 12, 11); bot.x = 20; bot.y = 11; for (let i = 0; i < 30 * 4; i++) { g.update(1 / 30); foe.x = 24; foe.y = 11; foe.invUntil = 0; }
+  assert.ok(!g.items.has(heart.id), '하트를 먹음'); assert.ok(bot.hp > 8 + bot.cfg.hp * 0.2, `회복 ${bot.hp}`);
+  bot.hp = bot.cfg.hp; g.update(1 / 30); assert.equal(bot.ai.fleeing, false, '체력이 차면 도망 해제');
+});
+
+test('대난투 유령 봇은 살아 있는 팀원에게 걸어가 겹쳐서 부활한다', () => {
+  const g = new Game(chars, [{ type: 'brawl', text: '대난투', time: 120 }]); const a = g.addBot('wander', 'blue'), b = g.addBot('wander', 'blue'), c = g.addBot('idle', 'blue'), d = g.addBot('idle', 'blue');
+  a.team = 1; b.team = 1; c.team = 2; d.team = 2; g.ask(1); for (let i = 0; i < 30 * 14; i++) g.update(1 / 30);
+  a.invUntil = 0; g.knockOut(a.id); assert.equal(a.ghost, true); b.x = 30; b.y = 22; a.x = 20; a.y = 22; b.botMode = 'idle'; // 팀원은 가만히 (바위가 있는 y=22 줄에 세워서 돌아가기도 확인)
+  for (let i = 0; i < 30 * 50; i++) g.update(1 / 30); assert.equal(a.ghost, false, `유령이 팀원에게 가서 부활 x=${a.x}`);
+});
+
 test('난타(격투가): 5초간 앞으로 걸어가며 전방 직선을 연타하고 끝나면 멈춘다', () => {
   const { g, A, B } = duo('brawler', 'blue');
   A.x = 10; A.y = 10; B.x = 12; B.y = 10; A.ult = A.cfg.ult.need;
