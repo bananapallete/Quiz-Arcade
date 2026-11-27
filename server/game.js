@@ -372,13 +372,14 @@ export class Game {
     this.cal = { ids: new Set(hs.map((p) => p.id)), l, bad, safe: l.days - bad.size, found: new Set(), rv: {}, round: 0 };
   }
 
-  /** 채점: 지금 서 있는 칸이 탈락 날짜이거나 칸 밖이면 유령. 서 있던 칸의 정체(생존/탈락)가 모두에게 드러남 */
+  /** 채점: 지금 서 있는 칸이 탈락 날짜이거나 칸 밖이거나 이미 열린 칸이면 유령. 서 있던 칸의 정체(생존/탈락)가 모두에게 드러남 */
   _calGrade() {
-    const c = this.cal, now = {}; c.round++;
+    const c = this.cal, now = {}, seen = new Set(Object.keys(c.rv).map(Number)); c.round++; // seen: 앞선 채점에서 이미 열린 칸
     for (const p of this._calAlive()) {
       const d = calCell(c.l, p.x, p.y);
       if (d != null) now[d] = c.bad.has(d) ? 2 : 1;
-      if (d == null || c.bad.has(d)) { p.ghost = true; p.dash = null; p.channel = null; this.events.push({ e: 'ghost', id: p.id, x: r2(p.x), y: r2(p.y) }); } else c.found.add(d);
+      // 칸 밖 · 탈락 날짜 · 이미 열린 칸(안전했어도 다시 밟으면) 모두 유령
+      if (d == null || c.bad.has(d) || seen.has(d)) { p.ghost = true; p.dash = null; p.channel = null; this.events.push({ e: 'ghost', id: p.id, x: r2(p.x), y: r2(p.y) }); } else c.found.add(d);
     }
     Object.assign(c.rv, now);
     const left = this._calAlive().length;
