@@ -17,6 +17,7 @@ const rand = (a, b) => a + Math.random() * (b - a);
 
 // 어떤 구역도 아닌 맵 안쪽 지점 (입장·모이기 위치)
 const BOT_NAMES = ['민준', '서연', '지호', '하윤', '도윤', '지우', '예준', '서윤', '시우', '지민', '주원', '수아', '하준', '다은', '건우', '채원', '현우', '유나', '준서', '소율', '지훈', '예린', '우진', '나윤', '승현', '가은', '태양', '시은', '재민', '아린', '동현', '하은', '민재', '지안', '성민', '윤서', '진우', '다인', '은우', '세아', '정우', '유진', '태민', '소은', '재윤', '나은', '현서', '지율', '시현', '혜원'];
+const AIM_SLACK = 1.2, HIT_SLACK = 0.5; // 근접 자동 조준: 사거리보다 1.2칸 멀리서도 상대를 잡고, 자동 조준한 공격은 사거리가 0.5칸 후함 (수동 조준은 그대로)
 export const SANDBAG_ATTACK = false; // 샌드백(지킴이) 공격 기능: 지금은 꺼 둠 (true면 가까이 오면 때림)
 function spawnPos() {
   for (let i = 0; i < 20; i++) {
@@ -532,10 +533,10 @@ export class Game {
   aimPreview(id, aim) {
     const p = this.players.get(id);
     if (!p) return null;
-    const { range: r0, step, arc, line } = this._comboState(p), range = r0 + (p.cfg.attack.lunge?.dist ?? 0); // 돌진 공격은 달려가는 거리까지 사거리로 표시
-    const dir = this._aimDir(p, aim, range);
+    const { range: r0, step, arc, line } = this._comboState(p), melee = p.cfg.attack.type === 'melee', range = r0 + (p.cfg.attack.lunge?.dist ?? 0); // 돌진 공격은 달려가는 거리까지 사거리로 표시
+    const dir = this._aimDir(p, aim, range + (melee ? AIM_SLACK : 0));
     const pr = p.cfg.attack.projectile;
-    let { target } = this._pickTarget(p, range, dir.dx, dir.dy, arc, line);
+    let { target } = this._pickTarget(p, range + (melee && !dir.manual ? HIT_SLACK : 0), dir.dx, dir.dy, arc, line);
     let lob = null;
     if (pr?.lob) { // 던지기: 착탄 지점과 폭발 범위, 그 안의 가장 가까운 상대를 조준 대상으로 표시
       const L = this._lobLanding(p, dir, range, aim);
@@ -554,7 +555,8 @@ export class Game {
     if (a.burst) p.comboStep = 0; // 연타형: 한 번 누르면 항상 1타부터 n타까지
     // 콤보: 잽 → 잽 → 큰 휘두르기. 일정 시간 공격하지 않으면 1타부터 다시
     const { combo, step, m, range, arc, multi, line } = this._comboState(p);
-    const { dx, dy, near } = this._aimDir(p, aim, range + (a.lunge?.dist ?? 0)); // 돌진 공격은 달려갈 거리만큼 더 멀리서도 노림
+    const melee = a.type === 'melee', dir = this._aimDir(p, aim, range + (a.lunge?.dist ?? 0) + (melee ? AIM_SLACK : 0)); // 돌진 공격은 달려갈 거리만큼, 근접은 사거리보다 멀리서도 자동 조준
+    const { dx, dy, near } = dir, hr = range + (melee && !dir.manual ? HIT_SLACK : 0); // 자동 조준한 근접 공격은 사거리가 조금 후함
     if (Math.abs(dx) > 0.15) p.face = dx > 0 ? 1 : -1;
     p.nextAttackAt = this.t + a.interval / (buffOf(this, p)?.atk ?? 1);
     p.ammoF -= 1;
@@ -570,7 +572,7 @@ export class Game {
       p.dash = { dx, dy, speed: L.dist / L.sec, until: this.t + L.sec, pass: false, hitDmg: 0, hitKnock: 0 };
       p.attackUntil += L.sec;
       this.events.push({ e: 'dash', id: p.id, dx: r2(dx), dy: r2(dy), kind: 'charge', dist: L.dist });
-      this.tasks.push({ at: this.t + L.sec, fn: () => { if (p.stunned || this.t < p.rootUntil || this.t < p.charmUntil || p.channel) return; this._strike(p, range, dx, dy, m, step, arc, multi, line); } });
+      this.tasks.push({ at: this.t + L.sec, fn: () => { if (p.stunned || this.t < p.rootUntil || this.t < p.charmUntil || p.channel) return; this._strike(p, hr, dx, dy, m, step, arc, multi, line); } });
       return;
     }
     if (a.chain) { // 체인 라이트닝: 맞히면 가까운 다른 적에게 최대 bounces번 튕김
@@ -584,19 +586,19 @@ export class Game {
       return;
     }
     if (a.windup) { // 예고 후 타격: 범위를 보여 주는 동안 피할 수 있다
-      p.windup = { at: this.t + a.windup, range, dx, dy, m, step, arc, multi, line };
+      p.windup = { at: this.t + a.windup, range: hr, dx, dy, m, step, arc, multi, line };
       p.attackUntil += a.windup;
-      this.events.push({ e: 'windup', id: p.id, dx: r2(dx), dy: r2(dy), range: r2(range), arc, sec: a.windup, fx: a.fx });
+      this.events.push({ e: 'windup', id: p.id, dx: r2(dx), dy: r2(dy), range: r2(hr), arc, sec: a.windup, fx: a.fx });
       return;
     }
-    this._strike(p, range, dx, dy, m, step, arc, multi, line, !!a.burst, emp);
+    this._strike(p, hr, dx, dy, m, step, arc, multi, line, !!a.burst, emp);
     for (let i = 1; i < (a.burst?.n ?? 1); i++) { // 나머지 타격: 탄창은 더 안 쓰고 gap 간격으로 이어서
       this.tasks.push({ at: this.t + i * a.burst.gap, fn: () => {
         if (p.stunned || this.t < p.rootUntil || this.t < p.charmUntil || p.channel) return;
-        const s = this._comboState(p), d = this._aimDir(p, aim, s.range);
+        const s = this._comboState(p), d = this._aimDir(p, aim, s.range + AIM_SLACK);
         if (Math.abs(d.dx) > 0.15) p.face = d.dx > 0 ? 1 : -1;
         p.attackUntil = this.t + a.burst.gap + 0.1; p.lastAttackAt = this.t; p.comboStep = (s.step + 1) % s.combo.length;
-        this._strike(p, s.range, d.dx, d.dy, s.m, s.step, s.arc, s.multi, s.line, true);
+        this._strike(p, s.range + (d.manual ? 0 : HIT_SLACK), d.dx, d.dy, s.m, s.step, s.arc, s.multi, s.line, true);
       } });
     }
   }
