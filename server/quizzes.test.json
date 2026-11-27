@@ -47,5 +47,22 @@
     "mode": "대난투",
     "answer": null,
     "pts": 5
+  },
+  {
+    "type": "brawl",
+    "tour": true,
+    "text": "팀 토너먼트! 팀마다 2명씩 나와 대결",
+    "time": 90,
+    "mode": "토너먼트",
+    "answer": null,
+    "pts": 6
+  },
+  {
+    "type": "coin",
+    "text": "동전 모으기! 쏟아지는 동전을 가장 많이 주워라",
+    "time": 60,
+    "mode": "동전",
+    "answer": null,
+    "pts": 5
   }
 ]
