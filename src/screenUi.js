@@ -78,7 +78,7 @@ export function renderScreenUi(el, s) {
   const showLegend = live && ph !== PHASE.REAL && !(ph === PHASE.REVEAL && (s.reveal?.real || s.reveal?.brawl || s.reveal?.cal)) && !s.rank && !(q?.type === 'brawl' && !s.bw) && !(q?.type === 'calendar' && !s.cal);
   legend.hidden = !showLegend;
   if (showLegend && q.type === 'calendar') legend.innerHTML = `<div class="zone" style="background:#3f7d3a"><b>📅</b><small>${s.cal.l.month ? `${s.cal.l.month}월 · ` : ''}${s.cal.r}차 채점 · 생존 ${s.cal.a}명 · 안전칸 ${s.cal.f}/${s.cal.s}</small></div>`;
-  else if (showLegend && q.type === 'brawl') legend.innerHTML = `<div class="zone" style="background:#c0392b"><b>⚔</b><small>${s.bw.g !== s.bw.p ? `${s.bw.g}팀 · ` : ''}${s.bw.p}명 생존</small></div>`;
+  else if (showLegend && q.type === 'brawl') legend.innerHTML = `<div class="zone" style="background:#c0392b"><b>⚔</b><small>${s.bw.tm.map(([t, al, n]) => `${t}팀 ${al}/${n}`).join(' · ')}${s.bw.lk > 0 ? ` · 준비 ${Math.ceil(s.bw.lk)}초 (공격·궁극기·달리기 불가)` : ''}</small></div>`;
   else if (showLegend) {
     const keys = q.type === 'choice' ? [1, 2, 3, 4].slice(0, q.options?.length || 4) : ['O', 'X'], dist = (ph === PHASE.HOLD || ph === PHASE.MOVING) ? s.dist : null;
     legend.innerHTML = keys.map((k) => `<div class="zone z-${k}"><b>${k}</b><small>${q.type === 'choice' ? esc(q.options?.[k - 1]) : ''}</small>${ph === PHASE.HOLD && dist ? `<span style="margin-left:auto">${dist[k] || 0}명</span>` : ''}</div>`).join('');

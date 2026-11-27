@@ -19,7 +19,7 @@ const quizzes = rows.map((r, i) => {
   const type = col(r, '유형') || 'ox', q = { type, text: col(r, '문제'), time: Number(col(r, '제한시간')) || 15, mode: col(r, '방식') || '개인' };
   if (type === 'choice') { q.options = ['보기1', '보기2', '보기3', '보기4'].map((n) => col(r, n)).filter(Boolean); q.answer = Number(col(r, '정답')); if (!q.options.length || !(q.answer >= 1 && q.answer <= q.options.length)) throw new Error(`${i + 2}행: 객관식은 보기와 정답(1~보기 수)이 필요해요`); }
   else if (type === 'ox') { q.answer = col(r, '정답').toUpperCase(); if (!['O', 'X'].includes(q.answer)) throw new Error(`${i + 2}행: OX 정답은 O 또는 X`); }
-  else if (type === 'brawl') { q.answer = null; q.pts = Number(col(r, '정답')) || 5; q.time = Number(col(r, '제한시간')) || 90; q.mode = '대난투'; } // 대난투: 정답 칸 = 우승 점수, 제한시간 = 최대 시간
+  else if (type === 'brawl') { q.answer = null; q.pts = Number(col(r, '정답')) || 5; q.time = Number(col(r, '제한시간')) || 240; q.mode = '대난투'; } // 대난투: 정답 칸 = 우승 점수, 제한시간 = 최대 시간
   else if (type === 'calendar') { q.answer = null; q.days = Number(col(r, '보기1')) || 30; q.start = Number(col(r, '보기2')) || 0; q.bad = col(r, '보기3').split(/[\s,]+/).map(Number).filter((d) => d >= 1 && d <= q.days); q.month = Number(col(r, '보기4')) || 0; q.time = Number(col(r, '제한시간')) || 300; q.mode = '달력'; } // 달력: 보기1=그 달 일수, 보기2=1일의 요일(0일~6토), 보기3=탈락 날짜(공백으로 구분), 보기4=월(표시용), 제한시간=최대 시간
   else q.answer = null; // real: 현실 퀴즈는 관리자가 점수를 직접 부여
   if (col(r, '이미지')) q.image = col(r, '이미지');

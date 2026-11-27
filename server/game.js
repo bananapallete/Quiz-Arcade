@@ -178,7 +178,7 @@ export class Game {
       text: String(q.text || '').slice(0, 120),
       options: type === 'choice' ? (q.options || ['1번', '2번', '3번', '4번']).slice(0, 4) : undefined,
       answer: type === 'real' || type === 'brawl' || type === 'calendar' ? null : type === 'ox' ? (q.answer === 'X' ? 'X' : 'O') : Math.min(4, Math.max(1, Number(q.answer) || 1)),
-      time: type === 'brawl' || type === 'calendar' ? Math.min(900, Math.max(20, Number(q.time) || (type === 'calendar' ? 300 : 90))) : Math.min(60, Math.max(5, Number(q.time) || 15)),
+      time: type === 'brawl' || type === 'calendar' ? Math.min(900, Math.max(20, Number(q.time) || (type === 'calendar' ? 300 : 240))) : Math.min(60, Math.max(5, Number(q.time) || 15)),
       mode: type === 'real' ? '현실' : type === 'brawl' ? '대난투' : type === 'calendar' ? '달력' : q.mode === '팀' ? '팀' : '개인',
       image: q.image ? String(q.image).slice(0, 300) : undefined,
     };

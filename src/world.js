@@ -401,7 +401,7 @@ export class WorldScene extends Phaser.Scene {
     if (on && !this.brawlObjs) {
       buildBrawlFloor(this); buildObstacleTextures(this);
       const floor = this.add.image(0, 0, 'floor-brawl').setOrigin(0).setScale(BU / TILE).setDepth(-98);
-      const obs = OBSTACLES.map((o) => { const k = 'ob-' + o.k, img = this.add.image(o.x * BU, (o.y + o.hh) * BU - 2, k).setOrigin(0.5, k === 'ob-pillar' ? 0.92 : k === 'ob-wall' ? 0.78 : 0.8).setDepth((o.y + o.hh) * BU); return img; });
+      const obs = OBSTACLES.map((o) => { const k = 'ob-' + o.k, img = this.add.image(o.x * BU, (o.y + o.hh) * BU - 2, k).setOrigin(0.5, k === 'ob-pillar' ? 0.9 : k === 'ob-wall' ? 0.82 : 0.9).setScale(BU / TILE).setDepth((o.y + o.hh) * BU); return img; });
       this.brawlObjs = [floor, ...obs];
     }
     if (!this.brawlObjs || this._brawlOn === on) return;
@@ -411,10 +411,11 @@ export class WorldScene extends Phaser.Scene {
 
   drawZones(s) {
     const quiz = s.phase !== PHASE.LOBBY; // 대기실은 잔디 들판, 문제 중에는 남색 퀴즈 무대
-    if (quiz && s.q?.type === 'calendar') { this._showBrawl(false); this.quizFloor.setVisible(true); this.decor.forEach((o) => o.setVisible(false)); this.drawCalendar(s); return; }
+    if (quiz && s.q?.type === 'calendar') { this._showBrawl(false); this.quizFloor.setVisible(true); this._decorOn = false; this.decor.forEach((o) => o.setVisible(false)); this.drawCalendar(s); return; }
     const brawl = quiz && s.q?.type === 'brawl' && !!s.mp;
     this._showBrawl(brawl);
-    if (this.quizFloor.visible !== (quiz && !brawl)) { this.quizFloor.setVisible(quiz && !brawl); this.decor.forEach((o) => o.setVisible(!quiz)); }
+    if (this.quizFloor.visible !== (quiz && !brawl)) this.quizFloor.setVisible(quiz && !brawl);
+    if (this._decorOn !== !quiz) { this._decorOn = !quiz; this.decor.forEach((o) => o.setVisible(!quiz)); } // 문제 중(대난투 포함)엔 대기실 장식(나무·꽃)을 숨김
     const type = s.q?.type || 'ox';
     const ans = s.reveal?.answer;
     const key = `${s.phase}|${type}|${ans ?? ''}`;
@@ -526,9 +527,9 @@ export class WorldScene extends Phaser.Scene {
       if (v.nameStr !== nm) { v.nameStr = nm; v.name.setText(nm); }
       if (lead && this.sys.game.renderer.type === Phaser.WEBGL && !v.lglow) { v.sprite.preFX.setPadding(24); v.lglow = v.sprite.preFX.addGlow(0xffd54a, 4, 0, false, 0.1, 12); } // 1등: 항상 노란 테두리로 빛남
       else if (!lead && v.lglow) { v.sprite.preFX.remove(v.lglow); v.lglow = null; }
-      if (p.st && p.rv > 0) { // 쓰러진 캐릭터 몸통 위에 부활까지 남은 초 (내 화면 · 남의 화면 모두)
+      if ((p.st && p.rv > 0) || (p.gh && p.rp > 0)) { // 쓰러진 캐릭터 몸통 위에 부활까지 남은 초 (내 화면 · 남의 화면 모두). 대난투 유령은 팀원이 겹쳐 있을 때 부활까지 남은 초
         if (!v.rvT) { v.rvT = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: '30px', color: '#ffffff', fontStyle: '900', stroke: '#14122b', strokeThickness: 6 }).setOrigin(0.5); v.root.push(v.rvT); }
-        v.rvT.setText(String(Math.ceil(p.rv))).setPosition(v.x, v.y - 0.45 * BU).setDepth(v.y + 3).setVisible(true).setColor(p.rv <= 1 ? '#ffe27a' : '#ffffff'); // 마지막 1초는 노랗게
+        const left = p.gh ? 5 - p.rp : p.rv; v.rvT.setText(String(Math.ceil(left))).setPosition(v.x, v.y - 0.45 * BU).setDepth(v.y + 3).setVisible(true).setColor(p.gh ? '#7dffcf' : left <= 1 ? '#ffe27a' : '#ffffff'); // 마지막 1초는 노랗게 · 유령 부활은 민트색
       } else if (v.rvT) v.rvT.setVisible(false);
       v.name.setPosition(bx, by - 8).setDepth(v.y + 1).setAlpha(p.gh ? 0.3 : this.screen || me || p.id === this.lockId ? 1 : 0.35); // 다른 사람 이름은 흐리게, 내가 조준한 상대만 또렷하게
       v.status.setText('').setPosition(bx, by - 32).setDepth(v.y + 1); // 상태이상 글자는 쓰지 않음

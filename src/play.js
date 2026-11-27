@@ -96,7 +96,8 @@ let lastState = null;
 socket.on('state', (s) => {
   if (!ME) return;
   lastState = s;
-  document.body.classList.toggle('noatk', !!s.ca); document.body.classList.toggle('noult', !!s.cu); // 진행자가 공격·궁극기를 막으면 버튼을 어둡게
+  const bl = !!(s.q?.type === 'brawl' && s.bw && s.bw.lk > 0); // 대난투 시작 10초는 공격·궁극기·달리기 불가
+  document.body.classList.toggle('noatk', !!s.ca || bl); document.body.classList.toggle('noult', !!s.cu || bl); document.body.classList.toggle('norun', bl); // 진행자가 공격·궁극기를 막으면 버튼을 어둡게
   scene.applyState(s);
   { const e = s.ev?.find((e) => e.e === 'ult' && e.id === ME); if (e) { ultAt = performance.now(); ultDir = PROJ_ULT.includes(e.t) ? { dx: e.dx, dy: e.dy } : null; } }
   hud(s);
