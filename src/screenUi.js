@@ -32,8 +32,9 @@ const CSS = `
 #sq .bar .t{height:4vh;background:#14122b33;border:.4vh solid #14122b;border-radius:1vh;overflow:hidden}#sq .bar .t i{display:block;height:100%}
 #sq .rows{display:grid;gap:1.2vh}#sq .rows div{display:grid;grid-template-columns:6vh minmax(0,1fr) auto auto;gap:1.4vw;align-items:baseline;padding:1.1vh 1.6vw;border:.4vh solid #14122b;border-radius:1.8vh;background:#f6e6c8;font-weight:900;font-size:3.6vh}
 #sq .rows div:nth-child(1){background:#ffe27a}#sq .rows div:nth-child(2){background:#e8eef5}#sq .rows div:nth-child(3){background:#f0c9a0}
-#sq .rows span:nth-of-type(1){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#sq .rows b{color:#d98a00}#sq .rows small{font-size:2.4vh;color:#7a4e32}
-#sq .heros{display:flex;justify-content:center;gap:1vw;margin-top:1.6vh}#sq .heros i{display:block;width:16vh;height:16vh;background-size:400% 100%;background-position:0 0;image-rendering:pixelated}#sq .ttl{font-weight:900;font-size:3.6vh;text-align:center;margin-bottom:1.2vh}
+#sq .rows span:nth-of-type(1){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#sq .rows small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:34vw}#sq .rev{max-height:86vh;overflow:hidden}
+#sq .rt{margin-top:1.4vh;display:grid;gap:.4vh;font-weight:900;font-size:2.4vh;justify-content:center}#sq .rt div{display:grid;grid-auto-flow:column;grid-auto-columns:5.5vh;gap:.4vw;align-items:center;text-align:center}#sq .rt div>:first-child{width:7vh;text-align:left}#sq .rt div>:last-child{width:7vh;color:#d98a00}#sq .rt .h{opacity:.6;font-size:2vh}#sq .rt i{font-style:normal;border-radius:.8vh;background:#fff8}#sq .rt i.w{background:#ffe27a}#sq .rows b{color:#d98a00}#sq .rows small{font-size:2.4vh;color:#7a4e32}
+#sq .heros{display:flex;flex-wrap:wrap;justify-content:center;gap:1vw;margin-top:1.6vh}#sq .heros i{display:block;width:min(14vh,8vw);height:min(14vh,8vw);background-size:400% 100%;background-position:0 0;image-rendering:pixelated}#sq .ttl{font-weight:900;font-size:3.6vh;text-align:center;margin-bottom:1.2vh}
 #sq .tms{display:flex;gap:1vw;justify-content:center;margin-top:1.4vh}#sq .tms span{font-weight:900;font-size:3vh;border:.35vh solid #14122b;border-radius:99px;padding:.4vh 1.6vh;background:#fff}
 #sq .notice{position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);max-width:80vw;background:#14122bf0;color:#fff;border:.5vh solid #ffd54a;border-radius:3vh;padding:3vh 3vw;font-weight:900;font-size:6vh;text-align:center;word-break:keep-all;box-shadow:0 1vh 0 #0008}
 #sq .title{position:absolute;inset:0;display:grid;place-items:center;background:#2b4d2add}
@@ -45,6 +46,14 @@ const CSS = `
 const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const ZCOL = { O: '#4a86d9', X: '#e5483c', 1: '#e5483c', 2: '#4a86d9', 3: '#e0a82a', 4: '#22b88f', '-': '#8b8b8b' }; // 맵 구역 색(mapArt ZONE_COLOR)과 같게
 const TEAMC = ['', '#ff6b6b', '#4a86d9', '#4fd16a', '#f2c230', '#9a62d6', '#ff9a3c', '#4fc9c9', '#c0c0c0'];
+
+/** 라운드별 팀 점수 표: rounds = [{n, kind, teams:{팀:점수}}] */
+function roundsTable(rounds) {
+  const rs = (rounds || []).slice(-10), ts = [...new Set(rs.flatMap((r) => Object.keys(r.teams).map(Number)))].sort((a, b) => a - b);
+  if (rs.length < 1 || !ts.length) return '';
+  const tot = (t) => rs.reduce((a, r) => a + (r.teams[t] || 0), 0);
+  return `<div class="rt"><div class="h"><span></span>${rs.map((r) => `<span>${r.kind === 'tour' ? '🏆' : `R${r.n}`}</span>`).join('')}<span>합</span></div>${ts.map((t) => `<div><span style="color:${TEAMC[t]}">${t}팀</span>${rs.map((r) => `<i class="${r.teams[t] ? 'w' : ''}">${r.teams[t] ? fmtScore(r.teams[t]) : '·'}</i>`).join('')}<span>${fmtScore(tot(t))}</span></div>`).join('')}</div>`;
+}
 
 export function mountScreenUi() {
   if (!document.getElementById('sq-css')) { const st = document.createElement('style'); st.id = 'sq-css'; st.textContent = CSS; document.head.append(st); }
@@ -68,17 +77,18 @@ export function renderScreenUi(el, s) {
   if (live) {
     const reading = ph === PHASE.READING, moving = ph === PHASE.MOVING, total = reading ? READ_SEC : q.time || 15, f = reading || moving ? Math.max(0, Math.min(1, s.left / total)) : 0;
     el.querySelector('.qn').textContent = `Q${q.id}`;
-    const chip = el.querySelector('.chip'); chip.className = `chip ${q.mode === '팀' || q.mode === '대난투' || q.mode === '달력' ? 'team' : q.mode === '현실' ? 'real' : 'ind'}`; const mo = s.cal?.l?.month || s.reveal?.l?.month; chip.textContent = q.mode === '팀' ? '팀전' : q.mode === '현실' ? '현실' : q.mode === '대난투' ? '대난투' : q.mode === '달력' ? `달력${mo ? ` ${mo}월` : ''}` : '개인전';
+    const chip = el.querySelector('.chip'); chip.className = `chip ${q.mode === '팀' || q.mode === '대난투' || q.mode === '토너먼트' || q.mode === '달력' || q.mode === '동전' ? 'team' : q.mode === '현실' ? 'real' : 'ind'}`; const mo = s.cal?.l?.month || s.reveal?.l?.month; chip.textContent = q.mode === '팀' ? '팀전' : q.mode === '현실' ? '현실' : q.mode === '대난투' || q.mode === '토너먼트' || q.mode === '동전' ? q.mode : q.mode === '달력' ? `달력${mo ? ` ${mo}월` : ''}` : '개인전';
     const num = el.querySelector('.num'); num.hidden = !(reading || moving || ph === PHASE.HOLD); num.textContent = reading || moving ? Math.ceil(s.left) : 0; num.classList.toggle('low', ph === PHASE.HOLD || (moving && f <= 0.25));
     const gauge = el.querySelector('.gauge'); gauge.hidden = ph === PHASE.REAL || ph === PHASE.REVEAL; gauge.className = `gauge${moving && f > 0.5 ? ' ok' : ph === PHASE.HOLD || (moving && f <= 0.25) ? ' low' : ''}`; gauge.firstChild.style.width = `${f * 100}%`;
     const main = el.querySelector('.main'); main.className = `main${q.image ? '' : ' noimg'}`; el.querySelector('.card').textContent = q.text;
     const img = el.querySelector('.img'); img.hidden = !q.image; if (q.image) img.firstChild.style.backgroundImage = `url("${q.image}")`;
   }
   // 구역 안내 (시간 종료 후엔 구역별 인원)
-  const showLegend = live && ph !== PHASE.REAL && !(ph === PHASE.REVEAL && (s.reveal?.real || s.reveal?.brawl || s.reveal?.cal)) && !s.rank && !(q?.type === 'brawl' && !s.bw) && !(q?.type === 'calendar' && !s.cal);
+  const showLegend = live && ph !== PHASE.REAL && !(ph === PHASE.REVEAL && (s.reveal?.real || s.reveal?.brawl || s.reveal?.cal || s.reveal?.coin)) && !(q?.type === 'coin' && !s.cr) && !s.rank && !(q?.type === 'brawl' && !s.bw) && !(q?.type === 'calendar' && !s.cal);
   legend.hidden = !showLegend;
   if (showLegend && q.type === 'calendar') legend.innerHTML = `<div class="zone" style="background:#3f7d3a"><b>📅</b><small>${s.cal.l.month ? `${s.cal.l.month}월 · ` : ''}${s.cal.r}차 채점 · 생존 ${s.cal.a}명 · 안전칸 ${s.cal.f}/${s.cal.s}</small></div>`;
-  else if (showLegend && q.type === 'brawl') legend.innerHTML = `<div class="zone" style="background:#c0392b"><b>⚔</b><small>${s.bw.tm.map(([t, al, n]) => `${t}팀 ${al}/${n}`).join(' · ')}${s.bw.lk > 0 ? ` · 준비 ${Math.ceil(s.bw.lk)}초 (공격·궁극기·달리기 불가)` : ''}</small></div>`;
+  else if (showLegend && q.type === 'coin') legend.innerHTML = `<div class="zone" style="background:#d98a00"><b>🪙</b><small>${s.cr.slice(0, 3).map(([, n, c], i) => `${i + 1}. ${esc(n)} ${c}`).join(' · ') || '-'}</small></div>`;
+  else if (showLegend && q.type === 'brawl') legend.innerHTML = `<div class="zone" style="background:#c0392b"><b>${s.tr ? '🏆' : '⚔'}</b><small>${s.tr?.m ? `${s.tr.r}R ${s.tr.m[0]}팀 vs ${s.tr.m[1]}팀 · ` : ''}${s.bw.tm.map(([t, al, n]) => `${t}팀 ${al}/${n}`).join(' · ')}${s.bw.lk > 0 ? ` · 준비 ${Math.ceil(s.bw.lk)}초 (공격·궁극기·달리기 불가)` : ''}</small></div>`;
   else if (showLegend) {
     const keys = q.type === 'choice' ? [1, 2, 3, 4].slice(0, q.options?.length || 4) : ['O', 'X'], dist = (ph === PHASE.HOLD || ph === PHASE.MOVING) ? s.dist : null;
     legend.innerHTML = keys.map((k) => `<div class="zone z-${k}"><b>${k}</b><small>${q.type === 'choice' ? esc(q.options?.[k - 1]) : ''}</small>${ph === PHASE.HOLD && dist ? `<span style="margin-left:auto">${dist[k] || 0}명</span>` : ''}</div>`).join('');
@@ -90,7 +100,9 @@ export function renderScreenUi(el, s) {
   if (showRev) {
     const r = s.reveal;
     if (r.cal) { const sv = r.results.filter((x) => x.correct); rev.innerHTML = `<div class="ttl">달력 결과 · 탈락 ${r.elim}명 × 2 = ${fmtScore(r.pool)}점</div><div class="rows">${sv.slice(0, 8).map((x) => `<div><b>★</b><span>${esc(x.name)}</span><small>${x.team ? `${x.team}팀` : ''}</small><span>+${fmtScore(x.gain)}</span></div>`).join('') || '<div><b>-</b><span>생존자 없음</span></div>'}</div>`; }
-    else if (r.brawl) rev.innerHTML = `<div class="ttl">대난투 우승</div><div class="rows">${r.winners.map((w) => `<div><b>★</b><span>${w.team ? `${w.team}팀` : esc(w.names.join(', '))}</span><small>${w.team ? esc(w.names.join(', ')) : ''}</small><span>+${fmtScore(r.results.find((x) => x.correct)?.gain || 0)}</span></div>`).join('') || '<div><b>-</b><span>승자 없음</span></div>'}</div><div class="heros">${r.results.filter((x) => x.correct).slice(0, 8).map((x) => `<i title="${esc(x.name)}" style="background-image:url(/characters/${x.sp}/idle.png)"></i>`).join('')}</div>`;
+    else if (r.coin) rev.innerHTML = `<div class="ttl">🪙 동전 모으기</div><div class="rows">${r.results.slice(0, 8).map((x) => `<div><b>${x.rank}</b><span>${esc(x.name)}</span><small>🪙 ${x.got}</small><span>${x.gain ? `+${fmtScore(x.gain)}` : ''}</span></div>`).join('') || '<div><b>-</b><span>참가자 없음</span></div>'}</div>`;
+    else if (r.tour) rev.innerHTML = `<div class="ttl">🏆 토너먼트 우승</div><div class="rows">${r.winners.map((w) => `<div><b>★</b><span>${w.team}팀</span><small>${esc(w.names.join(', '))}</small><span>+${fmtScore(r.results.find((x) => x.correct)?.gain || 0)}</span></div>`).join('')}${r.second ? `<div><b>2</b><span>${r.second}팀</span><small></small><span>+${fmtScore(r.results.find((x) => x.team === r.second)?.gain || 0)}</span></div>` : ''}</div><div class="heros">${r.results.filter((x) => x.correct && x.rep).map((x) => `<i title="${esc(x.name)}" style="background-image:url(/characters/${x.sp}/idle.png)"></i>`).join('')}</div>${roundsTable(r.rounds)}`;
+    else if (r.brawl) rev.innerHTML = `<div class="ttl">대난투 우승</div><div class="rows">${r.winners.map((w) => `<div><b>★</b><span>${w.team ? `${w.team}팀` : esc(w.names.join(', '))}</span><small>${w.team ? esc(w.names.join(', ')) : ''}</small><span>+${fmtScore(r.results.find((x) => x.correct)?.gain || 0)}</span></div>`).join('') || '<div><b>-</b><span>승자 없음</span></div>'}</div><div class="heros">${r.results.filter((x) => x.correct).slice(0, 8).map((x) => `<i title="${esc(x.name)}" style="background-image:url(/characters/${x.sp}/idle.png)"></i>`).join('')}</div>${roundsTable(r.rounds)}`;
     else if (r.real) rev.innerHTML = `<div class="ttl">현실 퀴즈 결과</div><div class="rows">${r.results.slice(0, 8).map((x, i) => `<div><b>${i + 1}</b><span>${esc(x.name)}</span><small>${x.team ? `${x.team}팀` : ''}</small><span>+${fmtScore(x.gain)}</span></div>`).join('')}</div>`;
     else {
       const ans = q.type === 'choice' ? `${r.answer}번` : r.answer, d = r.dist || {}, keys = q.type === 'choice' ? [1, 2, 3, 4].slice(0, q.options?.length || 4) : ['O', 'X'], tot = Math.max(1, Object.values(d).reduce((a, b) => a + b, 0));

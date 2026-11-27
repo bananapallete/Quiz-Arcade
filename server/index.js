@@ -99,12 +99,10 @@ io.on('connection', (socket) => {
   host('host:addSandbags', () => game.addSandbags());
   host('host:clearSandbags', () => game.clearSandbags());
   host('host:clearBots', () => game.clearBots());
-  host('host:rank', (d) => { game.showRank = !!d?.on; });
   host('host:adjust', (d) => ({ ok: game.adjust(String(d?.id), d?.delta) }));
   host('host:adjustTeam', (d) => ({ ok: game.adjustTeam(d?.team, d?.delta) }));
   host('host:teams', (d) => ({ ok: game.autoTeams(d?.n) }));
   host('host:setTeam', (d) => ({ ok: game.setTeam(String(d?.id), d?.team) }));
-  host('host:setMode', (d) => ({ ok: game.setQuestionMode(Number(d?.id), d?.mode) }));
   host('host:realSet', (d) => ({ ok: game.realSet(String(d?.id), d?.pts) }));
   host('host:realTeam', (d) => ({ ok: game.realTeam(d?.team, d?.pts) }));
   host('host:undo', () => ({ ok: game.undoScore() }));
@@ -122,7 +120,6 @@ io.on('connection', (socket) => {
   host('host:rename', (d) => ({ ok: game.rename(String(d?.id), d?.name) }));
   host('host:kick', (d) => { const id = String(d?.id), ok = game.kick(id); for (const s of io.sockets.sockets.values()) if (s.data.pid === id) { s.emit('kicked'); s.disconnect(true); } return { ok }; });
   host('host:lobby', () => { game.cancelQuestion(); game.gather(); io.emit('gathered'); return { ok: true }; }); // 대기실로: 문제를 닫고 모두 모음 (점수는 그대로)
-  host('host:cancel', () => ({ ok: game.cancelQuestion() }));
   host('host:coinRain', (d) => ({ ok: game.coinRain(Number(d?.n) || 24) }));
   host('host:realConfirm', () => ({ ok: game.realConfirm() }));
   host('host:realReveal', () => ({ ok: game.realReveal() }));

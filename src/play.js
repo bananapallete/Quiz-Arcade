@@ -87,8 +87,9 @@ scene.onFrame = (sc, dt) => {
     deathMsg.hidden = !dead; if (dead) deathMsg.textContent = `${Math.ceil(v.p.rv)}초 뒤 부활합니다`;
     { const uz = ultDir ? ultZoom() : 0; cam.centerOn(v.x + (ultDir ? ultDir.dx * 2.2 * BU * uz : 0), v.y - 30 + (ultDir ? ultDir.dy * 2.2 * BU * uz : 0)); } // 투사체형 궁극기: 발사 방향으로 살짝 당겨 보여 줌
   } else {
-    cam.setZoom(Math.min(w / WORLD_W, h / WORLD_H));
-    cam.centerOn(WORLD_W / 2, WORLD_H / 2);
+    const mw = lastState?.mp ? lastState.mp[0] * BU : WORLD_W, mh = lastState?.mp ? lastState.mp[1] * BU : WORLD_H; // 관전(토너먼트 대기) 중엔 대난투 맵 전체
+    cam.setZoom(Math.min(w / mw, h / mh));
+    cam.centerOn(mw / 2, mh / 2);
   }
 };
 
