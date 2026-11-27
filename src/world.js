@@ -108,6 +108,8 @@ export class WorldScene extends Phaser.Scene {
   // ---------- 조준 표시 ----------
   /** info: { id, dx, dy, manual, dragging, range, kind, radius, targetId } (null이면 숨김) */
   setAim(info) { this.aim = info; }
+  /** 공격 버튼을 끄는 중인 방향 { dx, dy, m } (매 프레임 바로 반영) */
+  setAimLocal(v) { this.aimLocal = v; }
   setUltAim(a) { this.ultAim = a; }
 
   _glowOn(v) {
@@ -228,9 +230,14 @@ export class WorldScene extends Phaser.Scene {
     if (tid !== this.lockId) { this._lockChange(this.lockId, tid); this.lockId = tid; }
     if (!me) return;
 
-    const cx = me.x, cy = me.y, R = a.range * BU, ang = Math.atan2(a.dy, a.dx);
+    // 방향: 끄는 중이면 손가락 방향 그대로, 아니면 서버가 고른 방향으로 부드럽게 돈다 (0.1초 간격 응답이 뚝뚝 끊겨 보이지 않게)
+    const loc = this.aimLocal, dt = Math.min(0.1, (now - (this._aimT || now)) / 1000); this._aimT = now;
+    const want = Math.atan2(loc ? loc.dy : a.dy, loc ? loc.dx : a.dx);
+    if (this._aimAng == null || loc) this._aimAng = want;
+    else { let d = want - this._aimAng; d = Math.atan2(Math.sin(d), Math.cos(d)); this._aimAng += d * (1 - Math.exp(-dt * 22)); }
+    const cx = me.x, cy = me.y, R = a.range * BU, ang = this._aimAng;
     // 공격 범위는 항상 또렷하게 (직접 조준 중엔 더 진하게)
-    const k = a.dragging ? 1 : 0.7;
+    const k = loc ? 1 : 0.7;
     if (!a.lob) { // 근접은 부채꼴(맞는 범위), 원거리는 사거리만큼 뻗는 빔
       if (a.kind === 'melee' && a.line) { // 직선 주먹
         const w = (a.line * BU) / 2, nx = -Math.sin(ang) * w, ny = Math.cos(ang) * w, ex = cx + Math.cos(ang) * R, ey = cy + Math.sin(ang) * R;
@@ -244,8 +251,12 @@ export class WorldScene extends Phaser.Scene {
         g.fillStyle(0xffffff, 0.34 * k).fillPoints([{ x: cx + nx, y: cy + ny }, { x: ex + nx, y: ey + ny }, { x: ex - nx, y: ey - ny }, { x: cx - nx, y: cy - ny }], true);
       }
     }
-    if (a.lob) { // 던지기: 착탄 지점과 폭발 범위
-      const lx = a.lob.x * BU, ly = a.lob.y * BU;
+    if (a.lob) { // 던지기: 착탄 지점과 폭발 범위 (끄는 중이면 손가락 거리로 바로 계산, 아니면 내 위치 기준 오프셋을 부드럽게)
+      const dist = loc ? Math.max(1.5, a.range * Math.min(1, loc.m || 1)) : null;
+      const ox = loc ? Math.cos(ang) * dist : a.lob.x - (a.px ?? me.x / BU), oy = loc ? Math.sin(ang) * dist : a.lob.y - (a.py ?? me.y / BU);
+      const sm = this._lobO || (this._lobO = { x: ox, y: oy }), f = loc ? 1 : 1 - Math.exp(-dt * 22);
+      sm.x += (ox - sm.x) * f; sm.y += (oy - sm.y) * f;
+      const lx = cx + sm.x * BU, ly = cy + sm.y * BU;
       g.lineStyle(3, 0xffffff, 0.5 * k).lineBetween(cx, cy, lx, ly);
       g.fillStyle(0xff7a1a, 0.4 * k).fillCircle(lx, ly, a.lob.r * BU);
       g.lineStyle(3, 0xffffff, 0.9).lineBetween(lx - 8, ly, lx + 8, ly).lineBetween(lx, ly - 8, lx, ly + 8);

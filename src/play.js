@@ -63,6 +63,7 @@ const ultZoom = () => { // 0.15초에 확 들어갔다가 0.75초 유지, 0.5초
   return t < 0 ? 0 : t < 0.15 ? e(t / 0.15) : t < 0.9 ? 1 : t < 1.4 ? e(1 - (t - 0.9) / 0.5) : 0;
 };
 scene.onFrame = (sc, dt) => {
+  ultAimNow();
   const cam = sc.cameras.main;
   const v = ME && sc.views.get(ME);
   const w = sc.scale.width, h = sc.scale.height;
@@ -102,18 +103,20 @@ socket.on('state', (s) => {
   { const e = s.ev?.find((e) => e.e === 'ult' && e.id === ME); if (e) { ultAt = performance.now(); ultDir = PROJ_ULT.includes(e.t) ? { dx: e.dx, dy: e.dy } : null; } }
   hud(s);
 });
-// 조준 표시: 서버에 물어서(0.1초마다) 공격 버튼을 드래그 중이면 그 방향, 아니면 자동 조준 대상을 표시
+// 조준 표시: 사거리·대상은 서버에 물어서(0.1초마다), 방향은 손가락을 따라 매 프레임 화면에서 바로 그림
 let aimBusy = false;
 setInterval(() => {
   if (!ME || aimBusy) return;
   const dragLen = Math.hypot(atkVec.x, atkVec.y), dragging = atkId !== null && dragLen > 16;
-  aimBusy = true; const to = setTimeout(() => { aimBusy = false; }, 400); // 응답이 안 오면(끊김·재접속) 다음 틱에 다시 물어봄 — 안 그러면 조준 표시가 그 자리에 굳음
-  socket.volatile.emit('aimq', dragging ? { x: atkVec.x / dragLen, y: atkVec.y / dragLen, m: Math.min(1, dragLen / 70) } : null, (info) => {
+  aimBusy = true; const to = setTimeout(() => { aimBusy = false; }, 300); // 응답이 안 오면(끊김·재접속) 다음 틱에 다시 물어봄 — 안 그러면 조준 표시가 그 자리에 굳음
+  socket.emit('aimq', dragging ? { x: atkVec.x / dragLen, y: atkVec.y / dragLen, m: Math.min(1, dragLen / 70) } : null, (info) => {
     clearTimeout(to); aimBusy = false; scene.setAim(info && { id: ME, ...info, dragging });
   });
-  const ul = Math.hypot(ultDrag.vec.x, ultDrag.vec.y), cu = me?.ult; // 궁극기를 끌어 조준 중이면 방향·거리 표시
-  scene.setUltAim(ultDrag.active && ul > 16 && cu ? { id: ME, dx: ultDrag.vec.x / ul, dy: ultDrag.vec.y / ul, len: (cu.range ?? cu.dist ?? 6) * Math.min(1, ul / 70) } : null);
 }, 100);
+const ultAimNow = () => { // 궁극기를 끌어 조준 중이면 방향·거리 표시 (매 프레임)
+  const ul = Math.hypot(ultDrag.vec.x, ultDrag.vec.y), cu = me?.ult;
+  scene.setUltAim(ME && ultDrag.active && ul > 16 && cu ? { id: ME, dx: ultDrag.vec.x / ul, dy: ultDrag.vec.y / ul, len: (cu.range ?? cu.dist ?? 6) * Math.min(1, ul / 70) } : null);
+};
 
 function hud(s) {
   renderQuizTop(qtop, s, s.lb || [], ME);
@@ -217,10 +220,11 @@ atk.addEventListener('pointermove', (e) => {
   aim.style.opacity = d > 16 ? 1 : 0;
   aim.style.width = `${Math.min(70, d)}px`;
   aim.style.transform = `rotate(${Math.atan2(atkVec.y, atkVec.x)}rad)`;
+  scene.setAimLocal(d > 16 ? { dx: atkVec.x / d, dy: atkVec.y / d, m: Math.min(1, d / 70) } : null);
 });
 const atkEnd = (e, cancel) => {
   if (e.pointerId !== atkId) return;
-  atkId = null; aim.style.opacity = 0;
+  atkId = null; aim.style.opacity = 0; scene.setAimLocal(null);
   if (cancel) return;
   const d = Math.hypot(atkVec.x, atkVec.y);
   socket.volatile.emit('attack', d > 16 ? { x: atkVec.x / d, y: atkVec.y / d, m: Math.min(1, d / 70) } : null);
@@ -297,11 +301,11 @@ $('#pickgo').addEventListener('click', () => {
 function resetControls() {
   input.mx = 0; input.my = 0; input.run = false; runBtn.classList.remove('on'); dirty = true;
   padId = null; stick.style.transform = ''; pad.classList.remove('on'); hint.classList.remove('off');
-  atkId = null; atkVec = { x: 0, y: 0 }; aim.style.opacity = 0; ultDrag.cancel(); aimBusy = false; scene.setAim(null); scene.setUltAim(null);
+  atkId = null; atkVec = { x: 0, y: 0 }; aim.style.opacity = 0; ultDrag.cancel(); aimBusy = false; scene.setAim(null); scene.setAimLocal(null); scene.setUltAim(null);
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) resetControls(); });
 addEventListener('blur', resetControls);
-atk.addEventListener('lostpointercapture', () => { atkId = null; atkVec = { x: 0, y: 0 }; aim.style.opacity = 0; });
+atk.addEventListener('lostpointercapture', () => { atkId = null; atkVec = { x: 0, y: 0 }; aim.style.opacity = 0; scene.setAimLocal(null); });
 socket.on('connect', () => {
   resetControls(); $('#conn').hidden = true;
   const saved = me || load();

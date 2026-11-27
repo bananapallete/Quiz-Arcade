@@ -553,7 +553,7 @@ export class Game {
       lob = { x: r2(L.x), y: r2(L.y), r: pr.explodeRadius };
       target = this._enemies(p).filter((o) => Math.hypot(o.x - L.x, o.y - L.y) <= pr.explodeRadius + o.cfg.radius).sort((u, v) => Math.hypot(u.x - L.x, u.y - L.y) - Math.hypot(v.x - L.x, v.y - L.y))[0] || null;
     }
-    return { lob, dx: dir.dx, dy: dir.dy, manual: dir.manual, range, step, kind: p.cfg.attack.type, arc, radius: p.cfg.radius, line, targetId: target ? target.id : null };
+    return { lob, px: r2(p.x), py: r2(p.y), dx: dir.dx, dy: dir.dy, manual: dir.manual, range, step, kind: p.cfg.attack.type, arc, radius: p.cfg.radius, line, targetId: target ? target.id : null };
   }
 
   _tryAttack(p, aim) {
