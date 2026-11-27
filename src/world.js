@@ -299,6 +299,7 @@ export class WorldScene extends Phaser.Scene {
       sfxEvent(e, { mine: (e.by ?? e.id) === this.focusId, screen: this.screen, x: e.x ?? (sv ? sv.x / BU : null), y: e.y ?? (sv ? sv.y / BU : null), fx: fv ? fv.x / BU : null, fy: fv ? fv.y / BU : null, charId: sv?.p?.c }); }
     const now = performance.now();
     const v = this.views.get(e.id);
+    if (e.e === 'ghost' && v && this._brawlOn) v.ghostDieUntil = now + 800; // 대난투에서 쓰러졌을 때만 죽음 모션 (달력 탈락은 해당 없음)
     if (e.e === 'ult' && v) {
       if (['channel', 'charm', 'magnet', 'tether', 'stage', 'brood', 'rally'].includes(e.t)) auraPulse(this, { ...e, r: e.r || 2.25 }, BU, e.t === 'charm' ? [0xffe6f2, 0xffb3d9, 0xff7ab8, 0xc94c8a] : undefined);
       if (e.t === 'rush') speedLines(this, e, BU);
@@ -459,14 +460,15 @@ export class WorldScene extends Phaser.Scene {
       orbitTick(this, v, now, BU);
       v.sprite.setFlipX(p.f < 0).setOrigin(p.f < 0 ? 1 - SPRITE.anchor[0] / SPRITE.cell : SPRITE.anchor[0] / SPRITE.cell, SPRITE.anchor[1] / SPRITE.cell); // 왼쪽을 볼 땐 기준점도 거울상으로 (체력바·이름이 몸 중앙에 맞게)
       const tint = p.si ? 0x8fa0c8 : p.tn ? parseInt(p.tn.slice(1), 16) : 0; // 침묵 중엔 회청색 // 캐릭터가 바뀌면 임시 색과 크기도 따라감
-      if (!!p.gh !== !!v.gh) { v.gh = !!p.gh; v.tint = -1; if (p.gh) v.sprite.setTintFill(0x4d8dff); else v.sprite.clearTint(); } // 유령: 파란 실루엣 (끝나면 원래 색으로)
-      if (!p.gh && tint !== v.tint) { v.tint = tint; if (tint) v.sprite.setTint(tint); else v.sprite.clearTint(); }
+      const dying = !!p.gh && now < (v.ghostDieUntil || 0), gh = !!p.gh && !dying; // 대난투에서 쓰러진 직후엔 죽음 모션을 보여 주고, 그 뒤에 파란 유령이 됨
+      if (gh !== !!v.gh) { v.gh = gh; v.tint = -1; if (gh) v.sprite.setTintFill(0x4d8dff); else v.sprite.clearTint(); } // 유령: 파란 실루엣 (끝나면 원래 색으로)
+      if (!gh && tint !== v.tint) { v.tint = tint; if (tint) v.sprite.setTint(tint); else v.sprite.clearTint(); }
       v.zsCur = (v.zsCur ?? (p.zs || 1)) + ((p.zs || 1) - (v.zsCur ?? (p.zs || 1))) * Math.min(1, (delta / 1000) * 8); // 진화 등 크기 변화는 부드럽게
       const pop = v.popAt && now > v.popAt && now < v.popAt + 200 ? 1 + 0.35 * Math.sin(Math.PI * ((now - v.popAt) / 200)) : 1; // 오라에 맞으면 깜빡 → 팡
       v.sprite.setScale(SPR_SCALE * v.zsCur * pop);
 
       // 모션: 공격 중이면 유지, 아니면 이동 상태에 맞춰
-      const dies = p.st && sprites[p.s]?.die; // 기절하면 죽음 모션을 한 번 재생하고 누운 채로 둠
+      const dies = (p.st || dying) && sprites[p.s]?.die; // 기절하면 죽음 모션을 한 번 재생하고 누운 채로 둠
       const chan = p.ch && sprites[p.s]?.ult; // 채널링 궁극기 중엔 전용 모션을 계속 재생
       if (dies) { if (!v.dead) { v.dead = true; v.sprite.play(`${p.s}-die`); } }
       else if (p.mo && sprites[p.s]?.morph) { v.dead = false; v.sprite.play(`${p.s}-morph`, true); }
@@ -479,7 +481,7 @@ export class WorldScene extends Phaser.Scene {
 
       // 기절: 쓰러진 모습 / 무적: 깜빡임
       v.sprite.setAngle(p.st && !dies ? 80 * p.f : 0);
-      v.sprite.setAlpha(p.gh ? 0.3 : v.blinkUntil > now ? (Math.floor(now / 50) % 2 ? 0.2 : 1) : p.sl ? (p.id === this.focusId ? 0.35 : 0.12) : p.inv ? 0.45 + 0.35 * Math.sin(now / 70) : 1); // 은신 / 무적 깜빡임
+      v.sprite.setAlpha(gh ? 0.3 : v.blinkUntil > now ? (Math.floor(now / 50) % 2 ? 0.2 : 1) : p.sl ? (p.id === this.focusId ? 0.35 : 0.12) : p.inv ? 0.45 + 0.35 * Math.sin(now / 70) : 1); // 은신 / 무적 깜빡임
 
       // 체력바 + 이름: 하트 + 칸 나뉜 바 (내 것은 크게, 남의 것은 작게)
       phoenixTick(this, v, p, BU, pixText);
@@ -527,11 +529,18 @@ export class WorldScene extends Phaser.Scene {
       if (v.nameStr !== nm) { v.nameStr = nm; v.name.setText(nm); }
       if (lead && this.sys.game.renderer.type === Phaser.WEBGL && !v.lglow) { v.sprite.preFX.setPadding(24); v.lglow = v.sprite.preFX.addGlow(0xffd54a, 4, 0, false, 0.1, 12); } // 1등: 항상 노란 테두리로 빛남
       else if (!lead && v.lglow) { v.sprite.preFX.remove(v.lglow); v.lglow = null; }
+      if (p.gh && p.rr) { // 대난투 유령 밑에 팀원이 겹쳐야 하는 부활 범위(점선 원)와 진행도(차오르는 부채꼴)
+        if (!v.rg) { v.rg = this.add.graphics(); v.root.push(v.rg); }
+        const g = v.rg.clear().setDepth(v.y - 1), rx = p.rr * BU, ry = p.rr * BU * 0.55, cx = v.x, cy = v.y, prog = Math.max(0, Math.min(1, (p.rp || 0) / 5));
+        g.fillStyle(0x7dffcf, 0.12).fillEllipse(cx, cy, rx * 2, ry * 2);
+        if (prog > 0) { const pts = [{ x: cx, y: cy }]; for (let i = 0; i <= 28; i++) { const a = -Math.PI / 2 + prog * Math.PI * 2 * (i / 28); pts.push({ x: cx + Math.cos(a) * rx, y: cy + Math.sin(a) * ry }); } g.fillStyle(0x7dffcf, 0.38).fillPoints(pts, true); }
+        g.lineStyle(3, 0x7dffcf, 0.85); for (let i = 0; i < 32; i += 2) { g.beginPath(); for (let k = 0; k <= 3; k++) { const a = ((i + k / 3) / 32) * Math.PI * 2; if (k === 0) g.moveTo(cx + Math.cos(a) * rx, cy + Math.sin(a) * ry); else g.lineTo(cx + Math.cos(a) * rx, cy + Math.sin(a) * ry); } g.strokePath(); } // 점선 타원
+      } else if (v.rg) v.rg.clear();
       if ((p.st && p.rv > 0) || (p.gh && p.rp > 0)) { // 쓰러진 캐릭터 몸통 위에 부활까지 남은 초 (내 화면 · 남의 화면 모두). 대난투 유령은 팀원이 겹쳐 있을 때 부활까지 남은 초
         if (!v.rvT) { v.rvT = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: '30px', color: '#ffffff', fontStyle: '900', stroke: '#14122b', strokeThickness: 6 }).setOrigin(0.5); v.root.push(v.rvT); }
         const left = p.gh ? 5 - p.rp : p.rv; v.rvT.setText(String(Math.ceil(left))).setPosition(v.x, v.y - 0.45 * BU).setDepth(v.y + 3).setVisible(true).setColor(p.gh ? '#7dffcf' : left <= 1 ? '#ffe27a' : '#ffffff'); // 마지막 1초는 노랗게 · 유령 부활은 민트색
       } else if (v.rvT) v.rvT.setVisible(false);
-      v.name.setPosition(bx, by - 8).setDepth(v.y + 1).setAlpha(p.gh ? 0.3 : this.screen || me || p.id === this.lockId ? 1 : 0.35); // 다른 사람 이름은 흐리게, 내가 조준한 상대만 또렷하게
+      v.name.setPosition(bx, by - 8).setDepth(v.y + 1).setAlpha(gh ? 0.3 : this.screen || me || p.id === this.lockId ? 1 : 0.35); // 다른 사람 이름은 흐리게, 내가 조준한 상대만 또렷하게
       v.status.setText('').setPosition(bx, by - 32).setDepth(v.y + 1); // 상태이상 글자는 쓰지 않음
       const shown = Math.max(0, (p.cn || 0) - (v.pending || 0)); // 습득 연출이 끝나야 '기록'됨
       const bk = Math.max(0, 1 - (now - v.bump) / 250);
