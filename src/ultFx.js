@@ -190,6 +190,12 @@ function debrisTex(scene, v) {
     ink(put, w, h, get);
   });
 }
+/** 화면 흔들림: 내 캐릭터가 폭발·충격 범위 안(또는 바로 근처)에 있을 때만, 가까울수록 세게. 남의 궁극기가 멀리서 터지는 건 내 화면을 흔들지 않음 */
+function shakeNear(scene, x, y, r, BU, ms, mag) {
+  const fv = scene.views?.get(scene.focusId); if (!fv) return; // 내 캐릭터가 없으면(프로젝터) 흔들지 않음
+  const d = Math.hypot(fv.x / BU - x, fv.y / BU - y), reach = r + 1.5; if (d > reach) return;
+  scene.cameras.main.shake(ms, mag * (1 - 0.6 * (d / reach)));
+}
 export function quake(scene, e, BU) {
   const x = e.x * BU, y = e.y * BU, Rd = Math.max(8, Math.round((e.r * BU) / DOT));
   const sp = scene.add.image(x, y, crackTex(scene, Rd, (Math.floor(Math.random() * 3) + 1))).setScale(DOT).setDepth(-47);
@@ -201,7 +207,7 @@ export function quake(scene, e, BU) {
     const r = scene.add.image(px, py, debrisTex(scene, i % 2)).setScale(DOT).setDepth(FXD);
     scene.tweens.add({ targets: r, y: py - 26 - Math.random() * 40, duration: 260 + Math.random() * 120, ease: 'Quad.easeOut', yoyo: true, onComplete: () => scene.tweens.add({ targets: r, alpha: 0, duration: 220, onComplete: () => r.destroy() }) });
   }
-  if (scene.focusId) scene.cameras.main.shake(260, 0.006);
+  shakeNear(scene, e.x, e.y, e.r, BU, 260, 0.006);
 }
 export function shockRing(scene, e, BU, kind = 'fire') { ringAnim(scene, e.x * BU, e.y * BU, e.r, kind, BU); ringAnim(scene, e.x * BU, e.y * BU, e.r * 0.6, kind === 'fire' ? 'quake' : kind, BU, 4997); }
 
@@ -744,5 +750,5 @@ export function groundSlam(scene, e, BU) {
       }
     }
   }, -46);
-  if (scene.focusId) scene.cameras.main.shake(160, 0.005);
+  shakeNear(scene, e.x, e.y, e.r, BU, 160, 0.005);
 }
