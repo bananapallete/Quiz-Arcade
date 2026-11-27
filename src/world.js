@@ -219,10 +219,14 @@ export class WorldScene extends Phaser.Scene {
       }
     }
     const ua = this.ultAim, uv = ua && this.views.get(ua.id);
-    if (uv) { // 궁극기 직접 조준: 방향으로 뻗는 점선과 끝 원
-      const ex = uv.x + ua.dx * ua.len * BU, ey = uv.y + ua.dy * ua.len * BU;
-      for (let i = 1; i <= 12; i++) g.fillStyle(0xffd54a, 0.7).fillRect(Math.round((uv.x + (ex - uv.x) * i / 12) / 2) * 2 - 3, Math.round((uv.y + (ey - uv.y) * i / 12) / 2) * 2 - 3, 6, 6);
-      g.fillStyle(0xffd54a, 0.3).fillCircle(ex, ey, 0.5 * BU);
+    if (uv) { // 궁극기 직접 조준: 일반 공격 범위처럼 흰 면으로 실제 범위를 그림
+      const u = ua.u || {}, ang = Math.atan2(ua.dy, ua.dx), cx = uv.x, cy = uv.y, W = 0.38;
+      const rect = (from, to, width) => { const w = (width * BU) / 2, nx = -Math.sin(ang) * w, ny = Math.cos(ang) * w, ax = cx + ua.dx * from * BU, ay = cy + ua.dy * from * BU, bx = cx + ua.dx * to * BU, by = cy + ua.dy * to * BU; g.fillStyle(0xffffff, W).fillPoints([{ x: ax + nx, y: ay + ny }, { x: bx + nx, y: by + ny }, { x: bx - nx, y: by - ny }, { x: ax - nx, y: ay - ny }], true); };
+      if (u.type === 'wave' || u.type === 'snipe' || u.type === 'flurry') rect(0, u.range ?? ua.len, u.width ?? 1); // 직선: 폭 그대로, 끝까지
+      else if (u.type === 'slam') { const R = Math.max(u.range ?? 6, ...(u.hits || []).map((h) => h.range)) * BU, half = ((u.arc ?? 30) * Math.PI) / 180; g.fillStyle(0xffffff, W).slice(cx, cy, R, ang - half, ang + half, false).fillPath(); } // 앞쪽 부채꼴
+      else if (u.type === 'wall') rect(u.dist ?? 2, (u.dist ?? 2) + (u.range ?? 3), u.len ?? 4); // 성벽이 밀고 가는 칸
+      else if (u.radius) { const ex = cx + ua.dx * ua.len * BU, ey = cy + ua.dy * ua.len * BU; rect(0, ua.len, 0.35); g.fillStyle(0xffffff, W).fillCircle(ex, ey, u.radius * BU); } // 떨어지는 지점과 범위
+      else rect(0, ua.len, 1);
     }
     const a = this.aim;
     const me = a && this.views.get(a.id);

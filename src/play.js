@@ -118,7 +118,7 @@ setInterval(() => {
 }, 100);
 const ultAimNow = () => { // 궁극기를 끌어 조준 중이면 방향·거리 표시 (매 프레임)
   const ul = Math.hypot(ultDrag.vec.x, ultDrag.vec.y), cu = me?.ult;
-  scene.setUltAim(ME && ultDrag.active && ul > 16 && cu ? { id: ME, dx: ultDrag.vec.x / ul, dy: ultDrag.vec.y / ul, len: (cu.range ?? cu.dist ?? 6) * Math.min(1, ul / 70) } : null);
+  scene.setUltAim(ME && ultDrag.active && ul > 16 && cu ? { id: ME, dx: ultDrag.vec.x / ul, dy: ultDrag.vec.y / ul, len: (cu.range ?? cu.dist ?? 6) * Math.min(1, ul / 70), u: cu } : null);
 };
 
 function hud(s) {
