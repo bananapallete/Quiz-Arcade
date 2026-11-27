@@ -1652,3 +1652,11 @@ test('비상 정지 중에는 공격·궁극기가 나가지 않는다', () => {
   g.setFrozen(true); g.attack('a', null);
   assert.equal(b.hp, b.cfg.hp);
 });
+
+test('마녀 궁극기는 다른 캐릭터보다 50% 느리게 찬다', () => {
+  const plain = { ...chars, witch2: { ...chars.witch, ult: { ...chars.witch.ult, chargeMul: undefined } } };
+  const g = new Game(plain, quizzes);
+  const w = g.join({ token: 'w', name: 'W', charId: 'witch' }), b = g.join({ token: 'b', name: 'B', charId: 'witch2' });
+  w.x = 5; b.x = 30; run(g, 2);
+  assert.ok(b.ult > 0 && Math.abs(w.ult - b.ult / 2) < 0.01, `witch=${w.ult} plain=${b.ult}`);
+});

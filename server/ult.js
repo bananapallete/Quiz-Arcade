@@ -15,7 +15,7 @@ export const buffOf = (g, p) => (p.buff && g.t < p.buff.until ? p.buff : null);
 export function charge(p, amount) {
   const u = p.cfg?.ult;
   if (u && amount > 0 && !p.isBot) amount *= ULT_CHARGE.humanMul; // 테스트용: 사람만 충전 배수
-  if (u && amount > 0) p.ult = Math.min(u.need, (p.ult || 0) + amount);
+  if (u && amount > 0) p.ult = Math.min(u.need, (p.ult || 0) + amount * (u.chargeMul ?? 1)); // chargeMul: 캐릭터별 충전 속도 (마녀 0.5)
 }
 
 /** game.ult(id, aim) 에서 호출. 조건(충전·기절·돌진 중)은 호출 쪽에서 확인 */
