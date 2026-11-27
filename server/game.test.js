@@ -1775,3 +1775,13 @@ test('빔프로젝터 중계: 기본은 자동(1등), 진행자가 참가자를 
   g.setCast('off'); assert.deepEqual(g.snapshot().cs, { m: 'off', id: null });
   g.setCast(null, 'nobody'); assert.equal(g.snapshot().cs.m, 'auto', '없는 사람이면 자동');
 });
+
+test('하마 발 구르기: 그려지는 대로 주변 360°를 치고, 몸이 범위에 닿기만 해도 맞는다', () => {
+  const { g, A, B } = duo('hippo', 'blue');
+  const C = g.join({ token: 'c', name: 'C', charId: 'blue' }), D = g.join({ token: 'd', name: 'D', charId: 'blue' });
+  A.x = 10; A.y = 10; B.x = 11.2; B.y = 10; C.x = 8.8; C.y = 10; D.x = 10; D.y = 10 + 1.5 + B.cfg.radius * 0.8; // 앞·뒤·옆(가장자리에 몸이 걸침)
+  for (const p of [A, B, C, D]) { p.kx = p.ky = 0; p.invUntil = 0; }
+  g.attack('a', { x: 1, y: 0 }); run(g, 0.5);
+  const dmg = chars.hippo.attack.dmgMin;
+  assert.equal(B.hp, B.cfg.hp - dmg, '앞'); assert.equal(C.hp, C.cfg.hp - dmg, '뒤'); assert.equal(D.hp, D.cfg.hp - dmg, '가장자리에 몸이 걸쳐도');
+});

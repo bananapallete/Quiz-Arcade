@@ -994,6 +994,7 @@
       "canAttackWhileRunning": true,
       "moveSpeedWhileAttacking": 0.4,
       "arcDeg": 180,
+      "bodyHit": true,
       "multi": true,
       "fx": "stomp"
     },

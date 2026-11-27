@@ -675,13 +675,14 @@ export class Game {
     for (const o of this._enemies(p)) {
       const vx = o.x - p.x, vy = o.y - p.y;
       const along = vx * dx + vy * dy; // 조준 방향으로의 거리
-      if (along <= 0) continue;
+      const wide = a.type === 'melee' && !lineW && arc > 90; // 90°보다 넓은 부채꼴(하마 발 구르기 ±180° = 360°)은 뒤쪽도 맞음
+      if (along <= 0 && !wide) continue;
       if (a.type === 'melee' && lineW) { // 직선(주먹): 앞으로 range, 폭 lineW의 길쭉한 상자
         const perp = Math.abs(vx * dy - vy * dx);
         if (along <= range && perp <= lineW / 2 + o.cfg.radius) hits.push({ o, dist: along });
       } else if (a.type === 'melee') {
-        const d = Math.hypot(vx, vy);
-        if (d <= range && along / d >= cosMin) hits.push({ o, dist: d });
+        const d = Math.hypot(vx, vy) || 1e-6;
+        if (d <= range + (a.bodyHit ? o.cfg.radius : 0) && along / d >= cosMin - 1e-9) hits.push({ o, dist: d }); // bodyHit: 몸이 범위 그림에 닿기만 해도 맞음
       } else {
         const perp = Math.abs(vx * dy - vy * dx);
         if (along <= range && perp <= o.cfg.radius + (a.projectile?.radius ?? a.chain?.width ?? 0)) hits.push({ o, dist: along });
