@@ -1,9 +1,11 @@
+import { autoReload } from './autoReload.js';
 // 진행자(관리자) 화면: 문제 큐 · 현재 문제 컨트롤 · 실시간 응답 · 현실 퀴즈 점수 · 참가자/팀/점수 수정
 import { io } from 'socket.io-client';
 import { fmtScore, PHASE } from '../shared/constants.js';
 
 const $ = (s) => document.querySelector(s);
 const socket = io();
+autoReload(socket);
 const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const KEY = 'quiz_host_key', getKey = () => { try { return localStorage.getItem(KEY) || ''; } catch { return ''; } };
 const TEAMC = ['#ccc', '#ff6b6b', '#4a86d9', '#4fd16a', '#f2c230', '#9a62d6', '#ff9a3c', '#4fc9c9', '#c0c0c0'];

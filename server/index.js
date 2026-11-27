@@ -55,7 +55,9 @@ if (isProd) {
 }
 
 // ---------- 소켓 ----------
+const BOOT = String(Date.now()); // 서버가 새로 뜰 때마다 바뀜 → 열려 있던 화면이 새 버전으로 새로고침
 io.on('connection', (socket) => {
+  socket.emit('boot', BOOT);
   socket.on('join', (data, ack) => {
     const token = data?.token && game.players.has(data.token) ? data.token : randomUUID();
     const p = game.join({ token, name: data?.name, charId: data?.charId });

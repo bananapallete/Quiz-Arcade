@@ -1,3 +1,4 @@
+import { autoReload } from './autoReload.js';
 import './noZoom.js';
 import { io } from 'socket.io-client';
 import { mountPicker } from './charPicker.js';
@@ -12,6 +13,7 @@ const $ = (s) => document.querySelector(s);
 addBtnIcons();
 const qtop = mountQuizTop();
 const socket = io();
+autoReload(socket);
 import { isMuted, setMuted, setMuffled, unlockAudio } from './sfx.js';
 import { mountFade } from './fade.js'; mountFade(socket);
 const LS = 'quiz_player';

@@ -1,3 +1,4 @@
+import { autoReload } from './autoReload.js';
 import { io } from 'socket.io-client';
 import QRCode from 'qrcode';
 import { fmtScore, isCombat, MAP, PHASE } from '../shared/constants.js';
@@ -7,6 +8,7 @@ import { mountScreenUi, renderScreenUi } from './screenUi.js';
 const $ = (s) => document.querySelector(s);
 const { scene } = startWorld('game', { screen: true });
 const socket = io();
+autoReload(socket);
 import { mountFade } from './fade.js'; mountFade(socket);
 const sq = mountScreenUi();
 

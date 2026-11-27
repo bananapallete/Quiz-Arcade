@@ -127,7 +127,7 @@ const BASIC = {
 const ULT = {
   chain: (v) => { for (let i = 0; i < 5; i++) tone(1500 + i * 120, 300, 0.09, 'sawtooth', 0.4 * v, i * 0.18); tone(200, 60, 0.3, 'sine', 0.8 * v, 0.9); },
   zone: (v) => { noise(0.9, 500, 2500, 0.45 * v); tone(300, 700, 0.5, 'sine', 0.3 * v); },
-  snipe: (v) => { tone(300, 1800, 0.7, 'sine', 0.3 * v); tone(2200, 150, 0.25, 'sawtooth', 0.6 * v, 0.8); noise(0.2, 4000, 800, 0.5 * v, 0.8); },
+  snipe: (v) => { tone(2200, 150, 0.25, 'sawtooth', 0.6 * v); noise(0.2, 4000, 800, 0.5 * v); tone(1800, 300, 0.35, 'sine', 0.22 * v, 0.04); }, // 즉발 저격: 발사음이 바로 (모으는 소리 없음)
   blackhole: (v) => { tone(500, 40, 1.2, 'sawtooth', 0.4 * v); noise(1, 3000, 80, 0.35 * v); tone(80, 30, 0.5, 'sine', 0.8 * v, 1.2); },
   channel: (v) => { noise(0.7, 400, 2600, 0.45 * v); tone(260, 520, 0.7, 'sawtooth', 0.2 * v, 0, 30); },
   slam: (v) => { for (let i = 0; i < 3; i++) { tone(120, 38, 0.3, 'sine', 0.9 * v, 0.35 + i * 0.5); noise(0.25, 800, 100, 0.5 * v, 0.35 + i * 0.5); } },
