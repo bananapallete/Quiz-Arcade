@@ -1251,6 +1251,15 @@ test('캐릭터 변경: 대기실은 자유, 퀴즈 중엔 60초 쿨타임(체�
   g.cancelQuestion(); assert.equal(g.setChar('a', 'orc'), true, '대기실에서는 쿨타임 무시');
 });
 
+test('점수 기록: 수동·퀴즈·현실 점수가 게임마다 누가 몇 점인지 남고, 되돌리면 취소 표시', () => {
+  const g = new Game(chars, [{ type: 'ox', text: 'a', answer: 'O', time: 10 }, { type: 'real', text: '줄다리기', answer: null, time: 0 }]), a = g.join({ token: 'a', name: 'A', charId: 'blue' });
+  g.adjust('a', 2); assert.deepEqual(g.history.map((h) => [h.kind, h.rows[0].gain]), [['adj', 2]]);
+  g.ask(2); g.realSet('a', 3); g.realConfirm(); g.realReveal(); const h = g.history.at(-1);
+  assert.equal(h.kind, 'real'); assert.equal(h.title, 'Q2 줄다리기'); assert.deepEqual(h.rows.map((r) => [r.name, r.gain]), [['A', 3]]);
+  g.undoScore(); assert.equal(h.undone, true); assert.equal(a.score, 2, '현실 점수만 되돌림');
+  assert.equal(g.hostInfo().history.length, 2);
+});
+
 test('난타(격투가): 5초간 앞으로 걸어가며 전방 직선을 연타하고 끝나면 멈춘다', () => {
   const { g, A, B } = duo('brawler', 'blue');
   A.x = 10; A.y = 10; B.x = 12; B.y = 10; A.ult = A.cfg.ult.need;

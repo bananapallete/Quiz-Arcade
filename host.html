@@ -42,6 +42,13 @@
       .real{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.real div{display:grid;grid-template-columns:1fr 64px;gap:6px;align-items:center;padding:4px 8px;border-radius:8px;background:#fff;border:2px solid #d9bd8a;font-weight:800;font-size:14px}
       #auth{margin:auto;width:320px;display:grid;gap:10px;background:var(--cream);padding:20px;border-radius:14px}
       details summary{cursor:pointer;font-weight:900}
+      #sgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+      .sc{display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;gap:2px 6px;align-items:center;padding:5px 7px;border-radius:10px;background:var(--cream-hi);border:2px solid var(--navy);font-weight:800;font-size:13px}
+      .sc .nm{grid-column:1/4;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.sc .pt{text-align:center;font-weight:900;font-size:22px}
+      .sc b{width:34px;height:30px;border-radius:8px;border:2px solid var(--navy);display:grid;place-items:center;background:#fff;font-size:18px;cursor:pointer;user-select:none}.sc b.m{background:#ffb3ab}.sc b.p{background:#b5e8a0}.sc b:active{transform:translateY(2px)}
+      #tboard{display:flex;gap:6px;flex-wrap:wrap}.tc{flex:1 1 110px;min-height:70px;border:2px dashed var(--navy);border-radius:10px;padding:5px;display:flex;gap:4px;flex-wrap:wrap;align-content:flex-start}.tc.over{background:#fff3c4}.tc h4{margin:0;width:100%;font-size:12px}
+      .chip{color:var(--text);padding:3px 8px;border-radius:99px;border:2px solid var(--navy);background:#fff;font-weight:800;font-size:13px;cursor:grab}
+      #hist{display:grid;gap:5px;max-height:260px;overflow:auto}#hist details{background:#fff;border:2px solid var(--navy);border-radius:8px;padding:4px 8px;font-size:13px}#hist .un{text-decoration:line-through;opacity:.5}#hist .rw{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:4px}
       [hidden]{display:none!important}
     </style>
   </head>
@@ -79,13 +86,18 @@
         <div class="card" id="realbox" hidden><h3>현실 퀴즈 점수 <em>입력 → 확인 → 공개하기</em></h3><div class="real" id="real"></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap" id="realteams"></div>
           <div class="ctl" style="grid-template-columns:1fr 1fr"><button class="btn gold" id="realok">확인</button><button class="btn go" id="realrev" disabled>공개하기</button></div></div>
+        <div class="card"><h3>기록 <em id="hist-n"></em></h3><div id="hist"></div></div>
         <div class="card"><h3>점수 부여 <em>보너스·현실 게임 결과</em></h3><div style="display:grid;grid-template-columns:1fr 90px auto;gap:8px"><select class="inp" id="aw-who"></select><input class="inp" id="aw-n" type="number" step="0.5" value="1" /><button class="btn gold" id="aw-go">지급</button></div></div>
       </div>
       <div class="col">
         <h3>참가자 <em id="p-teams"></em></h3>
         <div style="display:grid;grid-template-columns:70px 1fr;gap:8px"><input class="inp" id="t-n" type="number" min="0" max="8" value="3" /><button class="btn go sm" id="t-auto" style="font-size:15px">팀 자동 구성 (0 = 해제)</button></div>
+        <details open><summary>팀 <small>끌어서 이동</small></summary><div id="tboard"></div><button class="btn ghost sm" id="t-add" style="margin-top:6px">＋ 팀</button></details>
+        <div style="display:flex;gap:8px;align-items:center"><b>점수</b><input class="inp" id="adj-step" type="number" step="0.5" min="0.5" value="1" style="width:70px;padding:3px 8px"></div>
+        <div id="sgrid"></div>
+        <details><summary>편집 <small>이름·퇴장</small></summary>
         <div class="pl h" style="grid-template-columns:24px 1fr 62px 56px 80px"><span>#</span><span>이름 (눌러서 수정)</span><span>팀</span><span>점수</span><span style="text-align:right">수정·퇴장</span></div>
-        <div id="plist" style="display:grid;gap:5px"></div>
+        <div id="plist" style="display:grid;gap:5px"></div></details>
         <div id="tt" style="display:flex;gap:6px;flex-wrap:wrap"></div>
       </div>
     </div>

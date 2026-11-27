@@ -43,7 +43,7 @@ export class Game {
     this.itemClock = 0;
     this.coinsSpawned = 0; // 지금까지 생성한 동전 수 (습득된 것 포함)
     this.showRank = false; // 빔프로젝터에 순위표를 띄울지
-    this.showQr = true; this.hideAns = false; this.timerPaused = false; this.frozen = false; this.multiplier = 1; this.notice = null; this.screenMode = 'quiz'; this.scoreLog = []; // 진행자 기능
+    this.showQr = true; this.hideAns = false; this.timerPaused = false; this.frozen = false; this.multiplier = 1; this.notice = null; this.screenMode = 'quiz'; this.scoreLog = []; this.history = []; this.histSeq = 0; // 진행자 기능
     this.locked = null; // 시간이 끝난 시점에 굳어진 판정 (정답 공개 때 점수에 반영)
     this.realPending = new Map(); // 현실 퀴즈: 진행자가 입력한 점수 id → 점수
     this.realConfirmed = false;
@@ -188,15 +188,19 @@ export class Game {
   adjust(id, delta) {
     const p = this.players.get(id), n = Number(delta);
     if (!p || !Number.isFinite(n)) return false;
-    p.score = Math.round((p.score + n) * 10) / 10; this._log(`${p.name} ${n > 0 ? '+' : ''}${n}`); this._pushUndo(`${p.name} ${n > 0 ? '+' : ''}${n}`, [[p.id, n]]); return true;
+    p.score = Math.round((p.score + n) * 10) / 10; const lab = `${p.name} ${n > 0 ? '+' : ''}${n}`; this._log(lab);
+    this._pushUndo(lab, [[p.id, n]], this._hist('adj', '수동', [{ id: p.id, name: p.name, team: p.team || 0, gain: n }])); return true;
   }
 
   // ---------- 진행자 도구 ----------
-  _pushUndo(label, deltas) { if (deltas.length) { this.scoreLog.push({ label, deltas }); if (this.scoreLog.length > 30) this.scoreLog.shift(); } }
+  /** 점수 기록(게임마다 누가 몇 점): kind q=퀴즈 real=현실 adj=수동 reset=초기화. rows = [{id,name,team,gain}] */
+  _hist(kind, title, rows = []) { const h = { n: ++this.histSeq, t: Date.now(), kind, title, rows, undone: false }; this.history.push(h); if (this.history.length > 200) this.history.shift(); return h; }
+  _pushUndo(label, deltas, hist) { if (deltas.length) { this.scoreLog.push({ label, deltas, hist }); if (this.scoreLog.length > 30) this.scoreLog.shift(); } }
   /** 가장 최근 점수 변경(수정·정답 공개·현실 퀴즈 공개)을 되돌린다. 떨어뜨린 동전은 되돌리지 않음 */
   undoScore() {
     const e = this.scoreLog.pop(); if (!e) return false;
     for (const [id, d] of e.deltas) { const p = this.players.get(id); if (p) p.score = Math.round((p.score - d) * 10) / 10; }
+    if (e.hist) e.hist.undone = true;
     this._log(`되돌림: ${e.label}`); return true;
   }
   pauseTimer(on) { this.timerPaused = !!on; this._log(on ? '타이머 일시정지' : '타이머 재개'); return true; }
@@ -242,13 +246,13 @@ export class Game {
   realReveal() {
     if (this.phase !== PHASE.REAL || !this.realConfirmed) return false;
     const results = [...this.realPending].map(([id, gain]) => { const p = this.players.get(id), g = gain * this.multiplier; p.score = Math.round((p.score + g) * 10) / 10; return { id, name: p.name, team: p.team || 0, gain: g, correct: g > 0 }; }).sort((a, b) => b.gain - a.gain);
-    this._pushUndo('현실 퀴즈 점수', results.map((r) => [r.id, r.gain]));
+    this._pushUndo('현실 퀴즈 점수', results.map((r) => [r.id, r.gain]), this._hist('real', `Q${this.question?.id ?? ''} ${this.question?.text ?? '현실 퀴즈'}`, results.map((r) => ({ id: r.id, name: r.name, team: r.team, gain: r.gain }))));
     this._log(`현실 퀴즈 공개 (${results.length}명)`);
     this.reveal = { answer: null, real: true, results }; this.phase = PHASE.REVEAL; return true;
   }
 
   resetScores() {
-    for (const p of this.players.values()) { p.score = 0; p.coins = 0; }
+    this._hist('reset', '점수 초기화'); for (const p of this.players.values()) { p.score = 0; p.coins = 0; }
     this.coins.clear(); this.minions.clear();
     this.items.clear();
     this.coinsSpawned = 0;
@@ -331,7 +335,7 @@ export class Game {
       if (p.isBot && p.botMode !== 'idle' && !p.home && p.connected && zoneAt(q.type, p.x, p.y) !== q.answer) this._dropCoins(p);
     }
     this.reveal = { answer: q.answer, results, dist };
-    this.locked = null; this._pushUndo(`문제 ${q.id} 점수`, undo);
+    this.locked = null; this._pushUndo(`문제 ${q.id} 점수`, undo, this._hist('q', `Q${q.id} ${q.text}`, results.map((r) => ({ id: r.id, name: r.name, team: r.team, gain: r.gain, correct: r.correct }))));
     this._log(`문제 ${q.id} 정답 공개`);
     this.phase = PHASE.REVEAL;
   }
@@ -1087,7 +1091,7 @@ export class Game {
   hostInfo() {
     return {
       questions: this.questions.map((q) => ({ id: q.id, type: q.type, text: q.text, options: q.options, answer: q.answer, time: q.time, mode: q.mode || '개인', image: q.image })),
-      teamCount: this.teamCount, log: this.log,
+      teamCount: this.teamCount, log: this.log, history: this.history.slice(-100),
       zones: ZONES,
       botsCanAttack: this.botsCanAttack,
     };

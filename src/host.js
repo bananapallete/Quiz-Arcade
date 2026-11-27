@@ -23,7 +23,7 @@ socket.on('connect', () => auth(getKey()));
 $('#login').addEventListener('click', () => auth($('#key').value.trim()));
 socket.on('host:info', setInfo);
 
-function setInfo(i) { info = i; renderQuestions(); $('#t-n').value = i.teamCount || $('#t-n').value; $('#log').innerHTML = (i.log || []).slice(0, 6).map((l) => `<span>${new Date(l.t).toTimeString().slice(0, 8)} ${esc(l.text)}</span>`).join('') || '<span style="opacity:.6">기록 없음</span>'; }
+function setInfo(i) { info = i; renderQuestions(); renderHistory(); $('#t-n').value = i.teamCount || $('#t-n').value; $('#log').innerHTML = (i.log || []).slice(0, 6).map((l) => `<span>${new Date(l.t).toTimeString().slice(0, 8)} ${esc(l.text)}</span>`).join('') || '<span style="opacity:.6">기록 없음</span>'; }
 
 // ---------- 문제 큐 ----------
 function renderQuestions() {
@@ -69,6 +69,30 @@ $('#aw-go').addEventListener('click', () => {
   const who = $('#aw-who').value, n = Number($('#aw-n').value); if (!who || !n) return;
   if (who.startsWith('t:')) { for (const p of humans) if (String(p.tm) === who.slice(2)) emit('host:adjust', { id: p.id, delta: n }); } else emit('host:adjust', { id: who, delta: n });
 });
+
+// 점수 그리드 ±단계
+$('#sgrid').addEventListener('click', (e) => { const b = e.target.closest('[data-sg]'); if (b) emit('host:adjust', { id: b.dataset.id, delta: Number(b.dataset.sg) * (Number($('#adj-step').value) || 1) }); });
+// 팀 끌어놓기
+let extraTeams = 0, dragging = false, dirtyBoard = false;
+$('#t-add').addEventListener('click', () => { extraTeams++; renderBoard(); });
+$('#tboard').addEventListener('dragstart', (e) => { const c = e.target.closest('[data-drag]'); if (!c) return; dragging = true; e.dataTransfer.setData('text/plain', c.dataset.drag); });
+$('#tboard').addEventListener('dragend', () => { dragging = false; if (dirtyBoard) renderBoard(); });
+$('#tboard').addEventListener('dragover', (e) => { const z = e.target.closest('[data-drop]'); if (z) { e.preventDefault(); z.classList.add('over'); } });
+$('#tboard').addEventListener('dragleave', (e) => { e.target.closest('[data-drop]')?.classList.remove('over'); });
+$('#tboard').addEventListener('drop', (e) => { const z = e.target.closest('[data-drop]'); if (!z) return; e.preventDefault(); z.classList.remove('over'); dragging = false; emit('host:setTeam', { id: e.dataTransfer.getData('text/plain'), team: Number(z.dataset.drop) }); });
+function renderBoard() {
+  if (dragging) { dirtyBoard = true; return; } dirtyBoard = false;
+  const n = Math.min(8, Math.max(st?.teams?.length || 0, 2) + extraTeams), cols = Array.from({ length: n + 1 }, (_, t) => t);
+  $('#tboard').innerHTML = cols.map((t) => `<div class="tc" data-drop="${t}" style="${t ? `border-color:${TEAMC[t]}` : ''}"><h4>${t ? `${t}팀` : '미배정'}</h4>${humans.filter((p) => (p.tm || 0) === t).map((p) => `<span class="chip" draggable="true" data-drag="${p.id}">${esc(p.n)}</span>`).join('')}</div>`).join('');
+}
+// 기록
+function renderHistory() {
+  const hs = [...(info.history || [])].reverse(); $('#hist-n').textContent = hs.length ? `${hs.length}건` : '';
+  $('#hist').innerHTML = hs.map((h) => {
+    const rows = [...h.rows].sort((a, b) => b.gain - a.gain), got = rows.filter((r) => r.gain), miss = rows.length - got.length;
+    return `<details class="${h.undone ? 'un' : ''}"><summary>#${h.n} ${esc(h.title)} <small>${new Date(h.t).toTimeString().slice(0, 8)}${h.undone ? ' · 취소' : ''}</small></summary><div class="rw">${got.map((r) => `<span>${r.team ? `<i class="tm" style="background:${TEAMC[r.team]}"></i>` : ''}${esc(r.name)} <b>${r.gain > 0 ? '+' : ''}${fmtScore(r.gain)}</b></span>`).join('') || '<span style="opacity:.6">득점 없음</span>'}${miss > 0 && h.kind !== 'adj' ? `<span style="opacity:.6">0점 ${miss}명</span>` : ''}</div></details>`;
+  }).join('') || '<div style="opacity:.6">기록 없음</div>';
+}
 
 // ---------- 현실 퀴즈 ----------
 $('#realok').addEventListener('click', () => emit('host:realConfirm'));
@@ -134,6 +158,8 @@ socket.on('state', (s) => {
   if (key !== lastKey) {
     lastKey = key; const tc = s.teams?.length || 0;
     $('#plist').innerHTML = lb.map((p, i) => `<div class="pl"><span>${i + 1}</span><span data-name="${p.id}" data-nm="${esc(p.n)}" style="cursor:pointer">${esc(p.n)} <small style="opacity:.6">🪙${p.cn}</small></span><select data-team="${p.id}">${['—', ...Array.from({ length: Math.max(tc, 3) }, (_, k) => `${k + 1}`)].map((t, k) => `<option value="${k}" ${p.tm === k ? 'selected' : ''}>${t}</option>`).join('')}</select><span>${fmtScore(p.sc)}</span><div class="stp"><b class="m" data-id="${p.id}" data-adj="-1">−</b><b class="p" data-id="${p.id}" data-adj="1">＋</b><b data-kick="${p.id}" data-nm="${esc(p.n)}" title="퇴장">✕</b></div></div>`).join('') || '<div style="opacity:.6">접속한 참가자가 없어요</div>';
+    $('#sgrid').innerHTML = lb.map((p, i) => `<div class="sc" style="border-color:${p.tm ? TEAMC[p.tm] : 'var(--navy)'}"><span class="nm">${i + 1}. ${esc(p.n)}</span><b class="m" data-id="${p.id}" data-sg="-1">−</b><span class="pt">${fmtScore(p.sc)}</span><b class="p" data-id="${p.id}" data-sg="1">＋</b></div>`).join('') || '<div style="opacity:.6">접속한 참가자가 없어요</div>';
+    renderBoard();
     $('#tt').innerHTML = (s.teams || []).map((t) => `<span class="pill" style="background:${TEAMC[t.t]}99">${t.t}팀 ${fmtScore(t.score)}</span>`).join('');
     $('#p-teams').textContent = tc ? `${tc}팀` : '팀 없음';
     $('#aw-who').innerHTML = `${(s.teams || []).map((t) => `<option value="t:${t.t}">${t.t}팀 전원</option>`).join('')}${lb.map((p) => `<option value="${p.id}">${esc(p.n)}</option>`).join('')}`;
