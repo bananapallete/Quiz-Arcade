@@ -1118,7 +1118,7 @@
       "hatch": 1,
       "sec": 10,
       "speed": 5.5,
-      "leash": 4.5,
+      "leash": 8,
       "sense": 3.2,
       "dmg": 1,
       "gap": 0.5,

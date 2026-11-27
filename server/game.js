@@ -3,7 +3,7 @@
 
 import { blockWalls, buffOf, charge, CHARGE_TAKEN, hit as ultHit, ultReady, minionsSnapshot, updateUlts, useUlt, wallsSnapshot, zonesSnapshot } from './ult.js';
 import { dpsOf } from './balance.js';
-import { BRAWL_LOCK_SEC, BRAWL_MAP, BRAWL_REVIVE_SEC, brawlSpawn, inObstacle, pushOut } from '../shared/brawlMap.js';
+import { BRAWL_LOCK_SEC, BRAWL_MAP, BRAWL_REVIVE_SEC, brawlSpawn, inBush, inObstacle, pushOut } from '../shared/brawlMap.js';
 import { calCell, calCenter, calLayout, fmtScore, REGEN, ULT_CHARGE, RUN_DRAIN, CHAR_CD_SEC, COIN, COMBO_RESET_SEC, CRIT, ITEM, MAP, PHASE, READ_SEC, SPRITE, zoneAt, ZONES } from '../shared/constants.js';
 
 const KNOCK_DECAY = 12; // 밀림 속도 감쇠(1/s). 총 밀림 거리 = 처음 속도 / 감쇠
@@ -466,7 +466,16 @@ export class Game {
     if (p) this._tryAttack(p, aim);
   }
 
-  _stealthed(o) { return !!(o.buff && this.t < o.buff.until && o.buff.stealth); }
+  _stealthed(o) { return !!(o.bushHide || (o.buff && this.t < o.buff.until && o.buff.stealth)); }
+
+  /** 대난투 부쉬: 안에 있으면 적 팀에게 숨겨짐. 공격하거나 맞은 뒤 1.5초, 적이 2.5칸 안에 있으면 드러남 */
+  _updateBush() {
+    for (const p of this.players.values()) {
+      let hide = false;
+      if (this.brawl && this.phase === PHASE.MOVING && !p.ghost && inBush(p.x, p.y) && this.t - Math.max(p.revealAt || 0, p.hurtAt || 0) > 1.5) hide = !this._enemies(p).some((o) => Math.hypot(o.x - p.x, o.y - p.y) < 2.5);
+      p.bushHide = hide;
+    }
+  }
 
   _enemies(p) {
     return [...this.players.values()].filter((o) => o !== p && o.connected && !o.out && !o.ghost && !this._sameSide(p, o)); // 같은 팀·아군 봇은 적이 아님
@@ -868,7 +877,7 @@ export class Game {
       const tt = emp ? attacker.cfg?.attack?.tether : null; // 강화된 다음 공격(개구리): 적중하면 혀로 묶음
       if (tt) { target.tether = { by: attacker.id, until: this.t + tt.sec, len: tt.len, resist: tt.resist, pull: tt.pull }; this.events.push({ e: 'tetherStart', id: attacker.id, x: r2(target.x), y: r2(target.y), r: 1 }); }
       if (cm) { target.charmUntil = this.t + cm.sec; target.charmBy = attacker.id; this.events.push({ e: 'charm', id: attacker.id, x: r2(target.x), y: r2(target.y), r: 0.9 }); }
-      target.hurtAt = this.t; target.regenT = 0; // 맞으면 자동 회복 대기 시간이 처음부터
+      target.hurtAt = this.t; target.regenT = 0; attacker.revealAt = this.t; // 맞으면 자동 회복 대기 시간이 처음부터
       target.hp = Math.max(0, target.hp - dmg);
       if (target.hp === 0) this._ko(target);
     }
@@ -929,6 +938,7 @@ export class Game {
     updateUlts(this);
     blockWalls(this, active);
 
+    this._updateBush();
     if (this.brawl && this.phase === PHASE.MOVING) this._brawlRevive(dt);
     if (this.brawl && this.phase === PHASE.MOVING && this.brawl.groups0 >= 2 && new Set(this._brawlAlive().map((p) => this._bKey(p))).size <= 1) this._finishBrawl();
     if (this.phase === PHASE.MOVING && this.question && !this.brawl && !this.cal) {

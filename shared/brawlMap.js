@@ -10,15 +10,16 @@ export const riverCenter = (y) => 40 + 2.4 * Math.sin(y * 0.27);
 export const riverHalf = (y) => (y <= 12 ? 3 : y < 16 ? 3 * (1 - sstep((y - 12) / 4)) : y < 28 ? 0 : y < 32 ? 3 * sstep((y - 28) / 4) : 3);
 export const inWater = (x, y) => Math.abs(x - riverCenter(y)) < riverHalf(y);
 
-// 장애물: k 종류, (x,y) 바닥 중심, hw·hh 반폭·반높이(충돌 상자). 왼쪽 절반을 규칙적으로 깔고 오른쪽은 좌우 대칭
+// 장애물: k 종류, (x,y) 중심, hw·hh 반폭·반높이(충돌 상자). 왼쪽 절반만 적고 오른쪽은 180도 점대칭 (80-x, 44-y)
 const SIZE = { boulder: [1, 1], wall: [1.5, 0.5], pillar: [0.5, 0.5] };
-const half = [];
-const KINDS = ['boulder', 'wall', 'pillar'];
-[15, 25, 33].forEach((x, c) => [6, 14, 22, 30, 38].forEach((y, r) => { const k = KINDS[(r + c) % 3]; half.push({ k, x, y, hw: SIZE[k][0], hh: SIZE[k][1] }); }));
-export const OBSTACLES = [
-  ...half, ...half.map((o) => ({ ...o, x: BRAWL_MAP.w - o.x })),
-  { k: 'pillar', x: 40, y: 19, hw: 0.5, hh: 0.5 }, { k: 'pillar', x: 40, y: 25, hw: 0.5, hh: 0.5 }, // 가운데 땅(건널목)에도 기둥 두 개
-];
+const LEFT = [{ type: 'wall', x: 15, y: 9 }, { type: 'pillar', x: 13, y: 10 }, { type: 'boulder', x: 21, y: 6 }, { type: 'boulder', x: 14, y: 34 }, { type: 'boulder', x: 16, y: 35 }, { type: 'pillar', x: 13, y: 40 }, { type: 'boulder', x: 21, y: 20 }, { type: 'wall', x: 26, y: 23 }, { type: 'pillar', x: 21, y: 26 }, { type: 'wall', x: 30, y: 8 }, { type: 'pillar', x: 32, y: 9 }, { type: 'boulder', x: 25, y: 36 }, { type: 'wall', x: 30, y: 39 }, { type: 'boulder', x: 32, y: 21 }, { type: 'wall', x: 32, y: 31 }, { type: 'pillar', x: 38, y: 21 }];
+const mk = (t, x, y) => ({ k: t, x, y, hw: SIZE[t][0], hh: SIZE[t][1] });
+export const OBSTACLES = [...LEFT.map((o) => mk(o.type, o.x, o.y)), ...LEFT.map((o) => mk(o.type, BRAWL_MAP.w - o.x, BRAWL_MAP.h - o.y))];
+
+/** 은신 부쉬: 가로 구간 { y, x0, x1 } (타일 좌표, x0 <= tx <= x1). 이동·투사체는 통과, 안에 있으면 적 팀에게 숨겨짐 */
+export const BUSH_SPANS = [{y: 8, x0: 26, x1: 27}, {y: 9, x0: 26, x1: 28}, {y: 10, x0: 27, x1: 28}, {y: 11, x0: 27, x1: 28}, {y: 12, x0: 20, x1: 21}, {y: 12, x0: 26, x1: 28}, {y: 13, x0: 13, x1: 22}, {y: 13, x0: 26, x1: 30}, {y: 13, x0: 55, x1: 65}, {y: 14, x0: 12, x1: 21}, {y: 14, x0: 27, x1: 32}, {y: 14, x0: 55, x1: 65}, {y: 15, x0: 13, x1: 17}, {y: 15, x0: 30, x1: 34}, {y: 15, x0: 42, x1: 50}, {y: 15, x0: 62, x1: 65}, {y: 16, x0: 32, x1: 35}, {y: 16, x0: 39, x1: 51}, {y: 17, x0: 34, x1: 34}, {y: 17, x0: 39, x1: 48}, {y: 26, x0: 31, x1: 40}, {y: 26, x0: 45, x1: 45}, {y: 27, x0: 28, x1: 40}, {y: 27, x0: 44, x1: 47}, {y: 28, x0: 14, x1: 17}, {y: 28, x0: 29, x1: 37}, {y: 28, x0: 45, x1: 49}, {y: 28, x0: 62, x1: 66}, {y: 29, x0: 14, x1: 24}, {y: 29, x0: 47, x1: 52}, {y: 29, x0: 58, x1: 67}, {y: 30, x0: 14, x1: 24}, {y: 30, x0: 49, x1: 53}, {y: 30, x0: 57, x1: 66}, {y: 31, x0: 51, x1: 53}, {y: 31, x0: 58, x1: 59}, {y: 32, x0: 51, x1: 52}, {y: 33, x0: 51, x1: 52}, {y: 34, x0: 51, x1: 53}, {y: 35, x0: 52, x1: 53}];
+export const isBushTile = (tx, ty) => BUSH_SPANS.some((s) => s.y === ty && tx >= s.x0 && tx <= s.x1);
+export const inBush = (x, y) => isBushTile(Math.floor(x), Math.floor(y));
 
 /** 왼쪽 팀(1)·오른쪽 팀(2) 시작 위치 (맵 끝쪽, 세로로 펼침) */
 export function brawlSpawn(side, i, n) {

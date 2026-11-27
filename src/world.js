@@ -35,6 +35,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   preload() {
+    this.load.image('brawl-bush', hooks.fxUrl('brawl_bush')); // 대난투 은신 부쉬 (1920×1056 투명 레이어)
     this.load.image('diva-stage', hooks.fxUrl('diva_stage')); // 크림슨 디바 무대 장비
     this.load.spritesheet('diva-intro', hooks.fxUrl('diva_intro'), { frameWidth: 96, frameHeight: 131 });
     this.load.spritesheet('diva-spot', hooks.fxUrl('diva_spot'), { frameWidth: 48, frameHeight: 43 });
@@ -418,7 +419,8 @@ export class WorldScene extends Phaser.Scene {
       buildBrawlFloor(this); buildObstacleTextures(this);
       const floor = this.add.image(0, 0, 'floor-brawl').setOrigin(0).setScale(BU / TILE).setDepth(-98);
       const obs = OBSTACLES.map((o) => { const k = 'ob-' + o.k, img = this.add.image(o.x * BU, (o.y + o.hh) * BU - 2, k).setOrigin(0.5, k === 'ob-pillar' ? 0.9 : k === 'ob-wall' ? 0.82 : 0.9).setScale(BU / TILE).setDepth((o.y + o.hh) * BU); return img; });
-      this.brawlObjs = [floor, ...obs];
+      const bush = this.add.image(0, 0, 'brawl-bush').setOrigin(0).setScale(BU / TILE).setDepth(900000).setAlpha(0.55); // 캐릭터 위에 덮어 숨김
+      this.brawlObjs = [floor, ...obs, bush];
     }
     if (!this.brawlObjs || this._brawlOn === on) return;
     this._brawlOn = on; this.brawlObjs.forEach((o) => o.setVisible(on));
@@ -496,7 +498,7 @@ export class WorldScene extends Phaser.Scene {
 
       // 기절: 쓰러진 모습 / 무적: 깜빡임
       v.sprite.setAngle(p.st && !dies ? 80 * p.f : 0);
-      v.sprite.setAlpha(gh ? 0.3 : v.blinkUntil > now ? (Math.floor(now / 50) % 2 ? 0.2 : 1) : p.sl ? (p.id === this.focusId ? 0.35 : 0.12) : p.inv ? 0.45 + 0.35 * Math.sin(now / 70) : 1); // 은신 / 무적 깜빡임
+      v.sprite.setAlpha(gh ? 0.3 : v.blinkUntil > now ? (Math.floor(now / 50) % 2 ? 0.2 : 1) : p.sl ? (p.id === this.focusId || (p.tm && p.tm === this.views.get(this.focusId)?.p?.tm) ? 0.6 : this.focusId ? 0.04 : 0.5) : p.inv ? 0.45 + 0.35 * Math.sin(now / 70) : 1); // 은신 / 무적 깜빡임
 
       // 체력바 + 이름: 하트 + 칸 나뉜 바 (내 것은 크게, 남의 것은 작게)
       phoenixTick(this, v, p, BU, pixText);

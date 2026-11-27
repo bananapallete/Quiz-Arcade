@@ -1623,3 +1623,12 @@ test('주먹 평타는 부채꼴이 아니라 직선: 정면 1.7칸은 맞고, �
   assert.equal(c.hp, c.cfg.hp, '옆은 안 맞음');
   assert.ok(g.events.some((e) => e.e === 'atk' && e.lineW === 0.9), '이벤트에 직선 폭');
 });
+
+test('대난투 부쉬: 안에서는 적에게 숨고, 맞거나 공격하면 드러남', async () => {
+  const { BUSH_SPANS } = await import('../shared/brawlMap.js');
+  const { g, A, B } = duo('blue', 'blue'); g.brawl = { ids: new Set(['a', 'b']), lockUntil: 0 }; g.phase = 'moving'; g.t = 10;
+  A.team = 1; B.team = 2; const s = BUSH_SPANS[0]; A.x = s.x0 + 0.5; A.y = s.y + 0.5; B.x = 60; B.y = 5;
+  g._updateBush(); assert.equal(A.bushHide, true); assert.equal(g._stealthed(A), true);
+  B.x = A.x + 2; B.y = A.y; g._updateBush(); assert.equal(A.bushHide, false, '적이 가까우면 드러남');
+  B.x = 60; A.hurtAt = g.t; g._updateBush(); assert.equal(A.bushHide, false, '맞은 직후 드러남');
+});
