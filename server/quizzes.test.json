@@ -39,5 +39,13 @@
     "mode": "달력",
     "answer": null,
     "month": 11
+  },
+  {
+    "type": "brawl",
+    "text": "팀 대난투! 상대 팀을 전부 유령으로",
+    "time": 240,
+    "mode": "대난투",
+    "answer": null,
+    "pts": 5
   }
 ]
