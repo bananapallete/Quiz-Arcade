@@ -68,6 +68,7 @@ export class Game {
     this.walls = new Map(); // 기사 방패 성벽 {id,owner,x,y,hx,hy,until}
     this.wallSeq = 0;
     this.map = MAP;
+    this.cast = { m: 'auto', id: null }; // 빔프로젝터 중계: auto = 전투 모드에서 유령 아닌 1등을 따라감 · off = 전체 맵 · id = 진행자가 고른 참가자
     this.botsCanAttack = false; // 더미 봇은 기본적으로 공격하지 않음 (호스트 패널에서 켤 수 있음)
   }
 
@@ -244,6 +245,7 @@ export class Game {
   }
   pauseTimer(on) { this.timerPaused = !!on; this._log(on ? '타이머 일시정지' : '타이머 재개'); return true; }
   addTime(sec) { if (this.phase !== PHASE.READING && this.phase !== PHASE.MOVING) return false; this.phaseEnd = Math.max(this.t + 1, this.phaseEnd + (Number(sec) || 0)); return true; }
+  setCast(m, id) { const p = id && this.players.get(String(id)); this.cast = p ? { m: 'id', id: p.id } : { m: m === 'off' ? 'off' : 'auto', id: null }; this._log(p ? `중계: ${p.name}` : m === 'off' ? '중계 끔 (전체 맵)' : '중계: 자동 (1등)'); return true; }
   setQr(on) { this.showQr = !!on; return true; }
   setNoAtk(on) { this.noAtk = !!on; this._log(on ? '공격 금지' : '공격 허용'); return true; }
   setNoUlt(on) { this.noUlt = !!on; this._log(on ? '궁극기 금지' : '궁극기 허용'); return true; }
@@ -1449,6 +1451,7 @@ export class Game {
       reveal: this.reveal,
       mp: this.map === MAP ? null : [this.map.w, this.map.h],
       pv: this.preview && this.phase === PHASE.LOBBY ? { type: this.preview.type, l: this.preview.type === 'calendar' ? calLayout(this.preview) : undefined } : null, // 맵 미리 보기
+      cs: this.cast,
       pl: r2(this._prep()), pc: isCombat(this.question) ? 1 : 0, // 준비 시간 남은 초 · 전투 모드인가
       tr: this.tour ? { r: this.tour.round, m: this.tour.cur, n: this.tour.alive.length, log: this.tour.log } : null,
       cr: this.coinRun && (this.phase === PHASE.READING || this.phase === PHASE.MOVING) ? Object.keys(this.coinRun.start).map((id) => this.players.get(id)).filter((p) => p && this._present(p)).map((p) => [p.id, p.name, this._coinGot(p)]).sort((a, b) => b[2] - a[2]) : null,

@@ -77,7 +77,8 @@ $('#aw-go').addEventListener('click', () => {
 });
 
 // 점수 그리드 ±단계
-$('#sgrid').addEventListener('click', (e) => { const b = e.target.closest('[data-sg]'); if (b) emit('host:adjust', { id: b.dataset.id, delta: Number(b.dataset.sg) * (Number($('#adj-step').value) || 1) }); });
+document.querySelectorAll('[data-cast]').forEach((b) => b.addEventListener('click', () => emit('host:cast', { m: b.dataset.cast })));
+$('#sgrid').addEventListener('click', (e) => { const c = e.target.closest('[data-castid]'); if (c) { emit('host:cast', st?.cs?.id === c.dataset.castid ? { m: 'auto' } : { id: c.dataset.castid }); return; } const b = e.target.closest('[data-sg]'); if (b) emit('host:adjust', { id: b.dataset.id, delta: Number(b.dataset.sg) * (Number($('#adj-step').value) || 1) }); });
 // 팀 끌어놓기
 let extraTeams = 0, dragging = false, dirtyBoard = false;
 $('#t-add').addEventListener('click', () => { extraTeams++; renderBoard(); });
@@ -144,6 +145,8 @@ socket.on('state', (s) => {
   for (const [id, on] of [['hideans', s.ha], ['t-pause', s.tp], ['t-qr', s.qr], ['t-x2', s.x2 === 2], ['t-freeze', s.fz], ['t-god', s.gd], ['t-noatk', s.ca], ['t-noult', s.cu]]) $('#' + id).classList.toggle('on', !!on); // 스위치
   $('#t-undo').disabled = !s.ud;
   document.querySelectorAll('[data-screen]').forEach((b) => b.classList.toggle('on', b.dataset.screen === s.sm));
+  document.querySelectorAll('[data-cast]').forEach((b) => b.classList.toggle('on', b.dataset.cast === s.cs?.m));
+  $('#cast-now').textContent = s.cs?.m === 'id' ? `📺 ${humans.find((p) => p.id === s.cs.id)?.n ?? '-'}` : '';
   $('#tools-state').textContent = [s.tp ? '타이머 정지됨' : '', s.x2 === 2 ? '점수 ×2' : '', s.gd ? '전원 무적' : '', s.ca ? '공격 금지' : '', s.cu ? '궁극기 금지' : '', s.fz ? '비상 정지 중' : ''].filter(Boolean).join(' · ');
   const prevCur = curId, prevDone = doneIds.size;
   if (s.q && s.phase !== PHASE.LOBBY) curId = s.q.id; else if (s.phase === PHASE.LOBBY) curId = null;
@@ -168,11 +171,11 @@ socket.on('state', (s) => {
     $('#realok').disabled = false; $('#realrev').disabled = !s.real?.confirmed; $('#realok').textContent = s.real?.confirmed ? '확인됨 ✓' : '확인';
   }
   // 참가자 표
-  const lb = [...humans].sort((a, b) => b.sc - a.sc), key = JSON.stringify([lb.map((p) => [p.id, p.n, p.tm, p.sc, p.cn]), s.teams]);
+  const lb = [...humans].sort((a, b) => b.sc - a.sc), key = JSON.stringify([lb.map((p) => [p.id, p.n, p.tm, p.sc, p.cn]), s.teams, s.cs]);
   if (key !== lastKey) {
     lastKey = key; const tc = s.teams?.length || 0;
     $('#plist').innerHTML = lb.map((p, i) => `<div class="pl"><span>${i + 1}</span><span data-name="${p.id}" data-nm="${esc(p.n)}" style="cursor:pointer">${esc(p.n)} <small style="opacity:.6">🪙${p.cn}</small></span><span>${fmtScore(p.sc)}</span><div class="stp"><b data-kick="${p.id}" data-nm="${esc(p.n)}" title="퇴장">✕</b></div></div>`).join('') || '<div style="opacity:.6">접속한 참가자가 없어요</div>';
-    $('#sgrid').innerHTML = lb.map((p, i) => `<div class="sc" style="border-color:${p.tm ? TEAMC[p.tm] : 'var(--navy)'}"><span class="nm">${i + 1}. ${esc(p.n)}</span><b class="m" data-id="${p.id}" data-sg="-1">−</b><span class="pt">${fmtScore(p.sc)}</span><b class="p" data-id="${p.id}" data-sg="1">＋</b></div>`).join('') || '<div style="opacity:.6">접속한 참가자가 없어요</div>';
+    $('#sgrid').innerHTML = lb.map((p, i) => `<div class="sc" style="border-color:${p.tm ? TEAMC[p.tm] : 'var(--navy)'}"><span class="nm"><i data-castid="${p.id}" class="${s.cs?.id === p.id ? 'on' : ''}" title="빔프로젝터로 중계">📺</i><span>${i + 1}. ${esc(p.n)}</span></span><b class="m" data-id="${p.id}" data-sg="-1">−</b><span class="pt">${fmtScore(p.sc)}</span><b class="p" data-id="${p.id}" data-sg="1">＋</b></div>`).join('') || '<div style="opacity:.6">접속한 참가자가 없어요</div>';
     renderBoard();
     $('#tt').innerHTML = (s.teams || []).map((t) => `<span class="pill" style="background:${TEAMC[t.t]}99">${t.t}팀 ${fmtScore(t.score)}</span>`).join('');
     $('#p-teams').textContent = tc ? `${tc}팀` : '팀 없음';

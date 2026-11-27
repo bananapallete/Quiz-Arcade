@@ -1766,3 +1766,12 @@ test('아이템·평소 동전은 참가자가 몰린 곳 위주로 생긴다 (�
   assert.ok(near / N > 0.6, `몰린 곳 근처 비율 ${near / N}`); // 고르게 뿌리면 약 0.2
   const g2 = new Game(chars, quizzes); const s2 = g2._crowdSpot(); assert.ok(Number.isFinite(s2.x), '사람이 없어도 동작');
 });
+
+test('빔프로젝터 중계: 기본은 자동(1등), 진행자가 참가자를 고르거나 끌 수 있다', () => {
+  const g = new Game(chars, quizzes);
+  const a = g.join({ token: 'a', name: 'A', charId: 'blue' });
+  assert.deepEqual(g.snapshot().cs, { m: 'auto', id: null });
+  g.setCast(null, 'a'); assert.deepEqual(g.snapshot().cs, { m: 'id', id: 'a' });
+  g.setCast('off'); assert.deepEqual(g.snapshot().cs, { m: 'off', id: null });
+  g.setCast(null, 'nobody'); assert.equal(g.snapshot().cs.m, 'auto', '없는 사람이면 자동');
+});

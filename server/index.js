@@ -114,6 +114,7 @@ io.on('connection', (socket) => {
   host('host:god', (d) => ({ ok: game.setGod(d?.on) }));
   host('host:hideAns', (d) => ({ ok: game.setHideAns(d?.on) }));
   host('host:qr', (d) => ({ ok: game.setQr(d?.on) }));
+  host('host:cast', (d) => ({ ok: game.setCast(d?.m, d?.id) }));
   host('host:freeze', (d) => ({ ok: game.setFrozen(d?.on) }));
   host('host:x2', (d) => ({ ok: game.setMultiplier(d?.on ? 2 : 1) }));
   host('host:announce', (d) => ({ ok: game.announce(d?.text, d?.sec) }));

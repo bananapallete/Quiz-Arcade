@@ -1,7 +1,7 @@
 import { io } from 'socket.io-client';
 import QRCode from 'qrcode';
-import { fmtScore, PHASE } from '../shared/constants.js';
-import { startWorld } from './world.js';
+import { fmtScore, isCombat, MAP, PHASE } from '../shared/constants.js';
+import { BU, startWorld } from './world.js';
 import { mountScreenUi, renderScreenUi } from './screenUi.js';
 
 const $ = (s) => document.querySelector(s);
@@ -22,7 +22,30 @@ fetch('/api/info').then((r) => r.json()).then(async (info) => {
   $('#qr').src = await QRCode.toDataURL(url, { margin: 1, width: 400 });
 });
 
+// ---------- 중계 카메라: 전투 모드에선 유령이 아닌 1등을 따라가고, 진행자가 고른 참가자가 있으면 그 사람을 ----------
+let last = null, castId = null;
+const castTag = document.createElement('div'); castTag.id = 'castTag'; castTag.hidden = true;
+castTag.style.cssText = 'position:fixed;left:2vw;bottom:13vh;z-index:14;pointer-events:none;background:#14122bd0;color:#fff;border:.4vh solid #ffd54a;border-radius:99px;padding:.6vh 1.6vw;font:900 2.6vh system-ui,"Noto Sans KR",sans-serif';
+document.body.append(castTag);
+function castTarget(s) {
+  if (!s || s.rank || s.sm === 'map') return null;
+  const ps = s.players.filter((p) => p.ct), c = s.cs || {};
+  if (c.m === 'id') { const p = ps.find((x) => x.id === c.id); if (p) return p; } // 진행자가 고른 사람 (관전 중이면 자동으로)
+  if (c.m === 'off' || !isCombat(s.q) || !(s.phase === PHASE.READING || s.phase === PHASE.MOVING)) return null;
+  const alive = ps.filter((p) => !p.gh); if (!alive.length) return null;
+  const top = Math.max(...alive.map((p) => p.sc)), cur = alive.find((p) => p.id === castId);
+  return cur && cur.sc === top ? cur : alive.find((p) => p.sc === top); // 공동 1등이면 지금 보던 사람 유지 (카메라가 왔다 갔다 하지 않게)
+}
+scene.onFrame = (sc, dt) => {
+  const cam = sc.cameras.main, t = castTarget(last), v = t && sc.views.get(t.id), big = !!last?.mp;
+  castId = v ? t.id : null; castTag.hidden = !v; if (v) castTag.textContent = `📺 ${t.n}`;
+  const tz = v ? 1.3 : big ? 0.5 : 1, tx = v ? v.x : (big ? last.mp[0] : MAP.w) * BU / 2, ty = v ? v.y - 0.5 * BU : (big ? last.mp[1] : MAP.h) * BU / 2;
+  const k = 1 - Math.exp(-(dt / 1000) * 5), m = cam.midPoint; // 부드럽게 따라감
+  cam.setZoom(cam.zoom + (tz - cam.zoom) * k); cam.centerOn(m.x + (tx - m.x) * k, m.y + (ty - m.y) * k);
+};
+
 socket.on('state', (s) => {
+  last = s;
   scene.applyState(s);
   hud(s);
   renderScreenUi(sq, s);
