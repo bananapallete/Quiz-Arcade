@@ -8,18 +8,46 @@ const lastAt = {};
 // ---------- 실제 동물 울음소리 (public/sfx/animal/*.mp3|ogg|wav) ----------
 // 파일이 없으면 null로 두고 합성음을 그대로 씀. 캐릭터 → [파일 이름, 음높이]
 const ANIMAL = { puppy: ['dog', 1.3], labrador: ['dog', 0.9], shiba: ['dog', 1.05], cat: ['cat', 1], frog: ['frog', 1], pig: ['pig', 1], hippo: ['hippo', 1], chicken: ['chicken', 1], chick: ['chick', 1] };
-const cries = {}; // 이름 → AudioBuffer | null(없음) | 'loading'
-async function loadCry(name) {
-  if (cries[name] !== undefined) return; cries[name] = 'loading';
+const cries = {}; // 경로 → AudioBuffer | null(없음) | 'loading'
+const CLIPS = { animal: ['dog', 'cat', 'frog', 'pig', 'hippo', 'chicken', 'chick'], ult: [] }; // 불러올 파일 (public/sfx/<폴더>/<이름>.mp3|ogg|wav)
+const DIVA_ULT = ['diva1', 'diva2', 'diva3']; // 크림슨 디바 궁극기: 셋 중 하나를 무작위로
+async function loadClip(path) { // 예: 'animal/dog', 'ult/diva1'
+  if (cries[path] !== undefined) return; cries[path] = 'loading';
   for (const ext of ['mp3', 'ogg', 'wav']) {
-    try { const r = await fetch(`/sfx/animal/${name}.${ext}`); if (!r.ok || !/audio|ogg|mpeg|wav|octet/.test(r.headers.get('content-type') || '')) continue; cries[name] = await ctx.decodeAudioData(await r.arrayBuffer()); return; } catch { /* 다음 확장자 */ }
+    try { const r = await fetch(`/sfx/${path}.${ext}`); if (!r.ok || !/audio|ogg|mpeg|wav|octet/.test(r.headers.get('content-type') || '')) continue; cries[path] = await ctx.decodeAudioData(await r.arrayBuffer()); return; } catch { /* 다음 확장자 */ }
   }
-  cries[name] = null;
+  cries[path] = null;
 }
-function cry(name, vol, rate) {
-  const b = cries[name]; if (!b || b === 'loading') return false;
+const clip = (path) => { const b = cries[path]; return b && b !== 'loading' ? b : null; };
+function cry(name, vol, rate) { // 동물 울음소리(평타용 짧은 소리)
+  const b = clip('animal/' + name); if (!b) return false;
   const s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = b; s.playbackRate.value = rate * (0.95 + Math.random() * 0.1); g.gain.value = vol;
   s.connect(g); g.connect(master); s.start(); done(b.duration / s.playbackRate.value); return true;
+}
+
+// ---------- 궁극기 소리 관리: 동시에 최대 2개, 넘치면 가장 먼저 시작한 것부터 바로 끔, 끝날 땐 페이드아웃 ----------
+const MAX_ULT = 2, FADE_OUT = 0.45;
+const ultVoices = []; // { id, bus, t0, end }
+let bus = null, busLen = 0; // 지금 만드는 궁극기 소리의 묶음 / 합성 소리의 길이
+function cutNow(o, sec = 0.03) { const t = ctx.currentTime; o.bus.gain.cancelScheduledValues(t); o.bus.gain.setValueAtTime(o.bus.gain.value, t); o.bus.gain.linearRampToValueAtTime(0, t + sec); setTimeout(() => { try { o.bus.disconnect(); } catch { /* 이미 끊김 */ } }, sec * 1000 + 80); }
+/** 가장 먼저 시작한 궁극기 소리부터 즉시 끄고, 새 소리가 들어갈 자리를 만든다 */
+function makeRoom() { const now = ctx.currentTime; for (let i = ultVoices.length - 1; i >= 0; i--) if (ultVoices[i].end <= now) ultVoices.splice(i, 1); while (ultVoices.length >= MAX_ULT) cutNow(ultVoices.shift()); }
+/** 궁극기 소리 하나 시작. play()는 소리를 bus에 만들고 길이(초)를 돌려줌. 궁극기 지속시간(dur)보다 길면 그때 페이드아웃으로 끝냄 */
+function playUlt(id, dur, play) {
+  makeRoom();
+  const b = ctx.createGain(), t0 = ctx.currentTime; b.connect(master); bus = b; busLen = 0;
+  let len = 0; try { len = play() || busLen; } finally { bus = null; }
+  const end = dur > 0 && len > dur ? dur : len; // 궁극기가 끝나는 때(소리가 더 짧으면 소리 끝)
+  b.gain.setValueAtTime(1, t0 + Math.max(0, end - FADE_OUT)); b.gain.linearRampToValueAtTime(0, t0 + end + 0.02); // 끝날 땐 페이드아웃
+  ultVoices.push({ id, bus: b, t0, end: t0 + end });
+  setTimeout(() => { try { b.disconnect(); } catch { /* 이미 끊김 */ } }, (end + 0.3) * 1000);
+}
+/** 궁극기 시전자가 쓰러지는 등 도중에 끊기면 그 소리를 부드럽게 끔 */
+export function stopUltOf(id, sec = 0.25) { if (!ctx) return; for (let i = ultVoices.length - 1; i >= 0; i--) if (ultVoices[i].id === id) { cutNow(ultVoices[i], sec); ultVoices.splice(i, 1); } }
+export const _ultVoiceCount = () => ultVoices.filter((o) => o.end > ctx.currentTime).length; // 시험용
+function ultClip(path, vol) { // 파일로 된 궁극기 소리를 bus에 올림, 길이 반환
+  const b = clip(path); if (!b) return 0;
+  const s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = b; g.gain.value = vol; s.connect(g); g.connect(bus); s.start(); done(b.duration); return b.duration;
 }
 
 export const isMuted = () => muted;
@@ -30,7 +58,7 @@ export function unlockAudio() {
   try {
     if (!ctx) { ctx = new (window.AudioContext || window.webkitAudioContext)(); master = ctx.createGain(); master.gain.value = 0.32; master.connect(ctx.destination); }
     if (ctx.state === 'suspended') ctx.resume();
-    for (const [name] of Object.values(ANIMAL)) loadCry(name); // 동물 소리 파일 미리 불러오기 (없으면 건너뜀)
+    for (const n of CLIPS.animal) { loadClip('animal/' + n); loadClip('animal/' + n + '_ult'); } DIVA_ULT.forEach((n) => loadClip('ult/' + n)); // 소리 파일 미리 불러오기 (없으면 건너뜀)
   } catch { ctx = null; }
 }
 ['pointerdown', 'keydown', 'touchend'].forEach((ev) => addEventListener(ev, unlockAudio, { passive: true }));
@@ -45,7 +73,7 @@ function tone(f0, f1, dur, type, vol, delay = 0, vib = 0) {
   const t0 = ctx.currentTime + delay, o = ctx.createOscillator(), g = ctx.createGain();
   o.type = type; o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t0 + dur);
   if (vib) { const l = ctx.createOscillator(), lg = ctx.createGain(); l.frequency.value = 22; lg.gain.value = vib; l.connect(lg); lg.connect(o.frequency); l.start(t0); l.stop(t0 + dur); }
-  env(g, t0, dur, vol); o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + dur + 0.02); done(dur + delay);
+  env(g, t0, dur, vol); o.connect(g); g.connect(bus || master); o.start(t0); o.stop(t0 + dur + 0.02); done(dur + delay); busLen = Math.max(busLen, dur + delay);
 }
 /** 잡음: 필터 주파수가 f0→f1로 변함 (휙 · 쾅) */
 function noise(dur, f0, f1, vol, delay = 0, type = 'bandpass') {
@@ -54,7 +82,7 @@ function noise(dur, f0, f1, vol, delay = 0, type = 'bandpass') {
   for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
   const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
   s.buffer = buf; f.type = type; f.Q.value = 1.2; f.frequency.setValueAtTime(f0, t0); f.frequency.exponentialRampToValueAtTime(Math.max(40, f1), t0 + dur);
-  env(g, t0, dur, vol, 0.01); s.connect(f); f.connect(g); g.connect(master); s.start(t0); done(dur + delay);
+  env(g, t0, dur, vol, 0.01); s.connect(f); f.connect(g); g.connect(bus || master); s.start(t0); done(dur + delay); busLen = Math.max(busLen, dur + delay);
 }
 
 // ---------- 평타 · 투척 ----------
@@ -115,13 +143,21 @@ export const loudness = (d) => (d <= 3 ? 1 : Math.max(0, 1 - (d - 3) / 13) ** 2)
 export function sfxEvent(e, c) {
   if (muted || !ctx || ctx.state !== 'running' || voices > 28) return;
   const isUlt = e.e === 'ult';
-  if (c.screen && !isUlt) return; // 빔프로젝터는 궁극기 소리만
+  if (c.screen && !isUlt && !['stun', 'ghost', 'channelEnd'].includes(e.e)) return; // 빔프로젝터는 궁극기 소리만 (끊김 신호는 받음)
   let v = 1;
   if (!c.screen && !c.mine && c.fx != null && c.x != null) v = loudness(Math.hypot(c.x - c.fx, c.y - c.fy)); // 멀리 있는 사람 소리는 작게
   if (v < 0.04) return;
   const p = pitchOf(c.charId), an = ANIMAL[c.charId];
-  if (an && (isUlt || e.e === 'atk') && gate('c' + e.id, isUlt ? 300 : 1100)) cry(an[0], Math.min(1, v) * (isUlt ? 0.9 : 0.6), an[1]); // 동물 캐릭터: 궁극기엔 확실히, 평타엔 가끔 울음
-  if (isUlt) { const f = ULT[e.t]; if (f && gate('u' + e.id, ULT_GAP)) { stretch = 1.7; try { f(Math.min(1, v * (c.mine ? 1 : 0.9))); } finally { stretch = 1; } } return; }
+  if (e.e === 'stun' || e.e === 'ghost' || e.e === 'channelEnd') { stopUltOf(e.id, e.e === 'channelEnd' ? FADE_OUT : 0.25); return; } // 궁극기 도중 쓰러지거나 끊기면 그 소리도 부드럽게 끔
+  if (an && e.e === 'atk' && gate('c' + e.id, 1100)) cry(an[0], Math.min(1, v) * 0.6, an[1]); // 동물 캐릭터는 평타 때 가끔 울음
+  if (isUlt) {
+    if (!gate('u' + e.id, ULT_GAP)) return;
+    const vol = Math.min(1, v * (c.mine ? 1 : 0.9)), dur = (e.sec || 0) + (e.intro || 0);
+    const path = c.charId === 'gaga' ? 'ult/' + DIVA_ULT[Math.floor(Math.random() * DIVA_ULT.length)] : an ? `animal/${an[0]}_ult` : null; // 디바: 세 곡 중 무작위 · 동물: 전용 궁극기 소리
+    if (path && clip(path)) playUlt(e.id, dur, () => ultClip(path, vol * (c.charId === 'gaga' ? 0.85 : 0.9)));
+    else { const f = ULT[e.t]; if (f) { stretch = 1.7; try { playUlt(e.id, dur, () => { f(vol); return busLen; }); } finally { stretch = 1; } } } // 파일이 없으면 합성음
+    return;
+  }
   let k = null;
   if (e.e === 'atk') {
     if (e.kind === 'melee') k = e.fx === 'smash' ? 'smash' : e.fx === 'bump' ? 'thump' : e.fx === 'punch' ? 'punch' : 'swing';
@@ -132,3 +168,4 @@ export function sfxEvent(e, c) {
   else if (e.e === 'coinGet' && gate('coin' + (c.mine ? 'm' : 'o'), 55)) BASIC.coin(v * (c.mine ? 1 : 0.6), 1 + Math.random() * 0.12); // 동전 줍는 소리 (음높이를 살짝 흔들어 단조롭지 않게)
   else if (e.e === 'itemGet') { if (e.k === 'heart' && gate('heal' + (c.mine ? 'm' : 'o'), 150)) BASIC.heal(v * (c.mine ? 1 : 0.6)); else if (e.k === 'shoe' && gate('shoe', 150)) BASIC.speed(v * (c.mine ? 1 : 0.6)); } // 체력 회복(하트·회복 효과) / 신발
 }
+export const _loaded = () => Object.entries(cries).filter(([, v]) => v && v !== 'loading').map(([k]) => k); // 시험용: 불러온 소리 파일

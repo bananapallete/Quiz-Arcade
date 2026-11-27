@@ -27,7 +27,7 @@ export function useUlt(g, p, aim) {
   if (u.type === 'flurry' && !manual && p.input && Math.hypot(p.input.mx, p.input.my) > 0.1) { dx = p.input.mx; dy = p.input.my; } // 난타는 가는 방향으로
   p.aimM = manual ? Number(aim.m) || null : null; // 직접 조준: 드래그 길이(0~1)로 거리 조절 (center가 읽음)
   if (Math.abs(dx) > 0.15) p.face = dx > 0 ? 1 : -1;
-  g.events.push({ e: 'ult', id: p.id, name: u.name, t: u.type, x: r2(p.x), y: r2(p.y), dx: r2(dx), dy: r2(dy), r: u.radius ?? 0, sec: u.sec ?? 0, dist: u.dist ?? 0 });
+  g.events.push({ e: 'ult', id: p.id, name: u.name, t: u.type, x: r2(p.x), y: r2(p.y), dx: r2(dx), dy: r2(dy), r: u.radius ?? 0, sec: u.sec ?? 0, intro: u.intro ?? 0, dist: u.dist ?? 0 });
   RUN[u.type](g, p, u, dx, dy, near);
 }
 
