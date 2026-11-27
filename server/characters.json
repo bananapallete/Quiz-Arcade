@@ -243,7 +243,7 @@
       "type": "ranged",
       "dmgMin": 6,
       "dmgMax": 6,
-      "interval": 0.8,
+      "interval": 0.4,
       "range": 6.5,
       "knockback": 0,
       "multi": true,
@@ -252,7 +252,12 @@
         "speed": 7,
         "lob": true,
         "explodeRadius": 1.8,
-        "art": "thrower_bottle"
+        "art": "thrower_bottle",
+        "fire": {
+          "sec": 2,
+          "tick": 0.5,
+          "dmg": 1
+        }
       },
       "fx": "bottle"
     },

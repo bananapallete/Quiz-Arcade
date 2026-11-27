@@ -830,7 +830,7 @@ export class Game {
     if (pr.lob) {
       const L = this._lobLanding(p, { dx, dy, manual: !!(Math.hypot(Number(aim?.x) || 0, Number(aim?.y) || 0) > 0.2), near }, range, aim);
       const dist = Math.hypot(L.x - p.x, L.y - p.y);
-      this.projectiles.set(base.id, { ...base, kind: 'lob', sx: p.x, sy: p.y, tx: L.x, ty: L.y, x: p.x, y: p.y, t0: this.t, T: Math.max(0.15, dist / pr.speed), r: pr.explodeRadius, heal: pr.heal });
+      this.projectiles.set(base.id, { ...base, kind: 'lob', sx: p.x, sy: p.y, tx: L.x, ty: L.y, x: p.x, y: p.y, t0: this.t, T: Math.max(0.15, dist / pr.speed), r: pr.explodeRadius, heal: pr.heal, fire: pr.fire });
     } else {
       this.projectiles.set(base.id, { ...base, kind: 'bolt', x: p.x, y: p.y, dx, dy, vx: dx * pr.speed, vy: dy * pr.speed, speed: pr.speed, travel: 0, maxDist: range, radius: pr.radius, pierce: !!pr.pierce || !!pr.boomerang, hit: new Set(), boom: pr.boomerang ? { ph: 'out', wait: pr.boomerang.wait, until: 0 } : null });
     }
@@ -851,6 +851,7 @@ export class Game {
         if (u < 1) { q.x = q.sx + (q.tx - q.sx) * u; q.y = q.sy + (q.ty - q.sy) * u; continue; }
         this.projectiles.delete(q.id); // 착탄: 범위 안 모두에게 피해, 중심에서 바깥으로 밀림 (던진 사람은 안 맞음)
         this.events.push({ e: 'boom', x: r2(q.tx), y: r2(q.ty), r: q.r, art: q.art });
+        if (q.fire) { const id = ++this.zoneSeq, f = q.fire; this.zonesU.set(id, { id, owner: q.owner, x: q.tx, y: q.ty, r: f.r ?? q.r * 0.8, until: this.t + f.sec, next: this.t + f.tick, tick: f.tick, dmg: f.dmg, kind: 'fire', art: 'bottle' }); } // 투척병: 떨어진 곳에 잠깐 불길
         for (const o of foes) {
           const d = Math.hypot(o.x - q.tx, o.y - q.ty);
           if (d > q.r + o.cfg.radius) continue;

@@ -1826,3 +1826,13 @@ test('토너먼트 대표: 진행자가 ★로 고른 사람이 먼저 나가고
   g.toggleRep('p7'); g.ask(1);
   assert.deepEqual([...g.tour.reps[1]].sort(), ['p1', 'p2']); assert.ok(g.tour.reps[2].includes('p7'));
 });
+
+test('투척병: 공격 간격 절반, 떨어진 곳에 2초 동안 불길(0.5초마다 피해)', () => {
+  const { g, A, B } = duo('bomber', 'blue');
+  A.x = 10; A.y = 10; B.x = 13; B.y = 10; B.invUntil = 0;
+  g.attack('a', { x: 1, y: 0, m: 0.46 }); run(g, 0.6);
+  assert.equal(g.zonesU.size, 1, '불길이 남음'); const z = [...g.zonesU.values()][0]; assert.equal(z.kind, 'fire');
+  const hp = B.hp; run(g, 1.2); assert.ok(B.hp < hp, '불길 위에 있으면 계속 피해');
+  run(g, 1.5); assert.equal(g.zonesU.size, 0, '2초 뒤 꺼짐');
+  assert.equal(chars.bomber.attack.interval, 0.4);
+});
