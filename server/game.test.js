@@ -3,7 +3,9 @@ import baseTest from 'node:test';
 const test = (name, fn) => baseTest(name, (...a) => { seed = 12345; return fn(...a); }); // 테스트마다 같은 난수열로 시작
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { Game, SANDBAG_ATTACK } from './game.js';
+import { Game as BaseGame, SANDBAG_ATTACK } from './game.js';
+/** 테스트는 기본적으로 개인전(팀 0)으로 만든다. 자동 2팀 배정은 autoTeam = true 로 따로 검증 */
+class Game extends BaseGame { _smallTeam(p) { return this.autoTeam ? super._smallTeam(p) : 0; } }
 import { CRIT, PHASE, RUN_DRAIN, ULT_CHARGE } from '../shared/constants.js';
 const HUMAN_MUL = 2; ULT_CHARGE.humanMul = 1; // 규칙 테스트는 배수 없이(배포용 값), 배수는 아래 전용 테스트에서 확인
 
@@ -1648,12 +1650,12 @@ test('마녀 궁극기는 다른 캐릭터보다 50% 느리게 찬다', () => {
   assert.ok(b.ult > 0 && Math.abs(w.ult - b.ult / 2) < 0.01, `witch=${w.ult} plain=${b.ult}`);
 });
 
-test('팀 토너먼트: 팀마다 2명만 나와 대진대로 싸우고, 우승팀 전원 점수 · 준우승 절반 · 라운드 기록', () => {
+test('팀 토너먼트: 팀마다 2명만 나와 싸우고, 우승팀 전원 점수 · 준우승 절반 · 라운드 기록', () => {
   const g = new Game(chars, [{ type: 'brawl', tour: true, text: 't', pts: 6, time: 60 }]);
   const ps = Array.from({ length: 12 }, (_, i) => g.join({ token: `p${i}`, name: `P${i}`, charId: 'blue' }));
-  g.autoTeams(4); g.ask(1);
+  g.autoTeams(); g.ask(1);
   assert.equal(g.question.mode, '토너먼트');
-  const t = g.tour; assert.equal(t.queue.length + 1, 2, '4팀 → 1라운드 2경기');
+  const t = g.tour; assert.equal(t.queue.length + 1, 1, '항상 2팀 → 결승 1경기');
   for (const r of Object.values(t.reps)) assert.equal(r.length, 2);
   const inMatch = () => [...g.brawl.ids].map((id) => g.players.get(id));
   assert.equal(inMatch().length, 4);
@@ -1802,4 +1804,25 @@ test('대난투 봇은 도망보다 전투: 체력 30%여도 싸우고, 15% 아�
   assert.equal(g._botFlee(bot), false, '대난투에선 30%여도 싸움');
   bot.hp = Math.floor(bot.cfg.hp * 0.1); assert.equal(g._botFlee(bot), true, '15% 아래면 잠깐 빠짐');
   foe.hp = 1; foe.x = 11; bot.ai.fleeing = false; assert.equal(g._botFlee(bot), false, '사거리 안에 더 약한 적이 있으면 마무리');
+});
+
+test('팀은 항상 2팀: 들어오면 인원이 적은 팀으로, 섞어도 2팀, 샌드백·아군은 팀 없음', () => {
+  const g = new Game(chars, quizzes); g.autoTeam = true;
+  const ps = Array.from({ length: 7 }, (_, i) => g.join({ token: `p${i}`, name: `P${i}`, charId: 'blue' }));
+  const cnt = (t) => ps.filter((p) => p.team === t).length;
+  assert.ok(Math.abs(cnt(1) - cnt(2)) <= 1, `${cnt(1)} vs ${cnt(2)}`); assert.equal(cnt(1) + cnt(2), 7);
+  g.autoTeams(5); assert.ok(ps.every((p) => p.team === 1 || p.team === 2), '숫자를 줘도 2팀');
+  g.setTeam('p0', 7); assert.equal(ps[0].team, 1);
+  g.addSandbags(); g.addAllies(); assert.ok([...g.players.values()].filter((p) => p.home).every((p) => !p.team));
+  assert.equal(g.snapshot().teams.length, 2);
+});
+
+test('토너먼트 대표: 진행자가 ★로 고른 사람이 먼저 나가고, 팀마다 최대 2명', () => {
+  const g = new Game(chars, [{ type: 'brawl', tour: true, text: 't', time: 60 }]);
+  const ps = Array.from({ length: 8 }, (_, i) => g.join({ token: `p${i}`, name: `P${i}`, charId: 'blue' }));
+  ps.forEach((p, i) => { p.team = i < 4 ? 1 : 2; });
+  for (const id of ['p0', 'p1', 'p2']) g.toggleRep(id); // 1팀 3명 지정 → 처음 지정한 p0은 빠짐
+  assert.deepEqual(ps.slice(0, 4).map((p) => !!p.rep), [false, true, true, false]);
+  g.toggleRep('p7'); g.ask(1);
+  assert.deepEqual([...g.tour.reps[1]].sort(), ['p1', 'p2']); assert.ok(g.tour.reps[2].includes('p7'));
 });

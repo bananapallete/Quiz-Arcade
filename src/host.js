@@ -17,7 +17,7 @@ function auth(key) {
   socket.emit('host:auth', key, (res) => {
     if (!res?.ok) { $('#auth').hidden = false; $('#app').hidden = true; $('#aerr').textContent = key ? '키가 맞지 않아요' : ''; return; }
     try { localStorage.setItem(KEY, key); } catch { /* 저장 불가 */ }
-    ['#auth'].forEach((s) => { $(s).hidden = true; }); ['#app', '#topbar', '#log'].forEach((s) => { $(s).hidden = false; });
+    ['#auth'].forEach((s) => { $(s).hidden = true; }); ['#app', '#topbar', '#log', '#steps'].forEach((s) => { $(s).hidden = false; });
     setInfo(res);
   });
 }
@@ -25,7 +25,7 @@ socket.on('connect', () => auth(getKey()));
 $('#login').addEventListener('click', () => auth($('#key').value.trim()));
 socket.on('host:info', setInfo);
 
-function setInfo(i) { info = i; renderQuestions(); renderHistory(); renderRounds(); $('#t-n').value = i.teamCount || $('#t-n').value; $('#log').innerHTML = (i.log || []).slice(0, 6).map((l) => `<span>${new Date(l.t).toTimeString().slice(0, 8)} ${esc(l.text)}</span>`).join('') || '<span style="opacity:.6">기록 없음</span>'; }
+function setInfo(i) { info = i; renderQuestions(); renderHistory(); renderRounds(); $('#log').innerHTML = (i.log || []).slice(0, 6).map((l) => `<span>${new Date(l.t).toTimeString().slice(0, 8)} ${esc(l.text)}</span>`).join('') || '<span style="opacity:.6">기록 없음</span>'; }
 
 // ---------- 문제 큐 ----------
 function renderQuestions() {
@@ -74,7 +74,7 @@ $('#q-add').addEventListener('click', () => {
 });
 
 // ---------- 참가자 · 팀 · 점수 ----------
-$('#t-auto').addEventListener('click', () => emit('host:teams', { n: Number($('#t-n').value) }));
+$('#t-auto').addEventListener('click', () => { if (confirm('2팀으로 무작위로 다시 섞을까요?')) emit('host:teams', {}); });
 $('#aw-go').addEventListener('click', () => {
   const who = $('#aw-who').value, n = Number($('#aw-n').value); if (!who || !n) return;
   if (who.startsWith('t:')) emit('host:adjustTeam', { team: Number(who.slice(2)), delta: n }); else emit('host:adjust', { id: who, delta: n });
@@ -85,8 +85,8 @@ document.querySelectorAll('[data-cast]').forEach((b) => b.addEventListener('clic
 $('#cast-sel').addEventListener('change', (e) => emit('host:cast', e.target.value ? { id: e.target.value } : { m: 'auto' })); // 고른 참가자를 빔프로젝터로 중계
 $('#sgrid').addEventListener('click', (e) => { const c = e.target.closest('[data-castid]'); if (c) { emit('host:cast', st?.cs?.id === c.dataset.castid ? { m: 'auto' } : { id: c.dataset.castid }); return; } const b = e.target.closest('[data-sg]'); if (b) emit('host:adjust', { id: b.dataset.id, delta: Number(b.dataset.sg) * (Number($('#adj-step').value) || 1) }); });
 // 팀 끌어놓기
-let extraTeams = 0, dragging = false, dirtyBoard = false;
-$('#t-add').addEventListener('click', () => { extraTeams++; renderBoard(); });
+let dragging = false, dirtyBoard = false;
+$('#tboard').addEventListener('click', (e) => { const c = e.target.closest('[data-drag]'); if (c && !dragging) emit('host:rep', { id: c.dataset.drag }); }); // 눌러서 토너먼트 대표 ★
 $('#tboard').addEventListener('dragstart', (e) => { const c = e.target.closest('[data-drag]'); if (!c) return; dragging = true; e.dataTransfer.setData('text/plain', c.dataset.drag); });
 $('#tboard').addEventListener('dragend', () => { dragging = false; if (dirtyBoard) renderBoard(); });
 $('#tboard').addEventListener('dragover', (e) => { const z = e.target.closest('[data-drop]'); if (z) { e.preventDefault(); z.classList.add('over'); } });
@@ -94,8 +94,8 @@ $('#tboard').addEventListener('dragleave', (e) => { e.target.closest('[data-drop
 $('#tboard').addEventListener('drop', (e) => { const z = e.target.closest('[data-drop]'); if (!z) return; e.preventDefault(); z.classList.remove('over'); dragging = false; emit('host:setTeam', { id: e.dataTransfer.getData('text/plain'), team: Number(z.dataset.drop) }); });
 function renderBoard() {
   if (dragging) { dirtyBoard = true; return; } dirtyBoard = false;
-  const n = Math.min(8, Math.max(st?.teams?.length || 0, 2) + extraTeams), cols = Array.from({ length: n + 1 }, (_, t) => t);
-  $('#tboard').innerHTML = cols.map((t) => `<div class="tc" data-drop="${t}" style="${t ? `border-color:${TEAMC[t]}` : ''}"><h4>${t ? `${t}팀` : '미배정'}</h4>${humans.filter((p) => (p.tm || 0) === t).map((p) => `<span class="chip" draggable="true" data-drag="${p.id}">${esc(p.n)}</span>`).join('')}</div>`).join('');
+  const cols = humans.some((p) => !p.tm) ? [1, 2, 0] : [1, 2]; // 항상 2팀 (팀 없는 사람이 있을 때만 미배정 칸)
+  $('#tboard').innerHTML = cols.map((t) => { const ms = humans.filter((p) => (p.tm || 0) === t); return `<div class="tc" data-drop="${t}" style="${t ? `border-color:${TEAMC[t]}` : ''}"><h4>${t ? `${t}팀 · ${ms.length}명 · ★${ms.filter((p) => p.rep).length}/2` : '미배정'}</h4>${ms.map((p) => `<span class="chip${p.rep ? ' rep' : ''}" draggable="true" data-drag="${p.id}">${p.rep ? '★ ' : ''}${esc(p.n)}</span>`).join('')}</div>`; }).join('');
 }
 // 기록
 function renderHistory() {
@@ -105,6 +105,33 @@ function renderHistory() {
     return `<details class="${h.undone ? 'un' : ''}"><summary>#${h.n} ${esc(h.title)} <small>${new Date(h.t).toTimeString().slice(0, 8)}${h.undone ? ' · 취소' : ''}</small></summary><div class="rw">${got.map((r) => `<span>${r.team ? `<i class="tm" style="background:${TEAMC[r.team]}"></i>` : ''}${esc(r.name)} <b>${r.gain > 0 ? '+' : ''}${fmtScore(r.gain)}</b></span>`).join('') || '<span style="opacity:.6">득점 없음</span>'}${miss > 0 && h.kind !== 'adj' ? `<span style="opacity:.6">0점 ${miss}명</span>` : ''}</div></details>`;
   }).join('') || '<div style="opacity:.6">기록 없음</div>';
 }
+
+// ---------- 진행 단계 (IA): 입장 → 팀 → 문제 → 진행 → 결과, 지금 단계와 '할 일' 버튼 ----------
+const STEPS = ['입장', '팀', '문제', '진행', '결과'];
+let stepKey = '';
+function renderSteps(s) {
+  const live = [PHASE.READING, PHASE.MOVING, PHASE.HOLD, PHASE.REAL].includes(s.phase), t1 = humans.filter((p) => p.tm === 1).length, t2 = humans.filter((p) => p.tm === 2).length;
+  const now = s.phase === PHASE.REVEAL ? 4 : live ? 3 : s.sm === 'title' || !humans.length ? 0 : askId ? 2 : 1;
+  const q = info.questions.find((x) => x.id === askId), cur = st?.q;
+  const sub = [`${humans.length}명`, `${t1} : ${t2}`, q ? `Q${q.id} ${q.mode}` : '고르기', live ? (phaseName[s.phase] || '') : '', s.phase === PHASE.REVEAL ? `Q${cur?.id ?? ''}` : ''];
+  const todo = [
+    ['QR로 입장시키기', [['t-qr2', s.qr ? 'QR 끄기' : 'QR 켜기'], ['go-quiz', '화면: 퀴즈로']]],
+    ['팀 확인 · 토너먼트면 ★ 대표 고르기', [['t-auto', '🔀 2팀 섞기']]],
+    [q ? `Q${q.id} 출제 준비` : '왼쪽에서 문제 선택', q ? [['premap', '🗺 맵 미리 보기'], ['ask', `▶ Q${q.id} 출제`]] : []],
+    [phaseName[s.phase] || '진행 중', [['t-p10', '＋10초'], ['end', $('#end').textContent]]],
+    ['결과 확인 후 다음 문제', [['scr-rank', '화면: 순위'], ['ask', askId ? `▶ Q${askId} 출제` : '▶ 출제']]],
+  ][now];
+  const key = JSON.stringify([now, sub, todo, $('#end').disabled, $('#ask').disabled]);
+  if (key === stepKey) return; stepKey = key;
+  $('#steps').innerHTML = `<ol>${STEPS.map((n, i) => `<li class="${i < now ? 'done' : i === now ? 'now' : ''}"><b>${i < now ? '✓' : i + 1}</b>${n}${sub[i] ? ` <small>${esc(sub[i])}</small>` : ''}</li>`).join('')}</ol><div class="todo"><span>${esc(todo[0])}</span>${todo[1].map(([id, label]) => `<button class="btn sm ${id === 'ask' || id === 'end' ? 'go' : ''}" data-do="${id}" ${(id === 'end' && $('#end').disabled) || (id === 'ask' && $('#ask').disabled) ? 'disabled' : ''}>${esc(label)}</button>`).join('')}</div>`;
+}
+$('#steps').addEventListener('click', (e) => { // 할 일 버튼은 아래 원래 버튼을 그대로 누름
+  const b = e.target.closest('[data-do]'); if (!b) return; const id = b.dataset.do;
+  if (id === 'go-quiz') return emit('host:screen', { mode: 'quiz' });
+  if (id === 'scr-rank') return emit('host:screen', { mode: 'rank' });
+  if (id === 't-qr2') return $('#t-qr').click();
+  $('#' + id)?.click();
+});
 
 // 라운드 기록 (대난투·토너먼트 팀 점수)
 function renderRounds() {
@@ -144,7 +171,7 @@ $('#plist').addEventListener('click', (e) => {
 let humans = [], lastKey = '', realKey = '';
 socket.on('state', (s) => {
   st = s;
-  humans = (s.lb || []).map((r) => ({ id: r.id, n: r.name, tm: r.team, sc: r.score, cn: r.coins, watch: !s.players.some((p) => p.id === r.id) })); // 사람 + 점수 받는 테스트 봇 (순위표 기준 → 토너먼트 관전자도 빠지지 않음)
+  humans = (s.lb || []).map((r) => ({ id: r.id, n: r.name, tm: r.team, sc: r.score, cn: r.coins, rep: r.rep, watch: !s.players.some((p) => p.id === r.id) })); // 사람 + 점수 받는 테스트 봇 (순위표 기준 → 토너먼트 관전자도 빠지지 않음)
   $('#s-players').textContent = `${humans.length}명 접속`; $('#s-phase').textContent = (phaseName[s.phase] || '-') + (s.bw ? ` · ⚔ ${s.bw.p}명` : '') + (s.cal ? ` · 📅 ${s.cal.r}차 생존 ${s.cal.a}명` : '') + (s.tr?.m ? ` · 🏆 ${s.tr.r}R ${s.tr.m[0]}팀 vs ${s.tr.m[1]}팀` : '') + (s.cr ? ` · 🪙 1등 ${s.cr[0]?.[1] ?? '-'} ${s.cr[0]?.[2] ?? 0}` : '');
   $('#end').textContent = s.q?.type === 'calendar' ? '✓ 채점하기' : s.tr ? '✓ 경기 종료' : s.q?.type === 'brawl' || s.q?.type === 'coin' ? '✓ 종료' : '✓ 정답 공개'; $('#cal-fin').hidden = !s.cal; $('#s-left').textContent = s.left > 0 ? `⏱ ${Math.ceil(s.left)}초` : '-';
   for (const [id, on] of [['hideans', s.ha], ['t-pause', s.tp], ['t-qr', s.qr], ['t-x2', s.x2 === 2], ['t-freeze', s.fz], ['t-god', s.gd], ['t-noatk', s.ca], ['t-noult', s.cu]]) $('#' + id).classList.toggle('on', !!on); // 스위치
@@ -161,7 +188,7 @@ socket.on('state', (s) => {
   $('#end').disabled = !((s.phase === PHASE.READING && !special) || s.phase === PHASE.MOVING || s.phase === PHASE.HOLD);
   $('#ask').disabled = s.phase === PHASE.READING || s.phase === PHASE.MOVING || s.phase === PHASE.HOLD;
   const total = s.q?.time || 15; $('#c-bar').style.width = s.phase === PHASE.MOVING ? `${(s.left / total) * 100}%` : '0%';
-  renderCurrent();
+  renderCurrent(); renderSteps(s);
   // 실시간 응답
   const dist = s.dist || (s.reveal && s.reveal.dist) || null, keys = s.q?.type === 'choice' ? [1, 2, 3, 4].slice(0, s.q.options?.length || 4) : ['O', 'X'], tot = Math.max(1, humans.length);
   $('#distbox').hidden = !s.q || s.q.type === 'real' || s.q.type === 'brawl' || s.q.type === 'calendar' || s.q.type === 'coin' || s.phase === PHASE.LOBBY;
@@ -176,7 +203,7 @@ socket.on('state', (s) => {
     $('#realok').disabled = false; $('#realrev').disabled = !s.real?.confirmed; $('#realok').textContent = s.real?.confirmed ? '확인됨 ✓' : '확인';
   }
   // 참가자 표
-  const lb = [...humans].sort((a, b) => b.sc - a.sc), key = JSON.stringify([lb.map((p) => [p.id, p.n, p.tm, p.sc, p.cn, p.watch]), s.teams, s.cs]);
+  const lb = [...humans].sort((a, b) => b.sc - a.sc), key = JSON.stringify([lb.map((p) => [p.id, p.n, p.tm, p.sc, p.cn, p.watch, p.rep]), s.teams, s.cs]);
   if (key !== lastKey) {
     lastKey = key; const tc = s.teams?.length || 0;
     $('#plist').innerHTML = lb.map((p, i) => `<div class="pl"><span>${i + 1}</span><span data-name="${p.id}" data-nm="${esc(p.n)}" style="cursor:pointer">${esc(p.n)} <small style="opacity:.6">🪙${p.cn}</small></span><span>${fmtScore(p.sc)}</span><div class="stp"><b data-kick="${p.id}" data-nm="${esc(p.n)}" title="퇴장">✕</b></div></div>`).join('') || '<div style="opacity:.6">접속한 참가자가 없어요</div>';

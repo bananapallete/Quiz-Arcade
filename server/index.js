@@ -107,6 +107,7 @@ io.on('connection', (socket) => {
   host('host:adjustTeam', (d) => ({ ok: game.adjustTeam(d?.team, d?.delta) }));
   host('host:teams', (d) => ({ ok: game.autoTeams(d?.n) }));
   host('host:setTeam', (d) => ({ ok: game.setTeam(String(d?.id), d?.team) }));
+  host('host:rep', (d) => ({ ok: game.toggleRep(String(d?.id)) }));
   host('host:realSet', (d) => ({ ok: game.realSet(String(d?.id), d?.pts) }));
   host('host:realTeam', (d) => ({ ok: game.realTeam(d?.team, d?.pts) }));
   host('host:undo', () => ({ ok: game.undoScore() }));

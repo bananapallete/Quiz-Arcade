@@ -16,7 +16,7 @@
 .coin{display:inline-block;width:.8em;height:.8em;border-radius:50%;background:var(--gold);border:2px solid var(--navy);vertical-align:-.1em}
 </style>
     <style>
-      body{width:100%;min-height:100vh;background:#243d2b;display:grid;grid-template-rows:56px minmax(0,1fr) 44px;gap:10px;padding:10px;font-size:15px;height:100vh}
+      body{width:100%;min-height:100vh;background:#243d2b;display:grid;grid-template-rows:56px auto minmax(0,1fr) 44px;gap:10px;padding:10px;font-size:15px;height:100vh}
       .bar{display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--cream);border-radius:14px}.logo{font-weight:900;font-size:19px}
       .pill{padding:4px 12px;border-radius:99px;font-weight:900;border:2px solid var(--navy);background:var(--cream-hi)}
       .g{display:grid;grid-template-columns:300px minmax(0,1fr) 400px;gap:10px;min-height:0}
@@ -57,12 +57,18 @@
       .chip{color:var(--text);padding:3px 8px;border-radius:99px;border:2px solid var(--navy);background:#fff;font-weight:800;font-size:13px;cursor:grab}
       #hist{display:grid;gap:5px;max-height:260px;overflow:auto}#hist details{background:#fff;border:2px solid var(--navy);border-radius:8px;padding:4px 8px;font-size:13px}#hist .un{text-decoration:line-through;opacity:.5}#hist .rw{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:4px}
       #rd{display:grid;gap:4px;font-weight:900;font-size:13px;overflow-x:auto}#rd div{display:grid;grid-auto-flow:column;grid-auto-columns:40px;gap:3px;align-items:center;text-align:center}#rd div>:first-child{width:44px;text-align:left}#rd .h{opacity:.6}#rd i{font-style:normal;border-radius:6px;background:#fff}#rd i.w{background:#ffe27a}
+      .steps{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;background:var(--cream);border-radius:14px;padding:8px 12px}
+      .steps ol{list-style:none;margin:0;padding:0;display:flex;gap:4px}.steps li{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;font-weight:900;font-size:13px;color:#8b6a4a;background:#fff8}.steps li b{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#d9bd8a;color:#fff;font-size:12px}
+      .steps li.done{color:#6e9a3a}.steps li.done b{background:#6e9a3a}.steps li.now{background:#ffd54a;color:#14122b;box-shadow:0 0 0 2px #14122b}.steps li.now b{background:#14122b}.steps li small{font-weight:800;opacity:.75}
+      .steps .todo{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap}.steps .todo span{font-weight:900;font-size:14px;margin-right:4px}
+      .chip.rep{background:#ffd54a}
       [hidden]{display:none!important}
     </style>
   </head>
   <body>
     <div id="auth" hidden><h3>진행자 키</h3><input id="key" class="inp" type="text" placeholder="키" /><button id="login" class="btn go">입장</button><p id="aerr" style="color:#c0392b;margin:0"></p></div>
     <div class="bar" id="topbar" hidden><span class="logo">🎮 진행자</span><span class="pill" id="s-players">-</span><span class="pill" id="s-phase" style="background:var(--leaf)">-</span><span class="pill" id="s-left">-</span><a class="pill" href="/screen" target="_blank" style="margin-left:auto;text-decoration:none;color:inherit">화면 열기 ↗</a></div>
+    <div class="steps" id="steps" hidden></div>
     <div class="g" id="app" hidden>
       <div class="col">
         <h3>문제</h3>
@@ -102,8 +108,8 @@
       </div>
       <div class="col">
         <h3>참가자 <em id="p-teams"></em></h3>
-        <div style="display:grid;grid-template-columns:70px 1fr;gap:8px"><input class="inp" id="t-n" type="number" min="0" max="8" value="3" /><button class="btn go sm" id="t-auto" style="font-size:15px">팀 자동 구성 (0 = 해제)</button></div>
-        <details open><summary>팀 <small>끌어서 이동</small></summary><div id="tboard"></div><button class="btn ghost sm" id="t-add" style="margin-top:6px">＋ 팀</button></details>
+        <button class="btn go sm" id="t-auto" style="font-size:15px">🔀 2팀 무작위로 섞기</button>
+        <details open><summary>팀 <small>끌어서 이동 · 눌러서 ★ 토너먼트 대표</small></summary><div id="tboard"></div></details>
         <div style="display:flex;gap:8px;align-items:center"><b>점수</b><input class="inp" id="adj-step" type="number" step="0.5" min="0.5" value="1" style="width:70px;padding:3px 8px"></div>
         <div id="sgrid"></div>
         <details><summary>편집 <small>이름·퇴장</small></summary>

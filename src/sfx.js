@@ -62,6 +62,7 @@ export function setMuffled(on) {
 }
 export const _muffleFreq = () => (muffle ? muffle.frequency.value : null); // 시험용
 export const isMuted = () => muted;
+export const audioOn = () => !!ctx && ctx.state === 'running'; // 브라우저가 소리를 허락했는가
 export function setMuted(m) { muted = !!m; try { localStorage.setItem(KEY, m ? '1' : '0'); } catch { /* 저장 불가 */ } }
 
 /** 첫 터치/클릭 때 호출: 오디오를 깨움 */
@@ -157,17 +158,28 @@ const pitchOf = (id) => { let h = 0; for (const c of String(id || '')) h = (h * 
 /** 나와의 거리 d(칸)에 따른 음량: 3칸 안은 그대로, 16칸이 넘으면 안 들림 */
 export const loudness = (d) => (d <= 3 ? 1 : Math.max(0, 1 - (d - 3) / 13) ** 2);
 
+/** 불새 자폭: 깊은 저음 쾅 + 갈라지는 폭발 + 장조 팡파르 화음 + 위로 흩어지는 반짝임 + 길게 남는 울림 */
+function phoenixBlast(v) {
+  tone(95, 28, 1.4, 'sine', 1.0 * v); tone(60, 24, 1.8, 'triangle', 0.6 * v, 0.02); // 땅이 울리는 저음
+  noise(0.7, 4200, 180, 0.85 * v); noise(1.8, 900, 60, 0.45 * v, 0.1, 'lowpass'); // 폭발 + 우르릉 꼬리
+  [261.6, 329.6, 392, 523.3, 659.3].forEach((f, i) => { tone(f, f * 1.003, 1.5, 'sawtooth', 0.11 * v, 0.08 + i * 0.015, 5); tone(f * 2, f * 2, 1.2, 'triangle', 0.07 * v, 0.1 + i * 0.015); }); // 팡파르 화음
+  [1047, 1319, 1568, 2093, 2637, 3136, 4186].forEach((f, i) => tone(f, f * 1.02, 0.22, 'sine', 0.2 * v, 0.18 + i * 0.055)); // 반짝이며 올라가는 아르페지오
+  [2093, 2637, 3136].forEach((f, i) => tone(f, f, 0.6, 'triangle', 0.08 * v, 0.6 + i * 0.09, 8)); // 마지막 별가루
+}
+
 /** 월드 이벤트 하나를 소리로. ctx2: { mine, screen, x, y, fx, fy, charId } (좌표는 칸 단위) */
 export function sfxEvent(e, c) {
   if (muted || !ctx || ctx.state !== 'running' || voices > 28) return;
   const isUlt = e.e === 'ult';
-  if (c.screen && !isUlt && !(e.e === 'hit' && e.u) && !['stun', 'ghost', 'channelEnd'].includes(e.e)) return; // 빔프로젝터는 궁극기 소리(발동·타격)만 (끊김 신호는 받음)
+  const phx = e.e === 'burst' && e.fx === 'phoenix'; // 불새 자폭: 웅장하고 화려한 폭발음 (빔프로젝터에서도)
+  if (c.screen && !isUlt && !phx && !(e.e === 'hit' && e.u) && !['stun', 'ghost', 'channelEnd'].includes(e.e)) return; // 빔프로젝터는 궁극기 소리(발동·타격)만 (끊김 신호는 받음)
   let v = 1;
   if (!c.screen && !c.mine && c.fx != null && c.x != null) v = loudness(Math.hypot(c.x - c.fx, c.y - c.fy)); // 멀리 있는 사람 소리는 작게
   if (v < 0.04) return;
   const p = pitchOf(c.charId), an = ANIMAL[c.charId];
   if (e.e === 'stun' || e.e === 'ghost' || e.e === 'channelEnd') { stopUltOf(e.id, e.e === 'channelEnd' ? FADE_OUT : 0.25); return; } // 궁극기 도중 쓰러지거나 끊기면 그 소리도 부드럽게 끔
   if (an && e.e === 'atk') cry(an[0], Math.min(1, v) * 0.6, an[1]); // 동물 캐릭터는 평타마다 울음 (연타면 소리가 겹쳐도 그대로 재생)
+  if (phx) { phoenixBlast(Math.min(1, v * 1.1)); return; }
   if (isUlt) {
     if (!gate('u' + e.id, ULT_GAP)) return;
     const vol = Math.min(1, v * (c.mine ? 1 : 0.9)), dur = (e.sec || 0) + (e.intro || 0);

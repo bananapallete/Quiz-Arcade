@@ -37,6 +37,10 @@ const CSS = `
 #qprep b{font-size:min(30vw,30vh);line-height:1;font-weight:900;color:#fff;-webkit-text-stroke:6px #14122b;paint-order:stroke fill}
 #qprep i{font-style:normal;font-size:clamp(22px,6vw,40px);font-weight:900;color:#ffd54a;-webkit-text-stroke:4px #14122b;paint-order:stroke fill}
 #qprep small{font-size:clamp(13px,3.4vw,18px);font-weight:900;color:#fff;background:#14122bcc;border-radius:99px;padding:4px 12px}
+#qteam{position:fixed;left:max(10px,env(safe-area-inset-left,0px));bottom:58px;z-index:16;pointer-events:none;color:#fff;border:3px solid #14122b;border-radius:99px;padding:2px 10px;font-weight:900;font-size:14px;box-shadow:0 3px 0 #14122b66}#qteam[hidden]{display:none}
+#qres{position:fixed;left:50%;top:34%;transform:translate(-50%,-50%);z-index:36;pointer-events:none;text-align:center;font-weight:900;color:#fff;-webkit-text-stroke:5px #14122b;paint-order:stroke fill;font-size:clamp(30px,9vw,64px);line-height:1.1;animation:qres .25s cubic-bezier(.2,1.6,.4,1)}#qres small{display:block;font-size:.45em;-webkit-text-stroke:3px #14122b}#qres[hidden]{display:none}#qres.ok{color:#ffe27a}#qres.bad{color:#ff9aa8}
+@keyframes qres{from{transform:translate(-50%,-50%) scale(.4);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
+#qwatch{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:16;pointer-events:none;background:#14122bd8;color:#fff;border:3px solid #ffd54a;border-radius:12px;padding:6px 14px;font-weight:900;font-size:15px;white-space:nowrap}#qwatch[hidden]{display:none}
 #qbig{position:fixed;inset:0;z-index:70;background:#14122bcc;display:grid;place-items:center}#qbig[hidden]{display:none}
 #qbig img{max-width:80vw;max-height:80vh;border:4px solid #14122b;border-radius:16px;background:#fff}
 `;
@@ -52,7 +56,7 @@ export function mountQuizTop() {
     const pop = document.createElement('div'); pop.id = 'qpop'; pop.hidden = true; pop.innerHTML = '<div class="c"><span class="no"></span><p></p><ol></ol><img alt="" hidden><div class="h">아무 곳이나 누르면 팝업이 닫힙니다.</div></div>'; document.body.append(pop);
     pop.addEventListener('pointerdown', (e) => { e.stopPropagation(); if (pop.dataset.at && performance.now() - Number(pop.dataset.at) < 3000) return; closePop(); }); // 처음 뜬 팝업은 3초 뒤부터 닫힘
     const prep = document.createElement('div'); prep.id = 'qprep'; prep.hidden = true; prep.innerHTML = '<b></b><i>전투 준비!</i><small>공격·궁극기·달리기 불가</small>'; document.body.append(prep);
-    for (const [id, tx] of [['qnt', ''], ['qx2', '점수 ×2'], ['qfz', '잠시 멈춤']]) { const d = document.createElement('div'); d.id = id; d.hidden = true; d.textContent = tx; document.body.append(d); }
+    for (const [id, tx] of [['qnt', ''], ['qx2', '점수 ×2'], ['qfz', '잠시 멈춤'], ['qteam', ''], ['qres', ''], ['qwatch', '']]) { const d = document.createElement('div'); d.id = id; d.hidden = true; d.textContent = tx; document.body.append(d); }
     big.addEventListener('click', () => { big.hidden = true; });
     el.querySelector('.q').addEventListener('click', (e) => { if (!e.target.closest('.th')) openPop(false); }); // 줄어든 문제를 누르면 다시 크게
     el.querySelector('.th').addEventListener('click', () => { const u = el.querySelector('.th').dataset.url; if (u) { big.querySelector('img').src = u; big.hidden = false; } });
@@ -79,10 +83,33 @@ function closePop() {
   popAuto = false; pop.classList.add('out'); setTimeout(() => { if (pop.classList.contains('out')) { pop.hidden = true; pop.classList.remove('out'); } }, 330);
 }
 
+// ---------- 내 팀 · 결과 알림 · 관전 안내 ----------
+const TEAMC = ['', '#ff6b6b', '#4a86d9'];
+let resKey = null, resTimer = 0;
+function myResult(r, meId) { // 결과 알림 문구 [큰 글자, 작은 글자, 좋은 결과?]
+  const m = r.results?.find((x) => x.id === meId); if (!m) return null;
+  if (r.coin) return [`🪙 ${m.got}개`, m.gain ? `${m.rank}등 +${m.gain}` : `${m.rank}등`, m.gain > 0];
+  if (r.tour) return m.correct ? ['우승!', `+${m.gain}`, true] : m.gain ? ['준우승', `+${m.gain}`, true] : ['아쉬워요', '', false];
+  if (r.brawl) return m.correct ? ['승리!', `+${m.gain}`, true] : ['패배', '', false];
+  if (r.cal) return m.correct ? ['생존!', `+${m.gain}`, true] : ['탈락', '', false];
+  if (r.real) return m.gain ? [`+${m.gain}`, '', m.gain > 0] : null;
+  return m.correct ? ['정답!', `+${m.gain}${m.rank ? ` · ${m.rank}등` : ''}`, true] : [m.zone == null ? '무응답' : '오답', '💥', false];
+}
+function renderMine(s, rows, meId) {
+  const me = s.players.find((p) => p.id === meId), row = rows.find((r) => r.id === meId), tm = me?.tm || row?.team || 0;
+  const te = document.getElementById('qteam'); te.hidden = !tm; if (tm) { te.textContent = `${tm}팀`; te.style.background = TEAMC[tm]; }
+  const res = document.getElementById('qres'), key = s.phase === PHASE.REVEAL && s.reveal ? `${s.q?.id}:${s.q?.text}:${(s.reveal.results || []).length}` : null;
+  if (key && key !== resKey) { resKey = key; const m = myResult(s.reveal, meId); if (m) { res.innerHTML = `${m[0]}${m[1] ? `<small>${m[1]}</small>` : ''}`; res.className = m[2] ? 'ok' : 'bad'; res.hidden = false; clearTimeout(resTimer); resTimer = setTimeout(() => { res.hidden = true; }, 2800); } }
+  if (!key) resKey = null;
+  const w = document.getElementById('qwatch'), watching = !!s.tr && !me && !!row; // 토너먼트: 내가 경기에 안 나가면 관전
+  w.hidden = !watching; if (watching) w.textContent = `👀 관전 중 · ${s.tr.r}R ${s.tr.m?.[0]}팀 vs ${s.tr.m?.[1]}팀`;
+}
+
 /** s: 서버 상태, rows: [{id,name,score}] 점수순, meId: 내 id */
 export function renderQuizTop(el, s, rows, meId) {
   const nt = document.getElementById('qnt'); if (nt) { nt.hidden = !s.nt; if (s.nt) nt.textContent = s.nt; document.getElementById('qx2').hidden = s.x2 !== 2; document.getElementById('qfz').hidden = !s.fz; }
   renderTopRank(el.querySelector('#toprank'), rows, meId);
+  renderMine(s, rows, meId);
   { // 퀴즈 모드: 문제 시작 때 팝업 (10초 뒤 자동으로 줄어듦) · 전투 모드: 큰 준비 카운트다운
     const live = !!s.q && (s.phase === PHASE.READING || s.phase === PHASE.MOVING), quiz = live && !isCombat(s.q) && s.q.type !== 'real';
     popQ = s.q && s.phase !== PHASE.LOBBY && !isCombat(s.q) ? s.q : null;

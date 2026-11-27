@@ -55,7 +55,8 @@ export class Game {
     this.locked = null; // 시간이 끝난 시점에 굳어진 판정 (정답 공개 때 점수에 반영)
     this.realPending = new Map(); // 현실 퀴즈: 진행자가 입력한 점수 id → 점수
     this.realConfirmed = false;
-    this.teamCount = 0; // 0이면 팀 없음
+    this.repSeq = 0; // 토너먼트 대표 지정 순서
+    this.teamCount = 2; // 팀은 항상 2팀 (들어오면 인원이 적은 팀으로)
     this.log = []; // 진행자 화면 기록
     this.projectiles = new Map(); // 날아가는 투사체 id → {...}
     this.projSeq = 0;
@@ -146,7 +147,23 @@ export class Game {
       ai: { nextThink: 0, mx: 0, my: 0 },
     };
     this.players.set(id, p);
+    p.team = this._smallTeam(p); // 항상 2팀: 인원이 적은 팀으로 (샌드백·아군 봇은 아래에서 0으로)
     return p;
+  }
+
+  /** 진행자: 토너먼트 대표(★) 지정/해제. 팀마다 최대 2명 — 넘치면 먼저 지정한 사람이 빠짐 */
+  toggleRep(id) {
+    const p = this.players.get(id); if (!p || !p.team) return false;
+    if (p.rep) { p.rep = 0; return true; }
+    const same = this.contestants().filter((o) => o.rep && o.team === p.team).sort((a, b) => a.rep - b.rep);
+    while (same.length >= 2) same.shift().rep = 0;
+    p.rep = ++this.repSeq; return true;
+  }
+
+  /** 1·2팀 중 지금 인원이 적은 팀 (같으면 무작위) */
+  _smallTeam(except) {
+    const n = [0, 0, 0]; for (const o of this.contestants()) if (o !== except && this._present(o) && (o.team === 1 || o.team === 2)) n[o.team]++;
+    return n[1] === n[2] ? (Math.random() < 0.5 ? 1 : 2) : n[1] < n[2] ? 1 : 2;
   }
 
   setInput(id, i) {
@@ -266,16 +283,16 @@ export class Game {
   }
 
   /** 팀 구성: n팀으로 접속자를 무작위로 균형 있게 나눔 (n=0이면 해제) */
-  autoTeams(n) {
-    this.teamCount = Math.max(0, Math.min(8, Math.floor(Number(n)) || 0));
+  autoTeams() { // 항상 2팀으로 무작위로 다시 섞음
+    this.teamCount = 2;
     const hs = this.contestants().filter((p) => p.connected).sort(() => Math.random() - 0.5);
     hs.forEach((p, i) => { p.team = this.teamCount ? (i % this.teamCount) + 1 : 0; });
-    this._log(this.teamCount ? `${this.teamCount}팀 구성` : '팀 해제'); return true;
+    this._log('2팀으로 섞음'); return true;
   }
 
   setTeam(id, t) {
-    const p = this.players.get(id); if (!p) return false;
-    p.team = Math.max(0, Math.min(8, Math.floor(Number(t)) || 0)); this.teamCount = Math.max(this.teamCount, p.team); return true;
+    const p = this.players.get(id); if (!p) return false; if (p.team !== (Number(t) === 2 ? 2 : 1)) p.rep = 0;
+    p.team = Number(t) === 2 ? 2 : 1; return true; // 1팀 또는 2팀
   }
 
   setQuestionMode(qid, mode) {
@@ -339,7 +356,7 @@ export class Game {
     const ids = only || ['blue']; // 아군 봇은 기본 남성(파란티)
     for (const [x, y] of [[3, 5], [4, 9], [3, 13], [4, 17]]) {
       const p = this.addBot('idle', ids[Math.floor(Math.random() * ids.length)]);
-      p.name = '아군'; p.x = x; p.y = y; p.home = { x, y }; p.ally = true; p.hp = Math.ceil(p.cfg.hp * 0.5);
+      p.name = '아군'; p.x = x; p.y = y; p.home = { x, y }; p.ally = true; p.team = 0; p.hp = Math.ceil(p.cfg.hp * 0.5);
     }
   }
 
@@ -352,7 +369,7 @@ export class Game {
     const spots = [['idle', 35, 4], ['idle', 36, 8], ['idle', 35, 12], ['idle', 36, 16], ['idle', 35, 19], ['guard', 31, 6], ['guard', 32, 11], ['guard', 31, 16], ['guard', 37, 11]];
     for (const [mode, x, y] of spots) {
       const p = this.addBot(mode, ids[Math.floor(Math.random() * ids.length)]);
-      p.name = '샌드백'; p.x = x; p.y = y; p.home = { x, y };
+      p.name = '샌드백'; p.x = x; p.y = y; p.home = { x, y }; p.team = 0;
     }
   }
 
@@ -449,9 +466,9 @@ export class Game {
   // ---------- 팀 토너먼트: 팀마다 2명이 나와 2:2로 대진표대로 싸우고, 마지막까지 이긴 팀이 우승 ----------
   _tourSetup() {
     const hs = this.contestants().filter((p) => p.connected);
-    if (new Set(hs.map((p) => p.team || 0)).size < 2 || hs.some((p) => !p.team)) this.autoTeams(Math.max(2, Math.min(8, Math.floor(hs.length / 2))));
+    if (new Set(hs.map((p) => p.team || 0)).size < 2 || hs.some((p) => !p.team)) this.autoTeams();
     const teams = [...new Set(hs.map((p) => p.team))].filter(Boolean).sort(() => Math.random() - 0.5);
-    const reps = {}; for (const t of teams) reps[t] = hs.filter((p) => p.team === t).sort(() => Math.random() - 0.5).slice(0, 2).map((p) => p.id); // 팀마다 무작위 2명
+    const reps = {}; for (const t of teams) { const ms = hs.filter((p) => p.team === t).sort(() => Math.random() - 0.5); reps[t] = [...ms.filter((p) => p.rep), ...ms.filter((p) => !p.rep)].slice(0, 2).map((p) => p.id); } // 팀마다 2명: 진행자가 ★로 고른 사람 먼저, 모자라면 무작위
     this.tour = { reps, alive: teams, round: 0, queue: [], byes: [], won: [], cur: null, log: [], place: {} };
     for (const p of this.players.values()) if (p.isBot && p.connected && p.home) this._park(p);
     this._tourNextRound();
@@ -1493,7 +1510,7 @@ export class Game {
   }
 
   leaderboard() {
-    return this.contestants().filter((p) => this._present(p)).map((p) => ({ id: p.id, name: p.name, score: this.totalScore(p), coins: p.coins, team: p.team || 0 })).sort((a, b) => b.score - a.score);
+    return this.contestants().filter((p) => this._present(p)).map((p) => ({ id: p.id, name: p.name, score: this.totalScore(p), coins: p.coins, team: p.team || 0, rep: p.rep ? 1 : 0 })).sort((a, b) => b.score - a.score);
   }
 
   /** 지금 구역별 인원 (진행자 화면의 실시간 응답) */

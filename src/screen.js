@@ -4,6 +4,7 @@ import QRCode from 'qrcode';
 import { fmtScore, isCombat, MAP, PHASE } from '../shared/constants.js';
 import { BU, startWorld, WORLD_H, WORLD_W } from './world.js';
 import { mountScreenUi, renderScreenUi } from './screenUi.js';
+import { isMuted, setMuted, unlockAudio, audioOn } from './sfx.js';
 
 const $ = (s) => document.querySelector(s);
 const { scene } = startWorld('game', { screen: true });
@@ -29,6 +30,13 @@ let last = null, castId = null;
 const castTag = document.createElement('div'); castTag.id = 'castTag'; castTag.hidden = true;
 castTag.style.cssText = 'position:fixed;left:2vw;bottom:2vh;z-index:14;pointer-events:none;background:#14122bd0;color:#fff;border:.4vh solid #ffd54a;border-radius:99px;padding:.6vh 1.6vw;font:900 2.6vh system-ui,"Noto Sans KR",sans-serif';
 document.body.append(castTag);
+// 소리: 브라우저는 한 번 눌러야 소리를 낼 수 있다 → 빔프로젝터 화면 오른쪽 아래 버튼 (켜지면 작게 🔊)
+const snd = document.createElement('button'); snd.id = 'sndBtn';
+snd.style.cssText = 'position:fixed;right:1.4vw;bottom:9vh;z-index:40;border:.4vh solid #14122b;border-radius:99px;background:#ffd54a;color:#14122b;font:900 2.4vh system-ui,"Noto Sans KR",sans-serif;padding:.8vh 1.6vw;cursor:pointer;box-shadow:0 .5vh 0 #14122b88';
+document.body.append(snd);
+const paintSnd = () => { const on = audioOn() && !isMuted(); snd.textContent = on ? '🔊' : '🔈 소리 켜기'; snd.style.opacity = on ? '0.35' : '1'; };
+snd.addEventListener('click', () => { unlockAudio(); if (audioOn() && !isMuted()) setMuted(true); else setMuted(false); setTimeout(paintSnd, 100); });
+setInterval(paintSnd, 1000); paintSnd();
 function castTarget(s) {
   if (!s || s.rank || s.sm === 'map') return null;
   const ps = s.players.filter((p) => p.ct), c = s.cs || {};
@@ -40,7 +48,7 @@ function castTarget(s) {
 }
 scene.onFrame = (sc, dt) => {
   const cam = sc.cameras.main, t = castTarget(last), v = t && sc.views.get(t.id), big = !!last?.mp;
-  castId = v ? t.id : null; castTag.hidden = !v; if (v) castTag.textContent = `📺 ${t.n}`;
+  castId = v ? t.id : null; sc.listenId = castId; castTag.hidden = !v; // 중계 중이면 그 사람 기준으로 모든 소리 if (v) castTag.textContent = `📺 ${t.n}`;
   const tz = v ? 1.3 : big ? 0.5 : 1, tx = v ? v.x : (big ? last.mp[0] : MAP.w) * BU / 2, ty = v ? v.y - 0.5 * BU : (big ? last.mp[1] : MAP.h) * BU / 2;
   const k = 1 - Math.exp(-(dt / 1000) * 5), m = cam.midPoint; // 부드럽게 따라감
   const z = cam.zoom + (tz - cam.zoom) * k, mw = (big ? last.mp[0] : MAP.w) * BU, mh = (big ? last.mp[1] : MAP.h) * BU, hw = WORLD_W / 2 / z, hh = WORLD_H / 2 / z;
