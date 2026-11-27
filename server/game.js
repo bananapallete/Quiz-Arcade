@@ -377,7 +377,7 @@ export class Game {
     const results = members.map((p) => {
       const ok = p.connected && win.has(this._bKey(p)), gain = ok ? b.pts * this.multiplier : 0;
       if (gain) { p.score = Math.round((p.score + gain) * 10) / 10; undo.push([p.id, gain]); }
-      return { id: p.id, name: p.name, team: p.team || 0, correct: ok, gain, out: !!p.ghost };
+      return { id: p.id, name: p.name, team: p.team || 0, correct: ok, gain, out: !!p.ghost, sp: p.cfg.sprite };
     });
     const winners = [...win].map((k) => ({ team: k.startsWith('t') ? Number(k.slice(1)) : 0, names: results.filter((r) => r.correct && (r.team ? `t${r.team}` : r.id) === k).map((r) => r.name) }));
     this.reveal = { answer: null, brawl: true, results, winners };

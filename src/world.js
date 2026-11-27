@@ -547,6 +547,10 @@ export class WorldScene extends Phaser.Scene {
       if (v.nameStr !== nm) { v.nameStr = nm; v.name.setText(nm); }
       if (lead && this.sys.game.renderer.type === Phaser.WEBGL && !v.lglow) { v.sprite.preFX.setPadding(24); v.lglow = v.sprite.preFX.addGlow(0xffd54a, 4, 0, false, 0.1, 12); } // 1등: 항상 노란 테두리로 빛남
       else if (!lead && v.lglow) { v.sprite.preFX.remove(v.lglow); v.lglow = null; }
+      if (this.renderer.type === Phaser.WEBGL) { // 대난투: 테두리색으로 팀 구분 (폰: 아군 초록·적 빨강, 프로젝터: 팀색)
+        const ft = this.views.get(this.focusId)?.p?.tm, me2 = p.id === this.focusId, col = !this._brawlOn || me2 ? 0 : this.focusId ? (ft && p.tm === ft ? 0x4be37a : 0xff3b3b) : p.tm ? [0, 0xff4d4d, 0x4d8dff, 0x4be37a, 0xffd54a, 0xc77dff, 0xff9f43, 0x4dd8e8, 0xff8fc8][p.tm] : 0;
+        if (v.tcol !== col) { if (v.tglow) { v.sprite.preFX.remove(v.tglow); v.tglow = null; } v.tcol = col; if (col) { v.sprite.preFX.setPadding(24); v.tglow = v.sprite.preFX.addGlow(col, 3, 0, false, 0.1, 10); } }
+      }
       if (p.gh && p.rr) { // 대난투 유령 밑에 팀원이 겹쳐야 하는 부활 범위(점선 원)와 진행도(차오르는 부채꼴)
         if (!v.rg) { v.rg = this.add.graphics(); v.root.push(v.rg); }
         const g = v.rg.clear().setDepth(v.y - 1), rx = p.rr * BU, ry = p.rr * BU * 0.55, cx = v.x, cy = v.y, prog = Math.max(0, Math.min(1, (p.rp || 0) / 5));

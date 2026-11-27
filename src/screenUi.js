@@ -33,7 +33,7 @@ const CSS = `
 #sq .rows{display:grid;gap:1.2vh}#sq .rows div{display:grid;grid-template-columns:6vh minmax(0,1fr) auto auto;gap:1.4vw;align-items:baseline;padding:1.1vh 1.6vw;border:.4vh solid #14122b;border-radius:1.8vh;background:#f6e6c8;font-weight:900;font-size:3.6vh}
 #sq .rows div:nth-child(1){background:#ffe27a}#sq .rows div:nth-child(2){background:#e8eef5}#sq .rows div:nth-child(3){background:#f0c9a0}
 #sq .rows span:nth-of-type(1){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#sq .rows b{color:#d98a00}#sq .rows small{font-size:2.4vh;color:#7a4e32}
-#sq .ttl{font-weight:900;font-size:3.6vh;text-align:center;margin-bottom:1.2vh}
+#sq .heros{display:flex;justify-content:center;gap:1vw;margin-top:1.6vh}#sq .heros i{display:block;width:16vh;height:16vh;background-size:400% 100%;background-position:0 0;image-rendering:pixelated}#sq .ttl{font-weight:900;font-size:3.6vh;text-align:center;margin-bottom:1.2vh}
 #sq .tms{display:flex;gap:1vw;justify-content:center;margin-top:1.4vh}#sq .tms span{font-weight:900;font-size:3vh;border:.35vh solid #14122b;border-radius:99px;padding:.4vh 1.6vh;background:#fff}
 #sq .notice{position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);max-width:80vw;background:#14122bf0;color:#fff;border:.5vh solid #ffd54a;border-radius:3vh;padding:3vh 3vw;font-weight:900;font-size:6vh;text-align:center;word-break:keep-all;box-shadow:0 1vh 0 #0008}
 #sq .title{position:absolute;inset:0;display:grid;place-items:center;background:#2b4d2add}
@@ -90,7 +90,7 @@ export function renderScreenUi(el, s) {
   if (showRev) {
     const r = s.reveal;
     if (r.cal) { const sv = r.results.filter((x) => x.correct); rev.innerHTML = `<div class="ttl">달력 결과 · 탈락 ${r.elim}명 × 2 = ${fmtScore(r.pool)}점</div><div class="rows">${sv.slice(0, 8).map((x) => `<div><b>★</b><span>${esc(x.name)}</span><small>${x.team ? `${x.team}팀` : ''}</small><span>+${fmtScore(x.gain)}</span></div>`).join('') || '<div><b>-</b><span>생존자 없음</span></div>'}</div>`; }
-    else if (r.brawl) rev.innerHTML = `<div class="ttl">대난투 우승</div><div class="rows">${r.winners.map((w) => `<div><b>★</b><span>${w.team ? `${w.team}팀` : esc(w.names.join(', '))}</span><small>${w.team ? esc(w.names.join(', ')) : ''}</small><span>+${fmtScore(r.results.find((x) => x.correct)?.gain || 0)}</span></div>`).join('') || '<div><b>-</b><span>승자 없음</span></div>'}</div>`;
+    else if (r.brawl) rev.innerHTML = `<div class="ttl">대난투 우승</div><div class="rows">${r.winners.map((w) => `<div><b>★</b><span>${w.team ? `${w.team}팀` : esc(w.names.join(', '))}</span><small>${w.team ? esc(w.names.join(', ')) : ''}</small><span>+${fmtScore(r.results.find((x) => x.correct)?.gain || 0)}</span></div>`).join('') || '<div><b>-</b><span>승자 없음</span></div>'}</div><div class="heros">${r.results.filter((x) => x.correct).slice(0, 8).map((x) => `<i title="${esc(x.name)}" style="background-image:url(/characters/${x.sp}/idle.png)"></i>`).join('')}</div>`;
     else if (r.real) rev.innerHTML = `<div class="ttl">현실 퀴즈 결과</div><div class="rows">${r.results.slice(0, 8).map((x, i) => `<div><b>${i + 1}</b><span>${esc(x.name)}</span><small>${x.team ? `${x.team}팀` : ''}</small><span>+${fmtScore(x.gain)}</span></div>`).join('')}</div>`;
     else {
       const ans = q.type === 'choice' ? `${r.answer}번` : r.answer, d = r.dist || {}, keys = q.type === 'choice' ? [1, 2, 3, 4].slice(0, q.options?.length || 4) : ['O', 'X'], tot = Math.max(1, Object.values(d).reduce((a, b) => a + b, 0));
