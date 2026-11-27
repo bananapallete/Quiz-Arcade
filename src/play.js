@@ -12,6 +12,7 @@ const $ = (s) => document.querySelector(s);
 addBtnIcons();
 const qtop = mountQuizTop();
 const socket = io();
+import { isMuted, setMuted, unlockAudio } from './sfx.js';
 import { mountFade } from './fade.js'; mountFade(socket);
 const LS = 'quiz_player';
 const load = () => { try { return JSON.parse(localStorage.getItem(LS) || 'null'); } catch { return null; } };
@@ -234,6 +235,7 @@ addEventListener('keyup', (e) => { keys.delete(e.key.toLowerCase()); keyMove(); 
 
 // ---------- 입장 · 캐릭터 선택 ----------
 $('#uiToggle').addEventListener('click', () => document.body.classList.toggle('hideui'));
+{ const b = $('#snd'), paint = () => { b.textContent = isMuted() ? '🔇' : '🔊'; }; paint(); b.addEventListener('click', () => { unlockAudio(); setMuted(!isMuted()); paint(); }); } // 소리 켜기/끄기
 const NAME_KEY = 'quiz_player_name', nickIn = $('#nickin');
 const savedName = () => { try { return localStorage.getItem(NAME_KEY) || ''; } catch { return ''; } };
 let picker = null, pickMode = 'join'; // join: 처음 입장 · change: 접속 중 캐릭터 변경

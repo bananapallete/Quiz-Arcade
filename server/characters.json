@@ -8,7 +8,7 @@
     "runSpeed": 9,
     "runGauge": 2.8,
     "runRecharge": 8,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "run"
@@ -71,7 +71,7 @@
     "runSpeed": 9,
     "runGauge": 2.8,
     "runRecharge": 8,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "run"
@@ -120,7 +120,7 @@
     "runSpeed": 9.75,
     "runGauge": 4.2,
     "runRecharge": 10,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "run"
@@ -170,7 +170,7 @@
     "runSpeed": 8.25,
     "runGauge": 2.8,
     "runRecharge": 8,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "run"
@@ -221,7 +221,7 @@
     "runSpeed": 8.25,
     "runGauge": 2.8,
     "runRecharge": 8,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "run"
@@ -272,7 +272,7 @@
     "runSpeed": 9.75,
     "runGauge": 5,
     "runRecharge": 10,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "dash",
@@ -343,7 +343,7 @@
     "runSpeed": 6.75,
     "runGauge": 2.8,
     "runRecharge": 10,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "run"
@@ -405,7 +405,7 @@
     "runSpeed": 9,
     "runGauge": 2.8,
     "runRecharge": 8,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "run"
@@ -457,7 +457,7 @@
     "runSpeed": 7.5,
     "runGauge": 5,
     "runRecharge": 10,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "dash",
@@ -533,7 +533,7 @@
     "runSpeed": 11.25,
     "runGauge": 4.2,
     "runRecharge": 10,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "run"
@@ -581,7 +581,7 @@
     "runSpeed": 9,
     "runGauge": 2.8,
     "runRecharge": 8,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "run"
@@ -636,7 +636,7 @@
     "runSpeed": 6,
     "runGauge": 5,
     "runRecharge": 10,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "dash",
@@ -695,7 +695,7 @@
     "runSpeed": 11.25,
     "runGauge": 2.8,
     "runRecharge": 8,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "run"
@@ -741,7 +741,7 @@
     "runSpeed": 7.5,
     "runGauge": 5,
     "runRecharge": 10,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "dash",
@@ -792,7 +792,7 @@
     "runSpeed": 10.5,
     "runGauge": 4.2,
     "runRecharge": 10,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "pickupRadius": 1.6,
     "skill": {
@@ -853,7 +853,7 @@
     "runSpeed": 10.5,
     "runGauge": 2.8,
     "runRecharge": 8,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "run"
@@ -904,7 +904,7 @@
     "runSpeed": 10.5,
     "runGauge": 6,
     "runRecharge": 10,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "dash",
@@ -976,7 +976,7 @@
     "runSpeed": 6,
     "runGauge": 2.8,
     "runRecharge": 10,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "run"
@@ -1022,7 +1022,7 @@
     "runSpeed": 6.75,
     "runGauge": 4,
     "runRecharge": 10,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "dash",
@@ -1080,7 +1080,7 @@
     "runSpeed": 9,
     "runGauge": 2.8,
     "runRecharge": 8,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "run"
@@ -1134,7 +1134,7 @@
     "runSpeed": 12,
     "runGauge": 4.2,
     "runRecharge": 10,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "run"
@@ -1168,11 +1168,11 @@
       "sec": 3,
       "shield": 0.4,
       "radius": 3.5,
-      "dmg": 45,
+      "dmg": 300,
       "knock": 4,
       "fx": "phoenix",
       "spd": 1.1,
-      "desc": "3초간 불사조로 변신, 큰 폭발"
+      "desc": "3초간 불사조로 변신, 끝에 즉사급 폭발"
     }
   },
   "gaga": {
@@ -1184,7 +1184,7 @@
     "runSpeed": 9,
     "runGauge": 2.8,
     "runRecharge": 8,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "run"
@@ -1236,7 +1236,7 @@
     "runSpeed": 9,
     "runGauge": 2.8,
     "runRecharge": 8,
-    "stunSec": 2,
+    "stunSec": 5,
     "invincibleSec": 3,
     "skill": {
       "type": "run"

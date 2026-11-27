@@ -552,12 +552,12 @@ export class Game {
     }
     if (a.chain) { // 체인 라이트닝: 맞히면 가까운 다른 적에게 최대 bounces번 튕김
       this._chain(p, a, dx, dy, range);
-      this.events.push({ e: 'atk', id: p.id, dx: r2(dx), dy: r2(dy), kind: 'proj', step, len: range });
+      this.events.push({ e: 'atk', id: p.id, dx: r2(dx), dy: r2(dy), kind: 'proj', fx: 'chain', step, len: range });
       return;
     }
     if (a.projectile) { // 투사체: 날아가서 닿아야 맞는다 (피할 수 있음)
       this._shoot(p, a, aim, dx, dy, range, near, emp);
-      this.events.push({ e: 'atk', id: p.id, dx: r2(dx), dy: r2(dy), kind: 'proj', step, len: range });
+      this.events.push({ e: 'atk', id: p.id, dx: r2(dx), dy: r2(dy), kind: 'proj', art: a.projectile.art, lob: !!a.projectile.lob, step, len: range });
       return;
     }
     if (a.windup) { // 예고 후 타격: 범위를 보여 주는 동안 피할 수 있다

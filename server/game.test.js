@@ -51,13 +51,13 @@ test('공격 간격: 1초에 최대 3번', () => {
   assert.ok(hits >= 3 && hits <= 4, `hits=${hits}`);
 });
 
-test('체력 0 → 기절 2초 → 체력 회복 + 무적 3초', () => {
+test('체력 0 → 기절 5초 → 체력 회복 + 무적 3초', () => {
   const { g, a, b } = setup();
   b.hp = 1;
   g.attack('a', null);
   assert.equal(b.stunned, true);
   assert.equal(b.hp, 0);
-  run(g, 1.9); assert.equal(b.stunned, true);
+  run(g, 4.9); assert.equal(b.stunned, true);
   run(g, 0.2);
   assert.equal(b.stunned, false);
   assert.equal(b.hp, b.cfg.hp);
@@ -1015,18 +1015,18 @@ test('신난 회전(강아지): 채널링 — 도는 동안 계속 때리고, 0.
   assert.ok(B.cfg.hp - B.hp >= 3 * 6, `여러 번 맞음 ${B.cfg.hp - B.hp}`);
 });
 
-test('피닉스(병아리): 3초간 받는 피해 60% 감소, 뒤에 자폭해 주변에 큰 피해, 알이 되어 2초 뒤 부활(동전 유지)', () => {
+test('피닉스(병아리): 3초간 받는 피해 60% 감소, 뒤에 자폭해 주변에 큰 피해, 알이 되어 5초 뒤 부활(동전 유지)', () => {
   const { g, A, B } = duo('chick', 'blue');
   A.x = 10; A.y = 10; B.x = 12; B.y = 10; A.coins = 7; A.ult = A.cfg.ult.need; g.ult('a', null);
   assert.equal(g.snapshot().players.find((p) => p.id === 'a').s, 'phoenix', '피닉스 그림');
   assert.equal(A.shield.mul, 0.4, '받는 피해 60% 감소');
   const hp = B.hp; run(g, 2.8); assert.equal(B.hp, hp, '3초 전엔 터지지 않음');
   run(g, 0.5);
-  assert.equal(hp - B.hp, A.cfg.ult.dmg, '주변에 큰 피해');
+  assert.ok(A.cfg.ult.dmg >= 200 && B.hp === 0 && B.stunned, '즉사급 폭발: 체력 90 이하는 한 방');
   assert.ok(A.stunned && A.hp === 0, '자폭');
   assert.equal(g.snapshot().players.find((p) => p.id === 'a').s, 'egg', '알로 변신');
   assert.equal(A.coins, 7, '동전은 잃지 않음');
-  run(g, 2.2);
+  run(g, 4.9);
   assert.ok(!A.stunned && A.hp === A.cfg.hp, '병아리로 부활');
   assert.equal(g.snapshot().players.find((p) => p.id === 'a').s, 'chick');
 });
