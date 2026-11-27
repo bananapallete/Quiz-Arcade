@@ -60,6 +60,8 @@ $('#coin').addEventListener('click', () => emit('host:spawnCoin'));
 $('#sbots').addEventListener('click', () => emit('host:addBot', { mode: 'wander', charId: 'random', count: 8 })); // 문제를 풀고 점수를 받는 봇
 $('#abots').addEventListener('click', () => { emit('host:botAttack', { on: true }); emit('host:addBot', { mode: 'aggro', charId: 'random', count: 15 }); });
 $('#b-clear').addEventListener('click', () => emit('host:clearBots'));
+$('#sb-add').addEventListener('click', () => emit('host:addSandbags'));
+$('#sb-del').addEventListener('click', () => emit('host:clearSandbags'));
 $('#reset').addEventListener('click', () => { if (confirm('점수와 동전을 모두 초기화할까요?')) emit('host:reset'); });
 $('#q-add').addEventListener('click', () => {
   const text = $('#q-text').value.trim(), type = $('#q-type').value; if (!text) return;

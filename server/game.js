@@ -290,7 +290,10 @@ export class Game {
   }
 
   /** 대기실 우측 샌드백: 가만히 서 있는 봇(idle)과, 가까이 오면 때리고 구역을 벗어나면 제자리로 돌아가는 봇(guard) */
+  clearSandbags() { for (const [id, p] of this.players) if (p.home && !p.ally) this.players.delete(id); }
+
   addSandbags(only) {
+    this.clearSandbags(); // 다시 누르면 원래 자리로 새로 배치 (겹쳐서 늘어나지 않음)
     const ids = only || ['knight']; // 샌드백(적군 봇)은 기사
     const spots = [['idle', 35, 4], ['idle', 36, 8], ['idle', 35, 12], ['idle', 36, 16], ['idle', 35, 19], ['guard', 31, 6], ['guard', 32, 11], ['guard', 31, 16], ['guard', 37, 11]];
     for (const [mode, x, y] of spots) {

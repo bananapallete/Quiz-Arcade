@@ -1304,6 +1304,12 @@ test('대기실로: 진행 중이던 문제를 닫고 대기실로, 점수는 �
   g.cancelQuestion(); g.gather(); assert.equal(g.phase, PHASE.LOBBY); assert.equal(g.snapshot().q, null); assert.equal(a.score, 3);
 });
 
+test('샌드백: 삭제하면 샌드백만 사라지고(아군 유지), 다시 추가해도 늘어나지 않는다', () => {
+  const g = new Game(chars, quizzes); g.addSandbags(['blue']); g.addAllies(); const n = () => [...g.players.values()].filter((p) => p.name === '샌드백').length;
+  assert.equal(n(), 9); g.addSandbags(['blue']); assert.equal(n(), 9, '중복 안 됨');
+  g.clearSandbags(); assert.equal(n(), 0); assert.equal([...g.players.values()].filter((p) => p.ally).length, 4, '아군은 그대로');
+});
+
 test('난타(격투가): 5초간 앞으로 걸어가며 전방 직선을 연타하고 끝나면 멈춘다', () => {
   const { g, A, B } = duo('brawler', 'blue');
   A.x = 10; A.y = 10; B.x = 12; B.y = 10; A.ult = A.cfg.ult.need;
