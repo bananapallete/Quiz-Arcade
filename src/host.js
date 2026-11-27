@@ -65,9 +65,9 @@ $('#sb-add').addEventListener('click', () => emit('host:addSandbags'));
 $('#sb-del').addEventListener('click', () => emit('host:clearSandbags'));
 $('#reset-coins').addEventListener('click', () => { if (confirm('모두의 획득 동전을 0으로 할까요? (동전 점수도 빠짐)')) emit('host:resetCoins'); });
 $('#reset').addEventListener('click', () => { if (confirm('점수와 동전을 모두 초기화할까요?')) emit('host:reset'); });
-$('#q-type').addEventListener('change', () => { const t = $('#q-type').value; $('#q-time').value = { brawl: 240, tourney: 90, coin: 60 }[t] ?? 15; $('#q-ans').placeholder = ['brawl', 'tourney', 'coin'].includes(t) ? '점수' : t === 'real' ? '-' : '정답 (O/X · 1~4)'; }); // 방식마다 기본 제한시간(초)
+$('#q-type').addEventListener('click', (e) => { const b = e.target.closest('[data-t]'); if (!b) return; $('#q-type').dataset.v = b.dataset.t; $('#q-type').querySelectorAll('[data-t]').forEach((x) => x.classList.toggle('on', x === b)); const t = b.dataset.t; $('#q-time').value = { brawl: 240, tourney: 90, coin: 60 }[t] ?? 15; $('#q-ans').placeholder = ['brawl', 'tourney', 'coin'].includes(t) ? '점수' : t === 'real' ? '-' : '정답 (O/X · 1~4)'; }); // 방식마다 기본 제한시간(초)
 $('#q-add').addEventListener('click', () => {
-  const text = $('#q-text').value.trim(), type = $('#q-type').value; if (!text) return;
+  const text = $('#q-text').value.trim(), type = $('#q-type').dataset.v; if (!text) return;
   const raw = $('#q-ans').value.trim().toUpperCase();
   emit('host:addQuestion', { type, text, options: $('#q-opts').value.split(',').map((x) => x.trim()).filter(Boolean), answer: type === 'ox' ? raw : Number(raw), pts: ['brawl', 'tourney', 'coin'].includes(type) ? Number(raw) || undefined : undefined, time: Number($('#q-time').value) || undefined, image: $('#q-img').value.trim() });
   $('#q-text').value = ''; $('#q-img').value = '';
@@ -76,13 +76,13 @@ $('#q-add').addEventListener('click', () => {
 // ---------- 참가자 · 팀 · 점수 ----------
 $('#t-auto').addEventListener('click', () => { if (confirm('2팀으로 무작위로 다시 섞을까요?')) emit('host:teams', {}); });
 $('#aw-go').addEventListener('click', () => {
-  const who = $('#aw-who').value, n = Number($('#aw-n').value); if (!who || !n) return;
+  const who = awWho, n = Number($('#aw-n').value); if (!who || !n) return;
   if (who.startsWith('t:')) emit('host:adjustTeam', { team: Number(who.slice(2)), delta: n }); else emit('host:adjust', { id: who, delta: n });
 });
 
 // 점수 그리드 ±단계
 document.querySelectorAll('[data-cast]').forEach((b) => b.addEventListener('click', () => emit('host:cast', { m: b.dataset.cast })));
-$('#cast-sel').addEventListener('change', (e) => emit('host:cast', e.target.value ? { id: e.target.value } : { m: 'auto' })); // 고른 참가자를 빔프로젝터로 중계
+$('#cast-list').addEventListener('click', (e) => { const b = e.target.closest('[data-cid]'); if (b) emit('host:cast', st?.cs?.id === b.dataset.cid ? { m: 'auto' } : { id: b.dataset.cid }); }); // 고른 참가자를 빔프로젝터로 중계
 $('#sgrid').addEventListener('click', (e) => { const c = e.target.closest('[data-castid]'); if (c) { emit('host:cast', st?.cs?.id === c.dataset.castid ? { m: 'auto' } : { id: c.dataset.castid }); return; } const b = e.target.closest('[data-sg]'); if (b) emit('host:adjust', { id: b.dataset.id, delta: Number(b.dataset.sg) * (Number($('#adj-step').value) || 1) }); });
 // 팀 끌어놓기
 let dragging = false, dirtyBoard = false;
@@ -168,7 +168,10 @@ $('#plist').addEventListener('click', (e) => {
   if (k && confirm(`${k.dataset.nm} 님을 내보낼까요?`)) emit('host:kick', { id: k.dataset.kick });
 });
 
-let humans = [], lastKey = '', realKey = '';
+let humans = [], lastKey = '', realKey = '', awWho = '';
+$('#aw-who').addEventListener('click', (e) => { const b = e.target.closest('[data-aw]'); if (!b) return; awWho = b.dataset.aw; $('#aw-who').querySelectorAll('[data-aw]').forEach((x) => x.classList.toggle('on', x === b)); $('#aw-sel').textContent = b.textContent; }); // 점수 부여 대상: 버튼으로 고름
+$('#reload-me').addEventListener('click', () => location.reload());
+$('#reload-all').addEventListener('click', () => { if (confirm('빔프로젝터·참가자 폰 화면을 모두 새로고침할까요? (점수·접속은 유지)')) emit('host:reloadAll'); });
 socket.on('state', (s) => {
   st = s;
   humans = (s.lb || []).map((r) => ({ id: r.id, n: r.name, tm: r.team, sc: r.score, cn: r.coins, rep: r.rep, watch: !s.players.some((p) => p.id === r.id) })); // 사람 + 점수 받는 테스트 봇 (순위표 기준 → 토너먼트 관전자도 빠지지 않음)
@@ -178,7 +181,7 @@ socket.on('state', (s) => {
   $('#t-undo').disabled = !s.ud;
   document.querySelectorAll('[data-screen]').forEach((b) => b.classList.toggle('on', b.dataset.screen === s.sm));
   document.querySelectorAll('[data-cast]').forEach((b) => b.classList.toggle('on', b.dataset.cast === s.cs?.m));
-  { const sel = $('#cast-sel'), k = humans.map((p) => p.id + p.n).join(); if (sel.dataset.k !== k) { sel.dataset.k = k; sel.innerHTML = '<option value="">참가자 고르기</option>' + [...humans].sort((a, b) => a.n.localeCompare(b.n)).map((p) => `<option value="${p.id}">${esc(p.n)}</option>`).join(''); } if (document.activeElement !== sel) sel.value = s.cs?.m === 'id' ? s.cs.id : ''; }
+  { const k = JSON.stringify([humans.map((p) => [p.id, p.n, p.tm]), s.cs]); if ($('#cast-list').dataset.k !== k) { $('#cast-list').dataset.k = k; $('#cast-list').innerHTML = [...humans].sort((a, b) => (a.tm - b.tm) || a.n.localeCompare(b.n)).map((p) => `<button class="btn sm${s.cs?.id === p.id ? ' on' : ''}" data-cid="${p.id}" style="border-color:${TEAMC[p.tm] || 'var(--navy)'}">${esc(p.n)}</button>`).join(''); } } // 중계: 참가자 버튼 (다시 누르면 자동)
   $('#tools-state').textContent = [s.tp ? '타이머 정지됨' : '', s.x2 === 2 ? '점수 ×2' : '', s.gd ? '전원 무적' : '', s.ca ? '공격 금지' : '', s.cu ? '궁극기 금지' : '', s.fz ? '비상 정지 중' : ''].filter(Boolean).join(' · ');
   const prevCur = curId, prevDone = doneIds.size;
   if (s.q && s.phase !== PHASE.LOBBY) curId = s.q.id; else if (s.phase === PHASE.LOBBY) curId = null;
@@ -211,6 +214,6 @@ socket.on('state', (s) => {
     renderBoard();
     $('#tt').innerHTML = (s.teams || []).map((t) => `<span class="pill" style="background:${TEAMC[t.t]}99">${t.t}팀 ${fmtScore(t.score)}</span>`).join('');
     $('#p-teams').textContent = tc ? `${tc}팀` : '팀 없음';
-    $('#aw-who').innerHTML = `${(s.teams || []).map((t) => `<option value="t:${t.t}">${t.t}팀 전원</option>`).join('')}${lb.map((p) => `<option value="${p.id}">${esc(p.n)}</option>`).join('')}`;
+    $('#aw-who').innerHTML = `${(s.teams || []).map((t) => `<button class="btn sm${awWho === `t:${t.t}` ? ' on' : ''}" data-aw="t:${t.t}" style="border-color:${TEAMC[t.t]}">${t.t}팀 전원</button>`).join('')}${lb.map((p) => `<button class="btn sm${awWho === p.id ? ' on' : ''}" data-aw="${p.id}">${esc(p.n)}</button>`).join('')}`;
   }
 });

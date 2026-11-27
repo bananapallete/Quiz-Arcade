@@ -118,6 +118,7 @@ io.on('connection', (socket) => {
   host('host:god', (d) => ({ ok: game.setGod(d?.on) }));
   host('host:hideAns', (d) => ({ ok: game.setHideAns(d?.on) }));
   host('host:qr', (d) => ({ ok: game.setQr(d?.on) }));
+  host('host:reloadAll', () => { io.except('hosts').emit('reload'); return { ok: true }; }); // 진행자 외 모든 화면 새로고침
   host('host:cast', (d) => ({ ok: game.setCast(d?.m, d?.id) }));
   host('host:freeze', (d) => ({ ok: game.setFrozen(d?.on) }));
   host('host:x2', (d) => ({ ok: game.setMultiplier(d?.on ? 2 : 1) }));

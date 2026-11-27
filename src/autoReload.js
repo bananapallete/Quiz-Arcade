@@ -2,4 +2,5 @@
 export function autoReload(socket) {
   let boot = null;
   socket.on('boot', (b) => { if (boot && b !== boot) location.reload(); boot = b; });
+  socket.on('reload', () => location.reload()); // 진행자의 '전체 화면 새로고침'
 }

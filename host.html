@@ -20,9 +20,9 @@
       .bar{display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--cream);border-radius:14px}.logo{font-weight:900;font-size:19px}
       .pill{padding:4px 12px;border-radius:99px;font-weight:900;border:2px solid var(--navy);background:var(--cream-hi)}
       .g{display:grid;grid-template-columns:300px minmax(0,1fr) 400px;gap:10px;min-height:0}
-      .col{background:var(--cream);border-radius:14px;padding:12px;display:grid;gap:8px;align-content:start;min-height:0;overflow:auto}
+      .col{background:var(--cream);border-radius:14px;padding:12px;display:grid;grid-template-columns:minmax(0,1fr);gap:8px;align-content:start;min-height:0;overflow:auto}
       h3{margin:0;font-size:16px;display:flex;align-items:center;gap:8px}h3 em{margin-left:auto;font-style:normal;font-size:12px;opacity:.7}
-      .q{display:grid;grid-template-columns:20px 1fr auto auto;gap:6px;align-items:center;padding:6px 8px;border-radius:10px;background:var(--cream-hi);border:2px solid #d9bd8a;font-weight:800;font-size:14px}
+      .q{display:grid;grid-template-columns:20px minmax(0,1fr) auto auto;min-width:0;gap:6px;align-items:center;padding:6px 8px;border-radius:10px;background:var(--cream-hi);border:2px solid #d9bd8a;font-weight:800;font-size:14px}
       .q.cur{border-color:var(--navy);background:#fff3c4;box-shadow:0 3px 0 #14122b55}.q i{font-style:normal;width:16px;height:16px;border-radius:50%;border:2px solid var(--navy);background:#fff;display:inline-block}.q.done i{background:var(--leaf)}.q.cur i{background:var(--gold)}
       .q span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
       button,select,input{font:inherit}
@@ -62,12 +62,14 @@
       .steps li.done{color:#6e9a3a}.steps li.done b{background:#6e9a3a}.steps li.now{background:#ffd54a;color:#14122b;box-shadow:0 0 0 2px #14122b}.steps li.now b{background:#14122b}.steps li small{font-weight:800;opacity:.75}
       .steps .todo{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap}.steps .todo span{font-weight:900;font-size:14px;margin-right:4px}
       .chip.rep{background:#ffd54a}
+      .col details>div[style*="display:grid"]{grid-template-columns:minmax(0,1fr)}
+      .seg{display:flex;flex-wrap:wrap;gap:4px;min-width:0}.pick{display:flex;flex-wrap:wrap;gap:4px;max-height:120px;overflow:auto}.pick .btn.sm,.seg .btn.sm{font-size:12px;padding:3px 8px}
       [hidden]{display:none!important}
     </style>
   </head>
   <body>
     <div id="auth" hidden><h3>진행자 키</h3><input id="key" class="inp" type="text" placeholder="키" /><button id="login" class="btn go">입장</button><p id="aerr" style="color:#c0392b;margin:0"></p></div>
-    <div class="bar" id="topbar" hidden><span class="logo">🎮 진행자</span><span class="pill" id="s-players">-</span><span class="pill" id="s-phase" style="background:var(--leaf)">-</span><span class="pill" id="s-left">-</span><a class="pill" href="/screen" target="_blank" style="margin-left:auto;text-decoration:none;color:inherit">화면 열기 ↗</a></div>
+    <div class="bar" id="topbar" hidden><span class="logo">🎮 진행자</span><span class="pill" id="s-players">-</span><span class="pill" id="s-phase" style="background:var(--leaf)">-</span><span class="pill" id="s-left">-</span><button class="pill" id="reload-all" style="margin-left:auto;cursor:pointer;font:inherit;font-weight:900">↻ 전체 화면 새로고침</button><button class="pill" id="reload-me" style="cursor:pointer;font:inherit;font-weight:900">↻ 새로고침</button><a class="pill" href="/screen" target="_blank" style="text-decoration:none;color:inherit">화면 열기 ↗</a></div>
     <div class="steps" id="steps" hidden></div>
     <div class="g" id="app" hidden>
       <div class="col">
@@ -75,7 +77,7 @@
         <div id="qlist" style="display:grid;gap:6px"></div>
         <details><summary>＋ 문제 추가</summary>
           <div style="display:grid;gap:6px;margin-top:8px">
-            <div style="display:flex;gap:6px"><select id="q-type" class="inp" style="flex:1"><option value="ox">O/X</option><option value="choice">객관식</option><option value="real">현실</option><option value="brawl">대난투</option><option value="tourney">토너먼트</option><option value="coin">동전 모으기</option></select></div>
+            <div style="display:flex;gap:6px"><div class="seg" id="q-type" data-v="ox" style="flex:1;min-width:0"><button class="btn sm on" data-t="ox">O/X</button><button class="btn sm" data-t="choice">객관식</button><button class="btn sm" data-t="real">현실</button><button class="btn sm" data-t="brawl">대난투</button><button class="btn sm" data-t="tourney">토너먼트</button><button class="btn sm" data-t="coin">동전</button></div></div>
             <input id="q-text" class="inp" placeholder="문제" /><input id="q-opts" class="inp" placeholder="객관식 보기 (쉼표로 구분)" />
             <div style="display:flex;gap:6px"><input id="q-ans" class="inp" placeholder="정답 · 점수" style="flex:1" /><input id="q-time" class="inp" type="number" value="15" min="5" max="900" title="제한시간(초)" style="width:70px" /><span style="align-self:center;font-weight:900">초</span></div>
             <input id="q-img" class="inp" placeholder="이미지 주소 (선택)" /><button class="btn go" id="q-add">추가</button>
@@ -94,7 +96,7 @@
           <div class="ctl" style="grid-template-columns:repeat(4,1fr)"><button class="btn sm" id="t-m10">−10초</button><button class="btn sm" id="t-p10">＋10초</button><button class="btn sm" id="t-undo">↶ 점수 되돌리기</button><button class="btn sm gold" id="c-rain">🪙 동전 비</button></div>
           <div class="ctl" style="grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)"><button class="btn sm" id="q-prev">◀ 이전 문제</button><button class="btn sm" id="q-next">다음 문제 ▶</button><button class="btn sm gold" id="cal-fin" hidden>🏁 정산</button></div>
           <div class="sws"><button class="sw" id="t-pause"><i></i>일시정지</button><button class="sw" id="t-x2"><i></i>×2 라운드</button><button class="sw" id="t-qr"><i></i>QR</button><button class="sw" id="hideans"><i></i>정답 숨김</button><button class="sw red" id="t-god"><i></i>전원 무적</button><button class="sw red" id="t-noatk"><i></i>공격 금지</button><button class="sw red" id="t-noult"><i></i>궁극기 금지</button><button class="sw red" id="t-freeze"><i></i>비상 정지</button></div>
-          <div style="display:flex;gap:6px;align-items:center"><b>📺 중계</b><button class="btn sm" data-cast="auto">자동 1등</button><button class="btn sm" data-cast="off">전체 맵</button><select class="inp" id="cast-sel" style="flex:1;padding:3px 8px"><option value="">참가자 고르기</option></select></div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><b>📺 중계</b><button class="btn sm" data-cast="auto">자동 1등</button><button class="btn sm" data-cast="off">전체 맵</button></div><div class="pick" id="cast-list"></div>
           <div style="display:flex;gap:6px"><b style="align-self:center">화면</b><button class="btn sm" data-screen="title">타이틀</button><button class="btn sm" data-screen="quiz">퀴즈</button><button class="btn sm" data-screen="map">맵</button><button class="btn sm" data-screen="rank">순위</button></div>
           <div style="display:grid;grid-template-columns:1fr 70px auto;gap:6px"><input class="inp" id="nt-text" maxlength="80" placeholder="전체 공지 (빔프로젝터·폰에 표시)"><input class="inp" id="nt-sec" type="number" value="8" min="2" max="30"><button class="btn sm go" id="nt-go" style="font-size:14px">공지</button></div>
         </div>
@@ -104,7 +106,7 @@
           <div class="ctl" style="grid-template-columns:1fr 1fr"><button class="btn gold" id="realok">확인</button><button class="btn go" id="realrev" disabled>공개하기</button></div></div>
         <div class="card" id="rdbox" hidden><h3>라운드 기록</h3><div id="rd"></div></div>
         <div class="card"><h3>기록 <em id="hist-n"></em></h3><div id="hist"></div></div>
-        <div class="card"><h3>점수 부여 <em>보너스·현실 게임 결과</em></h3><div style="display:grid;grid-template-columns:1fr 90px auto;gap:8px"><select class="inp" id="aw-who"></select><input class="inp" id="aw-n" type="number" step="0.5" value="1" /><button class="btn gold" id="aw-go">지급</button></div></div>
+        <div class="card"><h3>점수 부여 <em>보너스·현실 게임 결과</em></h3><div class="pick" id="aw-who" style="margin-bottom:8px"></div><div style="display:grid;grid-template-columns:1fr 90px auto;gap:8px"><span id="aw-sel" style="align-self:center;font-weight:900">대상을 누르세요</span><input class="inp" id="aw-n" type="number" step="0.5" value="1" /><button class="btn gold" id="aw-go">지급</button></div></div>
       </div>
       <div class="col">
         <h3>참가자 <em id="p-teams"></em></h3>
