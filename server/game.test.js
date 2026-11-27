@@ -193,15 +193,15 @@ test('달리기: 게이지가 40% 빨리 닳아 2.8짜리가 약 2초 뒤 바닥
   assert.equal(a.runGauge, a.cfg.runGauge);
 });
 
-test('걷기 6, 달리기 9 BU/s (기본 이동속도의 2배)', () => {
+test('걷기 3, 달리기 4.5 BU/s (파란티)', () => {
   const g = new Game(chars, quizzes);
   const a = g.join({ token: 'a', name: 'A', charId: 'blue' });
   a.x = 10; a.y = 10; a.kx = a.ky = 0;
   g.setInput('a', { mx: 1, my: 0, run: false });
-  run(g, 1); assert.ok(Math.abs(a.x - 16) < 0.15, `walk x=${a.x}`);
+  run(g, 1); assert.ok(Math.abs(a.x - 13) < 0.15, `walk x=${a.x}`);
   a.x = 10;
   g.setInput('a', { mx: 1, my: 0, run: true });
-  run(g, 1); assert.ok(Math.abs(a.x - 19) < 0.15, `run x=${a.x}`);
+  run(g, 1); assert.ok(Math.abs(a.x - 14.5) < 0.15, `run x=${a.x}`);
 });
 
 test('점수: 정답 1점 + 먼저 도착한 1~3등 +3/+2/+1, 오답·무응답 0점', () => {
@@ -285,14 +285,14 @@ test('이동 속도는 항상 일정: 조이스틱을 살짝 밀어도 같은 �
   g.setInput('a', { mx: 0.3, my: 0, run: false }); // 살짝 밀기
   g.update(DT);
   const first = a.x - 10;
-  assert.ok(Math.abs(first - 6 * DT) < 1e-6, `첫 틱부터 최고 속도여야 함: ${first}`);
+  assert.ok(Math.abs(first - 3 * DT) < 1e-6, `첫 틱부터 최고 속도여야 함: ${first}`);
   const x1 = a.x; run(g, 1);
-  assert.ok(Math.abs(a.x - x1 - 6) < 0.1, `1초에 6칸: ${a.x - x1}`);
+  assert.ok(Math.abs(a.x - x1 - 3) < 0.1, `1초에 3칸: ${a.x - x1}`);
   // 대각선도 같은 속도
   a.x = 10; a.y = 10;
   g.setInput('a', { mx: 1, my: 1, run: false });
   run(g, 1);
-  assert.ok(Math.abs(Math.hypot(a.x - 10, a.y - 10) - 6) < 0.1);
+  assert.ok(Math.abs(Math.hypot(a.x - 10, a.y - 10) - 3) < 0.1);
 });
 
 test('기절한 캐릭터는 마지막 일격에도, 쓰러진 뒤에도 밀리지 않는다', () => {
@@ -371,7 +371,7 @@ test('원거리 캐릭터는 쏜 직후 설정 배율만큼 느려진다', () =>
   g.setInput('a', { mx: 1, my: 0, run: false });
   g.attack('a', null);
   const x0 = a.x; g.update(DT);
-  assert.ok(Math.abs(a.x - x0 - 6 * a.cfg.attack.atkSlow.mul * DT) < 1e-6);
+  assert.ok(Math.abs(a.x - x0 - 3 * a.cfg.attack.atkSlow.mul * DT) < 1e-6);
 });
 
 test('조준 미리보기: 자동 조준은 사거리 안의 가장 가까운 적, 없으면 null', () => {
@@ -1388,7 +1388,7 @@ test('대난투 유령 봇은 살아 있는 팀원에게 걸어가 겹쳐서 부
   const g = new Game(chars, [{ type: 'brawl', text: '대난투', time: 120 }]); const a = g.addBot('wander', 'blue'), b = g.addBot('wander', 'blue'), c = g.addBot('idle', 'blue'), d = g.addBot('idle', 'blue');
   a.team = 1; b.team = 1; c.team = 2; d.team = 2; g.ask(1); for (let i = 0; i < 30 * 14; i++) g.update(1 / 30);
   a.invUntil = 0; g.knockOut(a.id); assert.equal(a.ghost, true); b.x = 30; b.y = 22; a.x = 20; a.y = 22; b.botMode = 'idle'; // 팀원은 가만히 (바위가 있는 y=22 줄에 세워서 돌아가기도 확인)
-  for (let i = 0; i < 30 * 50; i++) g.update(1 / 30); assert.equal(a.ghost, false, `유령이 팀원에게 가서 부활 x=${a.x}`);
+  for (let i = 0; i < 30 * 100; i++) g.update(1 / 30); assert.equal(a.ghost, false, `유령이 팀원에게 가서 부활 x=${a.x}`);
 });
 
 test('난타(격투가): 5초간 앞으로 걸어가며 전방 직선을 연타하고 끝나면 멈춘다', () => {
@@ -1396,10 +1396,10 @@ test('난타(격투가): 5초간 앞으로 걸어가며 전방 직선을 연타�
   A.x = 10; A.y = 10; B.x = 12; B.y = 10; A.ult = A.cfg.ult.need;
   g.setInput('a', { mx: 1, my: 0, run: false }); g.ult('a', null);
   const x0 = A.x, hp = B.hp; run(g, 1);
-  assert.ok(A.x > x0 + 3, '앞으로 전진');
+  assert.ok(A.x > x0 + 1.5, '앞으로 전진');
   assert.ok(B.hp < hp, '앞의 적을 연타');
   g.setInput('a', { mx: 0, my: 0, run: false }); run(g, 1.5);
-  assert.ok(A.x > x0 + 6, '입력이 없어도 계속 전진');
+  assert.ok(A.x > x0 + 3, '입력이 없어도 계속 전진');
   run(g, 3.2);
   const xe = A.x; run(g, 0.5);
   assert.equal(A.x, xe, '5초 뒤엔 멈춤');
@@ -1421,10 +1421,10 @@ test('난타(격투가): 5초간 앞으로 걸어가며 전방 직선을 연타�
   A.x = 10; A.y = 10; B.x = 12; B.y = 10; A.ult = A.cfg.ult.need;
   g.setInput('a', { mx: 1, my: 0, run: false }); g.ult('a', null);
   const x0 = A.x, hp = B.hp; run(g, 1);
-  assert.ok(A.x > x0 + 3, '앞으로 전진');
+  assert.ok(A.x > x0 + 1.5, '앞으로 전진');
   assert.ok(B.hp < hp, '앞의 적을 연타');
   g.setInput('a', { mx: 0, my: 0, run: false }); run(g, 1.5);
-  assert.ok(A.x > x0 + 6, '입력이 없어도 계속 전진');
+  assert.ok(A.x > x0 + 3, '입력이 없어도 계속 전진');
   run(g, 3.2);
   const xe = A.x; run(g, 0.5);
   assert.equal(A.x, xe, '5초 뒤엔 멈춤');

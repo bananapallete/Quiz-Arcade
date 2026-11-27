@@ -32,5 +32,5 @@ export function starsOf(chars) {
 
 /** 전투력 지수: sqrt(체력 × DPS) × 사거리 보정 × 이동 속도 보정 */
 export function powerIndex(c) {
-  return Math.sqrt(c.hp * (1 + (c.guard ?? 0) * 0.5) * dpsOf(c).dps) * (1 + 0.1 * (c.attack.range - 1.2)) * (c.walkSpeed / 6) ** 0.3;
+  return Math.sqrt(c.hp * (1 + (c.guard ?? 0) * 0.5) * dpsOf(c).dps) * (1 + 0.1 * (c.attack.range - 1.2)) * (c.walkSpeed / 3) ** 0.3;
 }
