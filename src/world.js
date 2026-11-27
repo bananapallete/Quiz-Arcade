@@ -459,7 +459,7 @@ export class WorldScene extends Phaser.Scene {
     this.zoneImgs.forEach((i) => i.destroy());
     this.zoneImgs = [];
 
-    for (const z of ZONES[type] || []) {
+    for (const z of quiz ? ZONES[type] || [] : []) { // 대기실엔 O/X 구역을 그리지 않음 (맵 미리 보기·문제 중에만)
       const correct = s.phase === PHASE.REVEAL && z.id === ans;
       const alpha = { [PHASE.LOBBY]: 0.35, [PHASE.READING]: 0.6, [PHASE.MOVING]: 0.85 }[s.phase] ?? (correct ? 1 : 0.2);
       this.zoneImgs.push(this.add.image((z.cx - z.r) * BU - MAT_MARGIN * (BU / TILE), (z.cy - z.r) * BU - MAT_MARGIN * (BU / TILE), matTexture(this, type, z)).setOrigin(0).setScale(BU / TILE).setDepth(-80).setAlpha(alpha));
