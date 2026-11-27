@@ -14,6 +14,7 @@ const r2 = (n) => Math.round(n * 100) / 100;
 const rand = (a, b) => a + Math.random() * (b - a);
 
 // 어떤 구역도 아닌 맵 안쪽 지점 (입장·모이기 위치)
+const BOT_NAMES = ['민준', '서연', '지호', '하윤', '도윤', '지우', '예준', '서윤', '시우', '지민', '주원', '수아', '하준', '다은', '건우', '채원', '현우', '유나', '준서', '소율', '지훈', '예린', '우진', '나윤', '승현', '가은', '태양', '시은', '재민', '아린', '동현', '하은', '민재', '지안', '성민', '윤서', '진우', '다인', '은우', '세아', '정우', '유진', '태민', '소은', '재윤', '나은', '현서', '지율', '시현', '혜원'];
 export const SANDBAG_ATTACK = false; // 샌드백(지킴이) 공격 기능: 지금은 꺼 둠 (true면 가까이 오면 때림)
 function spawnPos() {
   for (let i = 0; i < 20; i++) {
@@ -109,7 +110,9 @@ export class Game {
     if (charId === 'random') { const ids = Object.keys(this.characters); charId = ids[Math.floor(Math.random() * ids.length)]; }
     if (!this.characters[charId]) charId = Object.keys(this.characters)[0];
     const id = `bot-${++this.botSeq}`;
-    return this._spawn({ id, name: `봇${this.botSeq}`, charId, isBot: true, botMode: mode }); // 이름은 봇1, 봇2…: 등수·팀에서 구분됨
+    const used = new Set([...this.players.values()].map((p) => p.name)), free = BOT_NAMES.filter((n) => !used.has(n));
+    const name = free.length ? free[Math.floor(Math.random() * free.length)] : `${BOT_NAMES[this.botSeq % BOT_NAMES.length]}${this.botSeq}`; // 임의의 사람 이름(겹치지 않게), 다 쓰면 번호를 붙임
+    return this._spawn({ id, name, charId, isBot: true, botMode: mode });
   }
 
   clearBots() {

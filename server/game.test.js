@@ -1339,6 +1339,11 @@ test('돼지: 기본 공격을 하면 2칸 앞으로 돌진한 뒤 타격한다 
   assert.ok(Math.abs(A2.x - 12) < 0.35, `상대가 없어도 약 2칸 전진 x=${A2.x}`);
 });
 
+test('봇 이름은 서로 겹치지 않는 임의의 사람 이름', () => {
+  const g = new Game(chars, quizzes); const bots = Array.from({ length: 30 }, () => g.addBot('wander', 'blue')); const names = bots.map((b) => b.name);
+  assert.equal(new Set(names).size, 30); assert.ok(names.every((n) => !/^봇\d/.test(n)));
+});
+
 test('난타(격투가): 5초간 앞으로 걸어가며 전방 직선을 연타하고 끝나면 멈춘다', () => {
   const { g, A, B } = duo('brawler', 'blue');
   A.x = 10; A.y = 10; B.x = 12; B.y = 10; A.ult = A.cfg.ult.need;
