@@ -1299,6 +1299,11 @@ test('진행자 토글: 공격 금지·궁극기 금지·전원 무적', () => {
   g.setGod(false); B.nextAttackAt = 0; A.nextAttackAt = 0; g.attack('a', { x: 1, y: 0 }); run(g, 0.5); assert.ok(B.hp < hp, '해제하면 다시 피해');
 });
 
+test('대기실로: 진행 중이던 문제를 닫고 대기실로, 점수는 그대로', () => {
+  const g = new Game(chars, quizzes), a = g.join({ token: 'a', name: 'A', charId: 'blue' }); g.adjust('a', 3); g.ask(1); run(g, 4);
+  g.cancelQuestion(); g.gather(); assert.equal(g.phase, PHASE.LOBBY); assert.equal(g.snapshot().q, null); assert.equal(a.score, 3);
+});
+
 test('난타(격투가): 5초간 앞으로 걸어가며 전방 직선을 연타하고 끝나면 멈춘다', () => {
   const { g, A, B } = duo('brawler', 'blue');
   A.x = 10; A.y = 10; B.x = 12; B.y = 10; A.ult = A.cfg.ult.need;

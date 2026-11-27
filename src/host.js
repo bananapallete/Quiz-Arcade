@@ -48,6 +48,7 @@ function renderCurrent() {
 }
 $('#ask').addEventListener('click', () => { if (!askId) return; emit('host:ask', { id: askId }); const ids = info.questions.map((q) => q.id), i = ids.indexOf(askId); askId = ids[i + 1] ?? askId; renderQuestions(); }); // 출제하면 다음 문제가 자동 선택됨
 $('#gather2').addEventListener('click', () => emit('host:gather'));
+$('#lobby').addEventListener('click', () => { const live = [PHASE.READING, PHASE.MOVING, PHASE.HOLD, PHASE.REAL].includes(st?.phase); if (!live || confirm('진행 중인 문제를 닫고 대기실로 갈까요? (점수 변화 없음)')) emit('host:lobby'); });
 $('#end').addEventListener('click', () => emit('host:end'));
 $('#hideans').addEventListener('click', () => emit('host:hideAns', { on: !st?.ha }));
 $('#t-god').addEventListener('click', () => emit('host:god', { on: !st?.gd }));
