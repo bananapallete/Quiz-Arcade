@@ -1785,3 +1785,10 @@ test('하마 발 구르기: 그려지는 대로 주변 360°를 치고, 몸이 �
   const dmg = chars.hippo.attack.dmgMin;
   assert.equal(B.hp, B.cfg.hp - dmg, '앞'); assert.equal(C.hp, C.cfg.hp - dmg, '뒤'); assert.equal(D.hp, D.cfg.hp - dmg, '가장자리에 몸이 걸쳐도');
 });
+
+test('동전 초기화: 획득 동전만 0, 문제 점수는 그대로', () => {
+  const g = new Game(chars, quizzes);
+  const a = g.join({ token: 'a', name: 'A', charId: 'blue' }); a.score = 3; a.coins = 4;
+  assert.equal(g.totalScore(a), 5);
+  g.resetCoins(); assert.equal(a.coins, 0); assert.equal(a.score, 3); assert.equal(g.totalScore(a), 3);
+});

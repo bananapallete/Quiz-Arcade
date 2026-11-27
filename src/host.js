@@ -63,6 +63,7 @@ $('#abots').addEventListener('click', () => { emit('host:botAttack', { on: true 
 $('#b-clear').addEventListener('click', () => emit('host:clearBots'));
 $('#sb-add').addEventListener('click', () => emit('host:addSandbags'));
 $('#sb-del').addEventListener('click', () => emit('host:clearSandbags'));
+$('#reset-coins').addEventListener('click', () => { if (confirm('모두의 획득 동전을 0으로 할까요? (동전 점수도 빠짐)')) emit('host:resetCoins'); });
 $('#reset').addEventListener('click', () => { if (confirm('점수와 동전을 모두 초기화할까요?')) emit('host:reset'); });
 $('#q-add').addEventListener('click', () => {
   const text = $('#q-text').value.trim(), type = $('#q-type').value; if (!text) return;

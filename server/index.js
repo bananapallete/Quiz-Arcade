@@ -91,6 +91,7 @@ io.on('connection', (socket) => {
   host('host:ask', (d) => ({ ok: game.ask(Number(d?.id)) }));
   host('host:end', () => game.endQuestion());
   host('host:reset', () => game.resetScores());
+  host('host:resetCoins', () => ({ ok: game.resetCoins() }));
   host('host:gather', () => { game.gather(); io.emit('gathered'); });
   host('host:previewMap', (d) => { const ok = game.previewMap(Number(d?.id)); if (ok) io.emit('gathered'); return { ok }; });
   host('host:addQuestion', (d) => game.addQuestion(d || {}));

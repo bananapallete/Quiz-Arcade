@@ -295,6 +295,14 @@ export class Game {
     this.reveal = { answer: null, real: true, results }; this.phase = PHASE.REVEAL; return true;
   }
 
+  /** 진행자: 모두의 획득 동전만 0으로 (문제 점수는 그대로, 동전 점수만 빠짐) */
+  resetCoins() {
+    const rows = this.contestants().filter((p) => p.coins).map((p) => ({ id: p.id, name: p.name, team: p.team || 0, gain: -Math.round(p.coins * COIN.value * 10) / 10 }));
+    for (const p of this.players.values()) p.coins = 0;
+    if (this.coinRun) for (const id of Object.keys(this.coinRun.start)) this.coinRun.start[id] = 0;
+    this._hist('adj', '동전 초기화', rows); this._log('동전 초기화'); return true;
+  }
+
   resetScores() {
     this.cancelQuestion(); this.scoreLog = []; this.rounds = []; // 진행 중인 대난투·달력 정리, 초기화 이전 점수는 되돌리지 않음
     this._hist('reset', '점수 초기화'); for (const p of this.players.values()) { p.score = 0; p.coins = 0; }
