@@ -50,9 +50,9 @@ export function renderQuizTop(el, s, rows, meId) {
   qb.hidden = !show; tm.hidden = !show; tg.style.visibility = show ? 'visible' : 'hidden';
   if (!show) return;
   const no = qb.querySelector('.no'), p = qb.querySelector('p'), th = qb.querySelector('.th');
-  const ans = s.reveal && s.reveal.answer != null ? (q.type === 'choice' ? `${s.reveal.answer}번` : s.reveal.answer) : '';
+  const ans = s.reveal && s.reveal.answer != null && !s.ha ? (q.type === 'choice' ? `${s.reveal.answer}번` : s.reveal.answer) : '';
   no.className = `no${s.phase === PHASE.HOLD ? ' end' : s.phase === PHASE.REVEAL ? ' ans' : s.phase === PHASE.REAL ? ' real' : ''}`;
-  no.textContent = s.phase === PHASE.HOLD ? '종료' : s.phase === PHASE.REVEAL ? (s.reveal?.real ? '공개' : `정답 ${ans}`) : s.phase === PHASE.REAL ? '현실' : `Q${q.id}`;
+  no.textContent = s.phase === PHASE.HOLD ? '종료' : s.phase === PHASE.REVEAL ? (s.reveal?.real ? '공개' : ans ? `정답 ${ans}` : '종료') : s.phase === PHASE.REAL ? '현실' : `Q${q.id}`;
   p.textContent = q.text + (q.type === 'choice' && q.options ? '  ' + q.options.map((o, i) => `${i + 1}.${o}`).join(' ') : '');
   th.hidden = !q.image; if (q.image) { th.style.backgroundImage = `url("${q.image}")`; th.dataset.url = q.image; }
   const reading = s.phase === PHASE.READING, moving = s.phase === PHASE.MOVING, total = reading ? READ_SEC : q.time || 15, f = (moving || reading) ? Math.max(0, Math.min(1, s.left / total)) : 0;

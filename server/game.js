@@ -43,7 +43,7 @@ export class Game {
     this.itemClock = 0;
     this.coinsSpawned = 0; // 지금까지 생성한 동전 수 (습득된 것 포함)
     this.showRank = false; // 빔프로젝터에 순위표를 띄울지
-    this.showQr = true; this.timerPaused = false; this.frozen = false; this.multiplier = 1; this.notice = null; this.screenMode = 'quiz'; this.scoreLog = []; // 진행자 기능
+    this.showQr = true; this.hideAns = false; this.timerPaused = false; this.frozen = false; this.multiplier = 1; this.notice = null; this.screenMode = 'quiz'; this.scoreLog = []; // 진행자 기능
     this.locked = null; // 시간이 끝난 시점에 굳어진 판정 (정답 공개 때 점수에 반영)
     this.realPending = new Map(); // 현실 퀴즈: 진행자가 입력한 점수 id → 점수
     this.realConfirmed = false;
@@ -145,7 +145,7 @@ export class Game {
     if (!q) return false;
     this.question = q;
     this.reveal = null; this.locked = null; this.realPending = new Map(); this.realConfirmed = false;
-    this.showRank = false; this.screenMode = 'quiz'; this.timerPaused = false;
+    this.showRank = false; this.hideAns = false; this.screenMode = 'quiz'; this.timerPaused = false;
     this.phase = q.type === 'real' ? PHASE.REAL : PHASE.READING;
     this.phaseEnd = this.t + READ_SEC;
     this._log(`문제 ${q.id} 출제`);
@@ -196,6 +196,7 @@ export class Game {
   pauseTimer(on) { this.timerPaused = !!on; this._log(on ? '타이머 일시정지' : '타이머 재개'); return true; }
   addTime(sec) { if (this.phase !== PHASE.READING && this.phase !== PHASE.MOVING) return false; this.phaseEnd = Math.max(this.t + 1, this.phaseEnd + Number(sec) || 0); return true; }
   setQr(on) { this.showQr = !!on; return true; }
+  setHideAns(on) { this.hideAns = !!on; return true; } // 정답 공개 후에도 화면에서 정답을 가림
   setFrozen(on) { this.frozen = !!on; this._log(on ? '비상 정지' : '정지 해제'); return true; }
   setMultiplier(n) { this.multiplier = Number(n) === 2 ? 2 : 1; this._log(this.multiplier === 2 ? '점수 2배 라운드' : '점수 2배 해제'); return true; }
   announce(text, sec = 8) { const t = String(text || '').slice(0, 80).trim(); this.notice = t ? { text: t, until: this.t + Math.min(30, Math.max(2, Number(sec) || 8)) } : null; if (t) this._log(`공지: ${t}`); return true; }
@@ -1039,7 +1040,7 @@ export class Game {
       left: this.phase === PHASE.READING || this.phase === PHASE.MOVING ? r2(Math.max(0, this.phaseEnd - this.t)) : 0,
       q,
       reveal: this.reveal,
-      rank: this.showRank, qr: this.showQr ? 1 : 0, sm: this.screenMode, x2: this.multiplier, tp: this.timerPaused ? 1 : 0, fz: this.frozen ? 1 : 0, nt: this.notice && this.t < this.notice.until ? this.notice.text : null, ud: this.scoreLog.length,
+      rank: this.showRank, ha: this.hideAns ? 1 : 0, qr: this.showQr ? 1 : 0, sm: this.screenMode, x2: this.multiplier, tp: this.timerPaused ? 1 : 0, fz: this.frozen ? 1 : 0, nt: this.notice && this.t < this.notice.until ? this.notice.text : null, ud: this.scoreLog.length,
       dist: this.phase === PHASE.MOVING || this.phase === PHASE.HOLD ? this._liveDist() : null,
       teams: this._teamTotals(),
       real: this.phase === PHASE.REAL ? { pending: [...this.realPending].map(([id, pts]) => ({ id, pts })), confirmed: this.realConfirmed } : null,

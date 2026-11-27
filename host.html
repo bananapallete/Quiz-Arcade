@@ -29,7 +29,7 @@
       .btn{padding:10px 14px;border-radius:12px;border:3px solid var(--navy);font-weight:900;font-size:15px;box-shadow:0 4px 0 #14122b66;background:var(--cream-hi);color:var(--text);text-align:center;cursor:pointer}
       .btn:active{transform:translateY(3px);box-shadow:0 1px 0 #14122b66}.btn[disabled]{opacity:.4;pointer-events:none}
       .btn.go{background:var(--leaf)}.btn.red{background:#ff8f84}.btn.gold{background:#ffd54a}.btn.sky{background:#9cc4ff}.btn.ghost{box-shadow:none;background:transparent;border-style:dashed}.btn.sm{padding:3px 9px;font-size:13px;border-width:2px;box-shadow:none;border-radius:8px}.btn.on{background:var(--violet);color:#fff}
-      .ctl{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+      .ctl{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
       .card{background:var(--cream-hi);border:3px solid var(--navy);border-radius:14px;padding:12px;display:grid;gap:8px}
       .qt{font-weight:900;font-size:21px;line-height:1.3}.row2{display:grid;grid-template-columns:1fr 130px;gap:12px;align-items:start}.th{height:86px;border-radius:10px;border:3px solid var(--navy);background:#e9f7ff center/cover}
       .dist{display:grid;grid-template-columns:30px 1fr 36px;gap:8px;align-items:center;font-weight:900}.dist .t{height:18px;border:2px solid var(--navy);border-radius:6px;background:#14122b22;overflow:hidden}.dist .t i{display:block;height:100%}
@@ -68,7 +68,7 @@
       <div class="col" style="background:transparent;padding:0;gap:10px">
         <div class="card"><div class="row2"><div><div style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><span class="pill" id="c-no">-</span><span class="pill" id="c-mode">-</span></div><div class="qt" id="c-text">문제를 출제하세요</div></div><div class="th" id="c-img" hidden></div></div>
           <div class="t2"><span style="font-weight:900">제한시간</span><div class="tbar"><i id="c-bar"></i></div></div></div>
-        <div class="ctl"><button class="btn go" id="ask">▶ 출제</button><button class="btn sky" id="gather2">⇆ 맵으로 이동</button><button class="btn gold" id="end">✓ 정답 공개</button><button class="btn" id="rank">🏆 등수 공개</button></div>
+        <div class="ctl"><button class="btn go" id="ask">▶ 출제</button><button class="btn sky" id="gather2">⇆ 맵으로 이동</button><button class="btn gold" id="end">✓ 정답 공개</button><button class="btn" id="hideans">정답 숨기기</button><button class="btn" id="rank">🏆 등수 공개</button></div>
         <div class="card"><h3>진행 <em id="tools-state"></em></h3>
           <div class="ctl" style="grid-template-columns:repeat(5,1fr)"><button class="btn sm" id="t-pause">⏸ 일시정지</button><button class="btn sm" id="t-m10">−10초</button><button class="btn sm" id="t-p10">＋10초</button><button class="btn sm" id="t-undo">↶ 점수 되돌리기</button><button class="btn sm" id="t-x2">×2 라운드</button></div>
           <div class="ctl" style="grid-template-columns:repeat(6,1fr)"><button class="btn sm" id="q-prev">◀ 이전 문제</button><button class="btn sm" id="q-next">다음 문제 ▶</button><button class="btn sm" id="q-cancel">출제 취소</button><button class="btn sm" id="t-qr">QR 닫기</button><button class="btn sm gold" id="c-rain">🪙 동전 비</button><button class="btn sm red" id="t-freeze">■ 비상 정지</button></div>

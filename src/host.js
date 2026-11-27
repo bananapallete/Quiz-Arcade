@@ -47,6 +47,7 @@ function renderCurrent() {
 $('#ask').addEventListener('click', () => { if (askId) { emit('host:ask', { id: askId }); } });
 $('#gather2').addEventListener('click', () => emit('host:gather'));
 $('#end').addEventListener('click', () => emit('host:end'));
+$('#hideans').addEventListener('click', () => emit('host:hideAns', { on: !st?.ha }));
 $('#rank').addEventListener('click', () => emit('host:rank', { on: !rankOn }));
 $('#gather').addEventListener('click', () => emit('host:gather'));
 $('#coin').addEventListener('click', () => emit('host:spawnCoin'));
@@ -102,6 +103,7 @@ socket.on('state', (s) => {
   st = s; rankOn = !!s.rank;
   humans = s.players.filter((p) => !p.b);
   $('#s-players').textContent = `${humans.length}명 접속`; $('#s-phase').textContent = phaseName[s.phase] || '-'; $('#s-left').textContent = s.left > 0 ? `⏱ ${Math.ceil(s.left)}초` : '-';
+  $('#hideans').classList.toggle('on', !!s.ha); $('#hideans').textContent = s.ha ? '정답 보이기' : '정답 숨기기';
   $('#rank').classList.toggle('on', rankOn); $('#rank').textContent = rankOn ? '🏆 등수 숨기기' : '🏆 등수 공개';
   $('#t-pause').classList.toggle('on', !!s.tp); $('#t-pause').textContent = s.tp ? '▶ 재개' : '⏸ 일시정지';
   $('#t-qr').textContent = s.qr ? 'QR 닫기' : 'QR 열기'; $('#t-qr').classList.toggle('on', !s.qr);

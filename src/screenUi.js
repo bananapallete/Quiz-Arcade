@@ -83,7 +83,7 @@ export function renderScreenUi(el, s) {
   }
   end.hidden = ph !== PHASE.HOLD || s.rank; end.innerHTML = '시간 종료<small>정답 공개를 기다리는 중</small>';
   // 정답 공개
-  const showRev = ph === PHASE.REVEAL && s.reveal && !s.rank;
+  const showRev = ph === PHASE.REVEAL && s.reveal && !s.rank && !s.ha;
   rev.hidden = !showRev;
   if (showRev) {
     const r = s.reveal;
