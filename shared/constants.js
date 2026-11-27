@@ -25,6 +25,7 @@ export const ULT_CHARGE = { ultHit: 0.5, auto: 0.03, tankHit: 0.02, ultCap: 0.05
 
 // 달리기 게이지는 이 배수로 빨리 닳는다 (대쉬 캐릭터는 게이지가 없어서 균형을 맞추기 위함)
 export const RUN_DRAIN = 1.4;
+export const CHAR_CD_SEC = 60; // 퀴즈 중 캐릭터 변경 쿨타임 (대기실은 제한 없음)
 
 // 아이템: 하트(체력 회복) · 신발(잠깐 빨라짐). 동전처럼 맵에 생기고 닿으면 자동으로 먹는다
 export const ITEM = {

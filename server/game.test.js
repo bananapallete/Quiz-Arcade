@@ -1240,11 +1240,15 @@ test('대기실 QR: 진행자가 닫고 열 수 있다', () => {
   const g = new Game(chars, quizzes); assert.equal(g.snapshot().qr, 1); g.setQr(false); assert.equal(g.snapshot().qr, 0); g.setQr(true); assert.equal(g.snapshot().qr, 1);
 });
 
-test('캐릭터 변경은 대기실에서만: 문제가 시작되면 거부된다', () => {
+test('캐릭터 변경: 대기실은 자유, 퀴즈 중엔 60초 쿨타임(체력 비율 유지, 궁극기 초기화)', () => {
   const g = new Game(chars, quizzes), a = g.join({ token: 'a', name: 'A', charId: 'blue' });
-  assert.equal(g.setChar('a', 'orc'), true); assert.equal(a.charId, 'orc');
-  g.ask(1); assert.equal(g.setChar('a', 'elf'), false); assert.equal(a.charId, 'orc', '출제 중엔 그대로');
-  g.cancelQuestion(); assert.equal(g.setChar('a', 'elf'), true);
+  assert.equal(g.setChar('a', 'orc'), true); assert.equal(g.setChar('a', 'elf'), true, '대기실은 연속 변경 가능'); assert.equal(g.charWait('a'), 0);
+  g.ask(1); a.hp = Math.ceil(a.cfg.hp / 2); a.ult = 50;
+  assert.equal(g.setChar('a', 'orc'), true, '퀴즈 중 첫 변경'); assert.equal(a.charId, 'orc');
+  assert.ok(Math.abs(a.hp / a.cfg.hp - 0.5) < 0.05, `체력 비율 유지 ${a.hp}/${a.cfg.hp}`); assert.equal(a.ult, 0);
+  assert.equal(g.setChar('a', 'elf'), false, '쿨타임 중'); assert.ok(g.charWait('a') > 55);
+  g.t += 61; assert.equal(g.setChar('a', 'elf'), true, '60초 뒤 가능');
+  g.cancelQuestion(); assert.equal(g.setChar('a', 'orc'), true, '대기실에서는 쿨타임 무시');
 });
 
 test('난타(격투가): 5초간 앞으로 걸어가며 전방 직선을 연타하고 끝나면 멈춘다', () => {

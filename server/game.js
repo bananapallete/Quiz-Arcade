@@ -2,7 +2,7 @@
 // 모든 판정(이동, 충돌, 공격, 구역, 점수)은 서버가 한다.
 
 import { blockWalls, buffOf, charge, CHARGE_TAKEN, hit as ultHit, ultReady, minionsSnapshot, updateUlts, useUlt, wallsSnapshot, zonesSnapshot } from './ult.js';
-import { ULT_CHARGE, RUN_DRAIN, COIN, COMBO_RESET_SEC, CRIT, ITEM, MAP, PHASE, READ_SEC, SPRITE, zoneAt, ZONES } from '../shared/constants.js';
+import { ULT_CHARGE, RUN_DRAIN, CHAR_CD_SEC, COIN, COMBO_RESET_SEC, CRIT, ITEM, MAP, PHASE, READ_SEC, SPRITE, zoneAt, ZONES } from '../shared/constants.js';
 
 const KNOCK_DECAY = 12; // 밀림 속도 감쇠(1/s). 총 밀림 거리 = 처음 속도 / 감쇠
 const ATTACK_ANIM_SEC = 0.25;
@@ -87,9 +87,15 @@ export class Game {
   /** 캐릭터 변경(참가자 본인): 체력·게이지를 새 캐릭터로 채움 */
   setChar(id, charId) {
     const p = this.players.get(id);
-    if (!p || p.isBot || !this.characters[charId] || this.phase !== PHASE.LOBBY) return false; // 대기실에서만 변경 가능
-    p.charId = charId; p.cfg = this.characters[charId]; p.dash = null; p.baseCfg = null; this._refill(p); return true;
+    if (!p || p.isBot || !this.characters[charId] || this.charWait(id) > 0) return false;
+    const lobby = this.phase === PHASE.LOBBY, ratio = p.hp / p.cfg.hp;
+    p.charId = charId; p.cfg = this.characters[charId]; p.dash = null; p.baseCfg = null; this._refill(p);
+    if (!lobby) { p.hp = Math.max(1, Math.ceil(p.cfg.hp * ratio)); p.charReadyAt = this.t + CHAR_CD_SEC; } // 퀴즈 중엔 체력 비율 유지(회복 꼼수 방지), 궁극기 충전은 초기화
+    return true;
   }
+
+  /** 지금 캐릭터를 바꾸려면 더 기다려야 하는 초 (대기실은 항상 0) */
+  charWait(id) { const p = this.players.get(id); return !p || this.phase === PHASE.LOBBY ? 0 : Math.max(0, Math.ceil((p.charReadyAt || 0) - this.t)); }
 
   setConnected(id, connected) {
     const p = this.players.get(id);
