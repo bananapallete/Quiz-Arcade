@@ -167,7 +167,7 @@ export function sfxEvent(e, c) {
   if (v < 0.04) return;
   const p = pitchOf(c.charId), an = ANIMAL[c.charId];
   if (e.e === 'stun' || e.e === 'ghost' || e.e === 'channelEnd') { stopUltOf(e.id, e.e === 'channelEnd' ? FADE_OUT : 0.25); return; } // 궁극기 도중 쓰러지거나 끊기면 그 소리도 부드럽게 끔
-  if (an && e.e === 'atk' && gate('c' + e.id, 1100)) cry(an[0], Math.min(1, v) * 0.6, an[1]); // 동물 캐릭터는 평타 때 가끔 울음
+  if (an && e.e === 'atk') cry(an[0], Math.min(1, v) * 0.6, an[1]); // 동물 캐릭터는 평타마다 울음 (연타면 소리가 겹쳐도 그대로 재생)
   if (isUlt) {
     if (!gate('u' + e.id, ULT_GAP)) return;
     const vol = Math.min(1, v * (c.mine ? 1 : 0.9)), dur = (e.sec || 0) + (e.intro || 0);
