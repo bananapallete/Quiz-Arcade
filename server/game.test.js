@@ -642,7 +642,7 @@ test('모든 캐릭터는 달리기, 근접은 원거리보다 달리기 게이�
 
 import { dpsOf, FIGHT_SEC, powerIndex, shotsOf } from './balance.js';
 
-const BUFFED = ['blue', 'girl_long', 'knight', 'puppy', 'shiba', 'orc']; // 공격력 2배 버프 중
+const BUFFED = ['blue', 'girl_long', 'knight', 'puppy', 'shiba', 'orc', 'hippo']; // 공격력 2배 버프 중
 test('밸런스: 전투력 지수가 17~22 안 (서포터는 회복이 있어 15 이상, 버프 중인 캐릭터는 35까지)', () => {
   for (const [id, c] of Object.entries(chars)) {
     const v = powerIndex(c);
