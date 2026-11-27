@@ -1225,6 +1225,7 @@
       "range": 5,
       "knockback": 0,
       "multi": true,
+      "aimAllies": true,
       "canAttackWhileRunning": false,
       "projectile": {
         "speed": 8,
@@ -1242,14 +1243,12 @@
     "role": "support",
     "atkInfo": "범위 폭발, 아군 회복",
     "ult": {
-      "name": "응원과 침묵",
+      "name": "응급 처치",
       "need": 100,
       "type": "rally",
       "radius": 4.5,
-      "sec": 6,
-      "spd": 1.2,
-      "atk": 1.3,
-      "dmg": 1.2
+      "heal": 0.5,
+      "inv": 4
     }
   }
 }

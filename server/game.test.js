@@ -1159,15 +1159,20 @@ test('아군 효과: 공주는 같은 팀을 3초에 걸쳐 회복시키고(매�
   assert.ok(Q.shield && Q.shield.until - g2.t > 8, '아군 방어 10초'); assert.ok(g2.snapshot().players.find((x) => x.id === 'b').sd > 8, '스냅샷 방어 표시');
 });
 
-test('간호사: 평타 폭발이 같은 팀은 회복·적은 피해, 궁극기는 아군 강화 + 적 침묵(공격·궁극 불가, 시전 끊김)', () => {
+test('간호사: 평타 폭발이 같은 팀은 회복·적은 피해, 궁극기는 주변 아군 회복 + 4초 무적', () => {
   const { g, A, B } = duo('nurse', 'blue'); const C = g.join({ token: 'c', name: 'C', charId: 'orc' });
   A.team = 1; B.team = 1; C.team = 2; A.x = 10; A.y = 10; B.x = 12; B.y = 10; C.x = 12.5; C.y = 10; B.hp = 10; C.invUntil = 0; const ch = C.hp;
   g.attack('a', null); run(g, 1.5); // 자동 조준: 가장 가까운 적 위치에 폭발
   assert.ok(B.hp > 10, '아군 회복'); assert.ok(C.hp < ch, '적 피해');
-  C.channel = { until: g.t + 5, move: 0 }; C.ult = C.cfg.ult.need; A.ult = A.cfg.ult.need; A.x = 11; A.y = 10; g.ult('a', null);
-  assert.ok(g.snapshot().players.find((p) => p.id === 'c').si, '침묵 표시'); assert.equal(C.channel, null, '채널링 끊김');
-  assert.ok(B.buff && B.buff.atk > 1, '아군 강화'); assert.equal(g.ult('c', null), false, '침묵 중 궁극기 불가');
-  const cc = C.nextAttackAt = 0; g.attack('c', null); assert.ok(g.events.filter((e) => e.e === 'atk' && e.id === 'c').length === 0, '침묵 중 공격 불가');
+  B.hp = 10; B.invUntil = 0; C.invUntil = 0; A.ult = A.cfg.ult.need; A.x = 11; A.y = 10; g.ult('a', null);
+  assert.ok(B.hp >= 10 + Math.floor(B.cfg.hp * 0.4), '아군 회복'); assert.ok(B.invUntil >= g.t + 3.9 && A.invUntil >= g.t + 3.9, '아군·자신 4초 무적'); assert.ok(C.invUntil <= g.t, '적은 무적 아님');
+});
+
+test('간호사: 평타 자동 조준은 가까운 다친 아군도 향한다 (멀쩡한 아군은 제외)', () => {
+  const { g, A, B } = duo('nurse', 'blue'); const C = g.join({ token: 'c', name: 'C', charId: 'orc' });
+  A.team = 1; B.team = 1; C.team = 2; A.x = 10; A.y = 10; B.x = 10; B.y = 13; C.x = 14; C.y = 10;
+  assert.equal(g._aimDir(A, null, 5).near, C, '멀쩡한 아군은 대상 아님'); B.hp = 10;
+  assert.equal(g._aimDir(A, null, 5).near, B, '다친 아군이 더 가까우면 조준');
 });
 
 test('방패 성벽(기사): 천천히 전진하며 적을 밀어내고, 막다른 곳이면 멈추고, 끝나면 폭파한다', () => {

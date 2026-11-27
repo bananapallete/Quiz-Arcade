@@ -358,7 +358,9 @@ export class Game {
       return { dx: ax / l, dy: ay / l, manual: true };
     }
     let best = null, bestD = Infinity;
-    for (const o of this._enemies(p)) {
+    const cands = this._enemies(p);
+    if (p.cfg.attack?.aimAllies) for (const o of this._allies(p)) if (o !== p && o.hp < o.cfg.hp) cands.push(o); // 간호사: 다친 아군도 자동 조준
+    for (const o of cands) {
       if (this._stealthed(o)) continue; // 은신 중인 상대는 자동 조준 불가
       const d = Math.hypot(o.x - p.x, o.y - p.y);
       if (d <= range && d < bestD) { best = o; bestD = d; }

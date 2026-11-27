@@ -80,13 +80,13 @@ const RUN = {
     if (u.heal) { const h = Math.min(p.cfg.hp - p.hp, Math.ceil(p.cfg.hp * u.heal)); if (h > 0) { p.hp += h; g.events.push({ e: 'itemGet', id: 0, k: 'heart', by: p.id, amount: h, x: r2(p.x), y: r2(p.y) }); } }
   },
 
-  rally(g, p, u) { // 간호사: 주변 아군 강화 + 주변 적 침묵(공격·궁극기 불가, 채널링·시전 끊김)
-    for (const o of g._allies(p)) if (Math.hypot(o.x - p.x, o.y - p.y) <= u.radius) o.buff = { until: g.t + u.sec, spd: u.spd ?? 1, atk: u.atk ?? 1, dmg: u.dmg ?? 1, crit: false, pickup: 1, stealth: false, assassin: 0 };
-    for (const o of g._enemies(p)) {
-      if (o.stunned || Math.hypot(o.x - p.x, o.y - p.y) > u.radius + o.cfg.radius) continue;
-      o.silenceUntil = g.t + u.sec; o.channel = null; o.flurry = null; o.orbit = null; o.windup = null; // 하던 시전을 끊음
+  rally(g, p, u) { // 간호사: 주변 아군(자신 포함) 회복 + inv초 무적
+    for (const o of g._allies(p)) {
+      if (Math.hypot(o.x - p.x, o.y - p.y) > u.radius) continue;
+      const h = Math.min(o.cfg.hp - o.hp, Math.ceil(o.cfg.hp * u.heal));
+      if (h > 0) { o.hp += h; g.events.push({ e: 'itemGet', id: 0, k: 'heart', by: o.id, amount: h, x: r2(o.x), y: r2(o.y) }); }
+      o.invUntil = Math.max(o.invUntil, g.t + u.inv);
     }
-    g.events.push({ e: 'silence', id: p.id, x: r2(p.x), y: r2(p.y), r: u.radius });
   },
 
   boomerang(g, p, u) { // 부메랑 난사: 8방향으로 기본 공격 부메랑을 volleys번 연달아
