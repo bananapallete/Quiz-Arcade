@@ -38,6 +38,22 @@ export function buildFloor(scene) {
   nearest(tex);
 }
 
+/** 퀴즈 바닥('floor-quiz'): 어두운 남색 타일 + 격자선 + 노란 테두리. 대기실 잔디와 한눈에 구분됨 */
+export function buildQuizFloor(scene) {
+  const W = MAP.w * TILE, H = MAP.h * TILE, T = [0x2b2f63, 0x252858].map(rgb), GRID = rgb(0x3d4287), STAR = rgb(0x6c73c4), EDGE = rgb(0xffd54a);
+  const tex = scene.textures.createCanvas('floor-quiz', W, H), ctx = tex.getContext(), img = ctx.createImageData(W, H), d = img.data;
+  for (let gy = 0; gy < H; gy++) for (let gx = 0; gx < W; gx++) {
+    const tx = Math.floor(gx / TILE), ty = Math.floor(gy / TILE), x = gx % TILE, y = gy % TILE;
+    let c = T[(tx + ty) % 2];
+    if (x === 0 || y === 0) c = GRID;
+    else if ((gx * 29 + gy * 31) % 211 === 0) c = STAR;
+    if (gx < 3 || gy < 3 || gx >= W - 3 || gy >= H - 3) c = EDGE;
+    const i = (gy * W + gx) * 4; d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  nearest(tex);
+}
+
 export const MAT_MARGIN = 8; // 링 바깥 장식(꽃·풀잎)이 들어갈 여백 (도트)
 const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]; // 4x4 디더링 표
 const NAVY = rgb(0x14122b), STONE = [rgb(0xefe3c2), rgb(0xcbbd98)], STONE_LINE = rgb(0x7a6a48);
