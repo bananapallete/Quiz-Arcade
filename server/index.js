@@ -101,10 +101,11 @@ io.on('connection', (socket) => {
   host('host:clearBots', () => game.clearBots());
   host('host:rank', (d) => { game.showRank = !!d?.on; });
   host('host:adjust', (d) => ({ ok: game.adjust(String(d?.id), d?.delta) }));
+  host('host:adjustTeam', (d) => ({ ok: game.adjustTeam(d?.team, d?.delta) }));
   host('host:teams', (d) => ({ ok: game.autoTeams(d?.n) }));
   host('host:setTeam', (d) => ({ ok: game.setTeam(String(d?.id), d?.team) }));
   host('host:setMode', (d) => ({ ok: game.setQuestionMode(Number(d?.id), d?.mode) }));
-  host('host:realSet', (d) => ({ ok: d?.team ? game.realTeam(d.team, d?.pts) : game.realSet(String(d?.id), d?.pts) }));
+  host('host:realSet', (d) => ({ ok: game.realSet(String(d?.id), d?.pts) }));
   host('host:realTeam', (d) => ({ ok: game.realTeam(d?.team, d?.pts) }));
   host('host:undo', () => ({ ok: game.undoScore() }));
   host('host:pause', (d) => ({ ok: game.pauseTimer(d?.on) }));
@@ -125,8 +126,6 @@ io.on('connection', (socket) => {
   host('host:coinRain', (d) => ({ ok: game.coinRain(Number(d?.n) || 24) }));
   host('host:realConfirm', () => ({ ok: game.realConfirm() }));
   host('host:realReveal', () => ({ ok: game.realReveal() }));
-  host('host:spawnCoin', () => { game.spawnCoin(); });
-  host('host:spawnItem', (d) => { game.spawnItem(d?.k); });
   host('host:botAttack', (d) => { game.botsCanAttack = !!d?.on; });
 
   socket.on('disconnect', () => { const p = socket.data.pid && game.players.get(socket.data.pid); if (p && p.sock === socket.id) game.setConnected(p.id, false); }); // 폰 재접속: 새 소켓이 먼저 붙고 옛 소켓이 늦게 끊겨도 접속 유지
@@ -146,8 +145,10 @@ setInterval(() => {
   game.update(dt);
 }, 1000 / TICK_HZ);
 
+let roundsSeen = 0, histSeen = 0;
 setInterval(() => {
   io.emit('state', { ...game.snapshot(), lb: game.leaderboard() });
+  if (game.rounds.length !== roundsSeen || game.histSeq !== histSeen) { roundsSeen = game.rounds.length; histSeen = game.histSeq; io.to('hosts').emit('host:info', game.hostInfo()); } // 시간이 다 돼서 끝난 경기도 진행자 화면 기록에 바로 반영
 }, 1000 / BROADCAST_HZ);
 
 http.listen(PORT, '0.0.0.0', () => {

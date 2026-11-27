@@ -1660,3 +1660,50 @@ test('마녀 궁극기는 다른 캐릭터보다 50% 느리게 찬다', () => {
   w.x = 5; b.x = 30; run(g, 2);
   assert.ok(b.ult > 0 && Math.abs(w.ult - b.ult / 2) < 0.01, `witch=${w.ult} plain=${b.ult}`);
 });
+
+test('팀 토너먼트: 팀마다 2명만 나와 대진대로 싸우고, 우승팀 전원 점수 · 준우승 절반 · 라운드 기록', () => {
+  const g = new Game(chars, [{ type: 'brawl', tour: true, text: 't', pts: 6, time: 60 }]);
+  const ps = Array.from({ length: 12 }, (_, i) => g.join({ token: `p${i}`, name: `P${i}`, charId: 'blue' }));
+  g.autoTeams(4); g.ask(1);
+  assert.equal(g.question.mode, '토너먼트');
+  const t = g.tour; assert.equal(t.queue.length + 1, 2, '4팀 → 1라운드 2경기');
+  for (const r of Object.values(t.reps)) assert.equal(r.length, 2);
+  const inMatch = () => [...g.brawl.ids].map((id) => g.players.get(id));
+  assert.equal(inMatch().length, 4);
+  assert.equal(ps.filter((p) => p.connected).length, 4, '나머지는 관전');
+  assert.equal(g.leaderboard().length, 12, '관전자도 순위에 남는다');
+  let guard = 0;
+  while (g.tour && guard++ < 10) {
+    g.update(0.01); run(g, 3.1); // 읽기 끝
+    const [a, b] = g.tour.cur; for (const p of inMatch()) if (p.team === b) p.ghost = true; // a팀 승
+    g.update(0.01);
+  }
+  assert.equal(g.tour, null); assert.equal(g.phase, PHASE.REVEAL);
+  const champ = g.reveal.winners[0].team;
+  for (const p of ps) assert.equal(p.score, p.team === champ ? 6 : p.team === g.reveal.second ? 3 : 0, p.name);
+  assert.equal(g.rounds.at(-1).kind, 'tour'); assert.equal(g.rounds.at(-1).teams[champ], 6);
+  assert.ok(ps.every((p) => p.connected), '끝나면 모두 돌아옴');
+});
+
+test('대난투: 라운드마다 팀 점수를 기록한다', () => {
+  const g = new Game(chars, [{ type: 'brawl', text: 'b', pts: 5 }, { type: 'brawl', text: 'b2', pts: 5 }]);
+  const ps = Array.from({ length: 4 }, (_, i) => g.join({ token: `p${i}`, name: `P${i}`, charId: 'blue' }));
+  g.autoTeams(2);
+  for (const id of [1, 2]) { g.ask(id); run(g, 3.1); for (const p of ps) if (p.team === 2) p.ghost = true; g.update(0.01); }
+  assert.equal(g.rounds.length, 2);
+  assert.deepEqual(g.rounds.map((r) => r.teams[1]), [5, 5]);
+  assert.deepEqual(g.rounds.map((r) => r.teams[2] || 0), [0, 0]);
+});
+
+test('동전 모으기: 제한시간 동안 동전이 쏟아지고 많이 주운 1~3등이 점수', () => {
+  const g = new Game(chars, [{ type: 'coin', text: 'c', pts: 5, time: 20 }]);
+  const a = g.join({ token: 'a', name: 'A', charId: 'blue' }), b = g.join({ token: 'b', name: 'B', charId: 'blue' }), c = g.join({ token: 'c', name: 'C', charId: 'blue' });
+  a.coins = 4; g.ask(1); run(g, 3.1);
+  assert.equal(g.phase, PHASE.MOVING);
+  run(g, 2); assert.ok(g.coins.size >= 5, `coins=${g.coins.size}`);
+  a.coins += 3; b.coins += 5; // a는 시작 전 4개는 세지 않음
+  g.endQuestion();
+  assert.equal(g.phase, PHASE.REVEAL); assert.ok(g.reveal.coin);
+  assert.deepEqual(g.reveal.results.map((r) => [r.name, r.got, r.gain]), [['B', 5, 5], ['A', 3, 3], ['C', 0, 0]]);
+  assert.equal(g.coins.size, 0);
+});
