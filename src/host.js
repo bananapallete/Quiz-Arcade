@@ -144,7 +144,7 @@ $('#plist').addEventListener('click', (e) => {
 let humans = [], lastKey = '', realKey = '';
 socket.on('state', (s) => {
   st = s;
-  humans = s.players.filter((p) => p.ct); // 사람 + 점수 받는 테스트 봇
+  humans = (s.lb || []).map((r) => ({ id: r.id, n: r.name, tm: r.team, sc: r.score, cn: r.coins, watch: !s.players.some((p) => p.id === r.id) })); // 사람 + 점수 받는 테스트 봇 (순위표 기준 → 토너먼트 관전자도 빠지지 않음)
   $('#s-players').textContent = `${humans.length}명 접속`; $('#s-phase').textContent = (phaseName[s.phase] || '-') + (s.bw ? ` · ⚔ ${s.bw.p}명` : '') + (s.cal ? ` · 📅 ${s.cal.r}차 생존 ${s.cal.a}명` : '') + (s.tr?.m ? ` · 🏆 ${s.tr.r}R ${s.tr.m[0]}팀 vs ${s.tr.m[1]}팀` : '') + (s.cr ? ` · 🪙 1등 ${s.cr[0]?.[1] ?? '-'} ${s.cr[0]?.[2] ?? 0}` : '');
   $('#end').textContent = s.q?.type === 'calendar' ? '✓ 채점하기' : s.tr ? '✓ 경기 종료' : s.q?.type === 'brawl' || s.q?.type === 'coin' ? '✓ 종료' : '✓ 정답 공개'; $('#cal-fin').hidden = !s.cal; $('#s-left').textContent = s.left > 0 ? `⏱ ${Math.ceil(s.left)}초` : '-';
   for (const [id, on] of [['hideans', s.ha], ['t-pause', s.tp], ['t-qr', s.qr], ['t-x2', s.x2 === 2], ['t-freeze', s.fz], ['t-god', s.gd], ['t-noatk', s.ca], ['t-noult', s.cu]]) $('#' + id).classList.toggle('on', !!on); // 스위치
@@ -176,11 +176,11 @@ socket.on('state', (s) => {
     $('#realok').disabled = false; $('#realrev').disabled = !s.real?.confirmed; $('#realok').textContent = s.real?.confirmed ? '확인됨 ✓' : '확인';
   }
   // 참가자 표
-  const lb = [...humans].sort((a, b) => b.sc - a.sc), key = JSON.stringify([lb.map((p) => [p.id, p.n, p.tm, p.sc, p.cn]), s.teams, s.cs]);
+  const lb = [...humans].sort((a, b) => b.sc - a.sc), key = JSON.stringify([lb.map((p) => [p.id, p.n, p.tm, p.sc, p.cn, p.watch]), s.teams, s.cs]);
   if (key !== lastKey) {
     lastKey = key; const tc = s.teams?.length || 0;
     $('#plist').innerHTML = lb.map((p, i) => `<div class="pl"><span>${i + 1}</span><span data-name="${p.id}" data-nm="${esc(p.n)}" style="cursor:pointer">${esc(p.n)} <small style="opacity:.6">🪙${p.cn}</small></span><span>${fmtScore(p.sc)}</span><div class="stp"><b data-kick="${p.id}" data-nm="${esc(p.n)}" title="퇴장">✕</b></div></div>`).join('') || '<div style="opacity:.6">접속한 참가자가 없어요</div>';
-    $('#sgrid').innerHTML = lb.map((p, i) => `<div class="sc" style="border-color:${p.tm ? TEAMC[p.tm] : 'var(--navy)'}"><span class="nm"><i data-castid="${p.id}" class="${s.cs?.id === p.id ? 'on' : ''}" title="빔프로젝터로 중계">📺</i><span>${i + 1}. ${esc(p.n)}</span></span><b class="m" data-id="${p.id}" data-sg="-1">−</b><span class="pt">${fmtScore(p.sc)}</span><b class="p" data-id="${p.id}" data-sg="1">＋</b></div>`).join('') || '<div style="opacity:.6">접속한 참가자가 없어요</div>';
+    $('#sgrid').innerHTML = lb.map((p, i) => `<div class="sc" style="border-color:${p.tm ? TEAMC[p.tm] : 'var(--navy)'}"><span class="nm"><i data-castid="${p.id}" class="${s.cs?.id === p.id ? 'on' : ''}" title="빔프로젝터로 중계">📺</i><span>${i + 1}. ${esc(p.n)}${p.watch ? ' <small style="opacity:.6">관전</small>' : ''}</span></span><b class="m" data-id="${p.id}" data-sg="-1">−</b><span class="pt">${fmtScore(p.sc)}</span><b class="p" data-id="${p.id}" data-sg="1">＋</b></div>`).join('') || '<div style="opacity:.6">접속한 참가자가 없어요</div>';
     renderBoard();
     $('#tt').innerHTML = (s.teams || []).map((t) => `<span class="pill" style="background:${TEAMC[t.t]}99">${t.t}팀 ${fmtScore(t.score)}</span>`).join('');
     $('#p-teams').textContent = tc ? `${tc}팀` : '팀 없음';
