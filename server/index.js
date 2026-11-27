@@ -60,7 +60,7 @@ io.on('connection', (socket) => {
     const token = data?.token && game.players.has(data.token) ? data.token : randomUUID();
     const p = game.join({ token, name: data?.name, charId: data?.charId });
     if (!p) return ack?.({ ok: false, error: '인원이 가득 찼어요' });
-    socket.data.pid = p.id;
+    socket.data.pid = p.id; p.sock = socket.id; // 마지막으로 붙은 소켓만 연결 상태를 바꿀 수 있음
     ack?.({ ok: true, token: p.id, name: p.name, charId: p.charId, cfg: p.cfg });
   });
 
@@ -129,7 +129,7 @@ io.on('connection', (socket) => {
   host('host:spawnItem', (d) => { game.spawnItem(d?.k); });
   host('host:botAttack', (d) => { game.botsCanAttack = !!d?.on; });
 
-  socket.on('disconnect', () => { if (socket.data.pid) game.setConnected(socket.data.pid, false); });
+  socket.on('disconnect', () => { const p = socket.data.pid && game.players.get(socket.data.pid); if (p && p.sock === socket.id) game.setConnected(p.id, false); }); // 폰 재접속: 새 소켓이 먼저 붙고 옛 소켓이 늦게 끊겨도 접속 유지
 });
 
 // 기본 봇: 서로 공격하는 15마리 (호스트 화면에서 제거 가능)

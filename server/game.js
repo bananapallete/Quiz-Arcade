@@ -120,7 +120,7 @@ export class Game {
   }
 
   clearBots() {
-    for (const [id, p] of this.players) if (p.isBot) this.players.delete(id);
+    for (const [id, p] of this.players) if (p.isBot) { this.players.delete(id); this.realPending.delete(id); }
   }
 
   _spawn({ id, name, charId, isBot, botMode }) {
@@ -159,7 +159,7 @@ export class Game {
   ask(qid) {
     const q = this.questions.find((x) => x.id === qid);
     if (!q) return false;
-    this._unpark(); this._endBrawlWorld(); this.brawl = null; this.cal = null;
+    this._unpark(); this._endBrawlWorld(); this._clearUltWorld(); this.brawl = null; this.cal = null;
     this.question = q;
     this.reveal = null; this.locked = null; this.realPending = new Map(); this.realConfirmed = false;
     this.showRank = false; this.hideAns = false; this.screenMode = 'quiz'; this.timerPaused = false;
@@ -195,9 +195,13 @@ export class Game {
   endQuestion() {
     if (this.brawl && this.phase === PHASE.MOVING) return this._finishBrawl(); // 대난투: 지금 상태로 바로 끝냄
     if (this.cal && this.phase === PHASE.MOVING) return this._calGrade(); // 달력: 채점하기
+    if (this.brawl || this.cal) return; // 읽는 중엔 구역 판정이 없어 모두 정답 처리되던 문제 방지
     if (this.phase === PHASE.READING || this.phase === PHASE.MOVING) this._lock();
     if (this.phase === PHASE.HOLD || this.locked) this._applyLocked();
   }
+
+  /** 문제가 바뀌면 이전 문제의 궁극기 잔재(성벽·바닥 범위·투사체·병아리)를 치움 */
+  _clearUltWorld() { this.walls.clear(); this.zonesU.clear(); this.projectiles.clear(); this.minions.clear(); }
 
   _log(text) { this.log.unshift({ t: Date.now(), text }); this.log.length = Math.min(this.log.length, 40); }
 
@@ -221,7 +225,7 @@ export class Game {
     this._log(`되돌림: ${e.label}`); return true;
   }
   pauseTimer(on) { this.timerPaused = !!on; this._log(on ? '타이머 일시정지' : '타이머 재개'); return true; }
-  addTime(sec) { if (this.phase !== PHASE.READING && this.phase !== PHASE.MOVING) return false; this.phaseEnd = Math.max(this.t + 1, this.phaseEnd + Number(sec) || 0); return true; }
+  addTime(sec) { if (this.phase !== PHASE.READING && this.phase !== PHASE.MOVING) return false; this.phaseEnd = Math.max(this.t + 1, this.phaseEnd + (Number(sec) || 0)); return true; }
   setQr(on) { this.showQr = !!on; return true; }
   setNoAtk(on) { this.noAtk = !!on; this._log(on ? '공격 금지' : '공격 허용'); return true; }
   setNoUlt(on) { this.noUlt = !!on; this._log(on ? '궁극기 금지' : '궁극기 허용'); return true; }
@@ -232,9 +236,9 @@ export class Game {
   announce(text, sec = 8) { const t = String(text || '').slice(0, 80).trim(); this.notice = t ? { text: t, until: this.t + Math.min(30, Math.max(2, Number(sec) || 8)) } : null; if (t) this._log(`공지: ${t}`); return true; }
   setScreen(mode) { if (!['title', 'quiz', 'map', 'rank'].includes(mode)) return false; this.screenMode = mode; this.showRank = mode === 'rank'; return true; }
   rename(id, name) { const p = this.players.get(id), n = String(name || '').trim().slice(0, 10); if (!p || !n) return false; p.name = n; return true; }
-  kick(id) { const p = this.players.get(id); if (!p || p.isBot) return false; this.players.delete(id); this._log(`${p.name} 퇴장`); return true; }
+  kick(id) { const p = this.players.get(id); if (!p) return false; this.realPending.delete(id); this.players.delete(id); this._log(`${p.name} 퇴장`); return true; }
   /** 출제를 취소하고 대기실로 (점수 변화 없음) */
-  cancelQuestion() { this._unpark(); this._endBrawlWorld(); this.brawl = null; this.cal = null; for (const p of this.players.values()) { p.out = false; p.ghost = false; p.stunned = false; p.stunUntil = 0; } this.phase = PHASE.LOBBY; this.question = null; this.reveal = null; this.locked = null; this.realPending = new Map(); this.timerPaused = false; this._log('출제 취소'); return true; }
+  cancelQuestion() { this._unpark(); this._endBrawlWorld(); this._clearUltWorld(); this.brawl = null; this.cal = null; for (const p of this.players.values()) { p.out = false; p.ghost = false; p.stunned = false; p.stunUntil = 0; } this.phase = PHASE.LOBBY; this.question = null; this.reveal = null; this.locked = null; this.realPending = new Map(); this.timerPaused = false; this._log('출제 취소'); return true; }
   /** 동전 비: n개를 sec초에 걸쳐 맵 곳곳에 떨어뜨림 (기본 동전 한도와 별개) */
   coinRain(n = 24, sec = 4) {
     for (let i = 0; i < n; i++) this.tasks.push({ at: this.t + (i / n) * sec, fn: () => { this.coinsSpawned = Math.max(0, this.coinsSpawned - 1); this.spawnCoin(); } });
@@ -265,13 +269,14 @@ export class Game {
   realConfirm() { if (this.phase !== PHASE.REAL) return false; this.realConfirmed = true; return true; }
   realReveal() {
     if (this.phase !== PHASE.REAL || !this.realConfirmed) return false;
-    const results = [...this.realPending].map(([id, gain]) => { const p = this.players.get(id), g = gain * this.multiplier; p.score = Math.round((p.score + g) * 10) / 10; return { id, name: p.name, team: p.team || 0, gain: g, correct: g > 0 }; }).sort((a, b) => b.gain - a.gain);
+    const results = [...this.realPending].filter(([id]) => this.players.has(id)).map(([id, gain]) => { const p = this.players.get(id), g = gain * this.multiplier; p.score = Math.round((p.score + g) * 10) / 10; return { id, name: p.name, team: p.team || 0, gain: g, correct: g > 0 }; }).sort((a, b) => b.gain - a.gain);
     this._pushUndo('현실 퀴즈 점수', results.map((r) => [r.id, r.gain]), this._hist('real', `Q${this.question?.id ?? ''} ${this.question?.text ?? '현실 퀴즈'}`, results.map((r) => ({ id: r.id, name: r.name, team: r.team, gain: r.gain }))));
     this._log(`현실 퀴즈 공개 (${results.length}명)`);
     this.reveal = { answer: null, real: true, results }; this.phase = PHASE.REVEAL; return true;
   }
 
   resetScores() {
+    this.cancelQuestion(); this.scoreLog = []; // 진행 중인 대난투·달력 정리, 초기화 이전 점수는 되돌리지 않음
     this._hist('reset', '점수 초기화'); for (const p of this.players.values()) { p.score = 0; p.coins = 0; }
     this.coins.clear(); this.minions.clear();
     this.items.clear();
@@ -313,6 +318,7 @@ export class Game {
   }
 
   _refill(p) {
+    if (p.baseCfg) p.cfg = p.baseCfg; // 거대화 같은 궁극기 버프 중이었으면 원래 몸으로
     p.hp = p.cfg.hp;
     p.runGauge = p.cfg.runGauge;
     p.exhausted = false;
@@ -557,7 +563,7 @@ export class Game {
   }
 
   _tryAttack(p, aim) {
-    if (this.noAtk || p.ghost || this.phase === PHASE.HOLD || this._bLocked()) return; // 진행자가 공격을 막음 · 유령은 공격 못 함 · 시간 종료 후엔 공격 없음
+    if (this.frozen || this.noAtk || p.ghost || this.phase === PHASE.HOLD || this._bLocked()) return; // 진행자가 공격을 막음 · 유령은 공격 못 함 · 시간 종료 후엔 공격 없음
     const a = p.cfg.attack;
     if (this.t < p.nextAttackAt || this.t < (p.silenceUntil || 0) || p.stunned || this.t < p.rootUntil || this.t < p.charmUntil || p.channel || this._dashing(p) || p.ammoF < 1) return; // 탄창이 비면 못 쏨
     if (p.running && !a.canAttackWhileRunning) return;
@@ -894,7 +900,7 @@ export class Game {
   // ---------- 궁극기 ----------
   ult(id, aim) {
     const p = this.players.get(id);
-    if (this.noUlt || this.phase === PHASE.HOLD || this._bLocked() || !p || p.ghost || p.stunned || this.t < p.rootUntil || this.t < p.charmUntil || this.t < (p.silenceUntil || 0) || p.channel || this._dashing(p) || !ultReady(p)) return false;
+    if (this.frozen || this.noUlt || this.phase === PHASE.HOLD || this._bLocked() || !p || p.ghost || p.stunned || this.t < p.rootUntil || this.t < p.charmUntil || this.t < (p.silenceUntil || 0) || p.channel || this._dashing(p) || !ultReady(p)) return false;
     useUlt(this, p, aim);
     return true;
   }
@@ -906,6 +912,7 @@ export class Game {
 
   skill(id) {
     const p = this.players.get(id);
+    if (this.frozen) return;
     const sk = p?.cfg.skill;
     if (!p || p.ghost || this.phase === PHASE.HOLD || this._bLocked() || p.stunned || this.t < p.rootUntil || this.t < p.charmUntil || p.channel || sk?.type !== 'dash' || this.t < p.skillReadyAt || this._dashing(p)) return;
     const len = Math.hypot(p.input.mx, p.input.my);

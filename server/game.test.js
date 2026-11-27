@@ -1619,3 +1619,36 @@ test('원거리는 쏜 뒤 느려지고 투척형은 아님', () => {
   A.atkSlowUntil = g.t + 5; A.atkSlowMul = 0.5; const x1 = A.x; run(g, 0.2); assert.ok(A.x - x1 < free * 0.7, '느려짐');
   assert.ok(!duo('chicken', 'blue').A.cfg.attack.atkSlow && !duo('bomber', 'blue').A.cfg.attack.atkSlow && !duo('nurse', 'blue').A.cfg.attack.atkSlow);
 });
+
+test('대난투 읽는 중 정답 공개를 눌러도 점수가 나가지 않는다', () => {
+  const g = new Game(chars, quizzes);
+  const a = g.join({ token: 'a', name: 'A', charId: 'blue' }), b = g.join({ token: 'b', name: 'B', charId: 'blue' });
+  g.ask(quizzes.findIndex((q) => q.type === 'brawl') + 1);
+  g.endQuestion();
+  assert.equal(a.score + b.score, 0);
+  assert.ok(g.brawl, '대난투는 그대로 진행');
+});
+
+test('현실 퀴즈: 점수를 넣은 참가자가 나가도 공개가 터지지 않는다', () => {
+  const g = new Game(chars, [{ type: 'real', text: 'r' }]);
+  const a = g.join({ token: 'a', name: 'A', charId: 'blue' }), b = g.join({ token: 'b', name: 'B', charId: 'blue' });
+  g.ask(1); g.realSet('a', 3); g.realSet('b', 2); g.kick('b'); g.realConfirm();
+  assert.equal(g.realReveal(), true);
+  assert.equal(a.score, 3);
+});
+
+test('점수 초기화: 대난투를 정리하고, 초기화 이전 점수는 되돌리지 않는다', () => {
+  const g = new Game(chars, quizzes);
+  const a = g.join({ token: 'a', name: 'A', charId: 'blue' }); g.join({ token: 'b', name: 'B', charId: 'blue' });
+  g.adjust('a', 5);
+  g.ask(quizzes.findIndex((q) => q.type === 'brawl') + 1);
+  g.resetScores();
+  assert.equal(g.brawl, null); assert.equal(g.solids, false);
+  assert.equal(g.undoScore(), false); assert.equal(a.score, 0);
+});
+
+test('비상 정지 중에는 공격·궁극기가 나가지 않는다', () => {
+  const { g, a, b } = setup();
+  g.setFrozen(true); g.attack('a', null);
+  assert.equal(b.hp, b.cfg.hp);
+});
