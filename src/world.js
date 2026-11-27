@@ -252,7 +252,7 @@ export class WorldScene extends Phaser.Scene {
     const tint = p.tn ? parseInt(p.tn.slice(1), 16) : 0; // 임시 모습: 스프라이트가 오면 tint를 지운다
     if (tint) sprite.setTint(tint);
     sprite.play(`${p.s}-idle`);
-    const name = this.add.text(0, 0, (p.b ? '🤖 ' : '') + p.n, { fontFamily: 'sans-serif', fontSize: '22px', color: '#1f2d3a', fontStyle: '900', stroke: '#ffffff', strokeThickness: 5 }).setOrigin(0.5, 1); // 이름: 굵게 22px
+    const name = this.add.text(0, 0, (p.b ? '🤖 ' : '') + p.n, { fontFamily: 'sans-serif', fontSize: '22px', color: '#1f2d3a', fontStyle: '900', stroke: '#ffffff', strokeThickness: 5 }).setOrigin(0.5, 1).setShadow(1, 0, '#1f2d3a', 0, false, true); // 이름: 굵게 22px, 옆으로 1px 겹쳐 더 두껍게
     const bar = this.add.graphics();
     const shoe = this.add.image(0, 0, 'item-shoe').setScale(1.5).setVisible(false);
     const status = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: '18px', color: '#c0392b', fontStyle: 'bold', stroke: '#ffffff', strokeThickness: 4 }).setOrigin(0.5, 1);
