@@ -122,9 +122,18 @@ export class WorldScene extends Phaser.Scene {
     } else if (!on && v.cglow) { v.cpulse?.stop(); v.cpulse = null; v.sprite.preFX.remove(v.cglow); v.cglow = null; }
   }
 
+  /** 강화된 다음 공격이 준비되면(공주·개구리) 몸에 노란 빛이 맥박침 */
+  _readyGlow(v, on) {
+    if (on && !v.rglow && this.sys.game.renderer.type === Phaser.WEBGL) {
+      v.sprite.preFX.setPadding(24);
+      v.rglow = v.sprite.preFX.addGlow(0xffe27a, 4, 0, false, 0.12, 14);
+      v.rpulse = this.tweens.add({ targets: v.rglow, outerStrength: { from: 2, to: 6 }, duration: 320, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    } else if (!on && v.rglow) { v.rpulse?.stop(); v.rpulse = null; v.sprite.preFX.remove(v.rglow); v.rglow = null; }
+  }
+
   _glowOff(v) {
     if (!v) return;
-    this._charmGlow(v, false);
+    this._charmGlow(v, false); this._readyGlow(v, false);
     v.pulse?.stop(); v.pulse = null;
     if (v.glow) { v.sprite.preFX.remove(v.glow); v.glow = null; }
   }
@@ -426,7 +435,7 @@ export class WorldScene extends Phaser.Scene {
       if (p.ub > 0 && !p.sl) auraTick(this, v, now, BU); else auraOff(v);
       if (p.bn) burnTick(this, v, now, BU);
       if (p.cm) heartTick(this, v, now, BU);
-      this._charmGlow(v, !!p.cm);
+      this._charmGlow(v, !!p.cm); this._readyGlow(v, !!p.em && !p.st);
       orbitTick(this, v, now, BU);
       v.sprite.setFlipX(p.f < 0).setOrigin(p.f < 0 ? 1 - SPRITE.anchor[0] / SPRITE.cell : SPRITE.anchor[0] / SPRITE.cell, SPRITE.anchor[1] / SPRITE.cell); // 왼쪽을 볼 땐 기준점도 거울상으로 (체력바·이름이 몸 중앙에 맞게)
       const tint = p.si ? 0x8fa0c8 : p.tn ? parseInt(p.tn.slice(1), 16) : 0; // 침묵 중엔 회청색 // 캐릭터가 바뀌면 임시 색과 크기도 따라감

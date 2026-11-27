@@ -660,10 +660,10 @@ test('대시 캐릭터는 달리기 입력을 무시하고, 기절하면 돌진�
 
 import { dpsOf, FIGHT_SEC, powerIndex, shotsOf } from './balance.js';
 
-test('밸런스: 전투력 지수가 17~21.5 안 (개구리는 혀, 서포터는 회복이 있어 15 이상)', () => {
+test('밸런스: 전투력 지수가 17~22 안 (서포터는 회복이 있어 15 이상)', () => {
   for (const [id, c] of Object.entries(chars)) {
     const v = powerIndex(c);
-    assert.ok(v >= (id === 'frog' || c.role === 'support' ? 15 : 17) && v <= (id === 'hammerhead' ? 28 : 21.5), // 귀상어는 테스트용 버프 중(쿨타임·장전 절반, 범위 2배) — 정식 전에 재조정
+    assert.ok(v >= (c.role === 'support' ? 15 : 17) && v <= 22,
      `${c.name}: ${v.toFixed(1)}`);
     assert.ok(c.hp >= 30 && c.hp <= 90, `${c.name} 체력`);
   }
@@ -876,8 +876,9 @@ test('궁극기 충전: 때린 피해만큼, 맞은 피해는 절반만큼 차�
   A.x = 10; A.y = 10; B.x = 11; B.y = 10;
   g.attack('a', null);
   const dealt = B.cfg.hp - B.hp;
-  assert.ok(dealt > 0 && Math.abs(A.ult - dealt) < 1e-9, `A 충전 ${A.ult} / 피해 ${dealt}`);
-  assert.ok(Math.abs(B.ult - dealt * 0.5) < 1e-9, '맞은 쪽은 절반');
+  const mA = g._chargeMul(A), mB = g._chargeMul(B); // DPS가 낮을수록 피해 충전이 더 큼 (0.6~1.5배)
+  assert.ok(dealt > 0 && Math.abs(A.ult - dealt * mA) < 1e-9, `A 충전 ${A.ult} / 피해 ${dealt} × ${mA}`);
+  assert.ok(Math.abs(B.ult - dealt * 0.5 * mB) < 1e-9, '맞은 쪽은 절반');
   A.ult = need;
   assert.equal(g.snapshot().players.find((p) => p.id === 'a').ur, 1);
   assert.equal(g.ult('a', null), true);
@@ -1082,7 +1083,7 @@ test('격투가 평타: 탄창 1개로 3연타(잽·잽·강타)가 빠르게 �
   const atks = g.events.filter((e) => e.e === 'atk' && e.id === 'a');
   assert.deepEqual(atks.map((e) => e.step), [0, 1, 2], '3번 타격, 1타부터 순서대로');
   assert.ok(atks.every((e) => e.fast));
-  assert.equal(hp - B.hp, 4 + 4 + 8, '4+4+8');
+  assert.equal(hp - B.hp, 3 + 3 + 6, '3+3+6');
 });
 
 test('부화(닭): 알 7개를 뿌리고 1초 뒤 병아리가 되어 가까운 적을 쪼거나 동전을 줍고, 닭에게서 멀어지면 돌아오며, 10초 뒤 사라진다', () => {
@@ -1351,6 +1352,11 @@ test('시간이 끝나면(HOLD) 정답 공개 전까지 제자리에 고정, 공
   g.endQuestion(); assert.equal(g.phase, PHASE.REVEAL); run(g, 0.5); assert.ok(a.x > x0 + 1, `공개 뒤엔 움직임 x=${a.x}`);
 });
 
+test('궁극기 충전 보정: DPS가 낮은 캐릭터가 피해로 더 많이 채우고, 전원 0.6~1.5배 안', () => {
+  const g = new Game(chars, quizzes), mul = Object.fromEntries(Object.keys(chars).map((id) => [id, g._chargeMul({ cfg: chars[id] })]));
+  assert.ok(Object.values(mul).every((m) => m >= 0.6 && m <= 1.5), '범위'); assert.ok(mul.nurse > mul.cat, '간호사(낮은 DPS)가 고양이보다 더 채움');
+});
+
 test('난타(격투가): 5초간 앞으로 걸어가며 전방 직선을 연타하고 끝나면 멈춘다', () => {
   const { g, A, B } = duo('brawler', 'blue');
   A.x = 10; A.y = 10; B.x = 12; B.y = 10; A.ult = A.cfg.ult.need;
@@ -1493,20 +1499,16 @@ test('대지 분쇄(오크): 제자리에서 세 번 내려찍고 사거리가 4
   assert.equal(A.channel, null);
 });
 
-test('매혹은 이동 속도 50%: 공주 평타 3번 맞으면 매혹, 5초 안에 못 채우면 쌓임이 사라진다', () => {
+test('공주: 3번 공격할 때마다 다음 공격이 강화돼서, 적중하면 매혹 (매혹은 이동 속도 50%)', () => {
   const { g, A, B } = duo('princess', 'blue');
-  A.x = 8; A.y = 10; B.x = 12; B.y = 10; B.invUntil = 0;
-  for (let i = 0; i < 2; i++) { A.nextAttackAt = 0; A.ammoF = 3; g.attack('a', null); run(g, 0.6); }
-  assert.ok(g.t >= B.charmUntil, '2번까지는 매혹 아님');
-  A.nextAttackAt = 0; A.ammoF = 3; g.attack('a', null); run(g, 0.6);
-  assert.ok(B.charmUntil > g.t && B.charmBy === 'a', '3번째에 매혹');
+  A.x = 8; A.y = 10; B.x = 12; B.y = 10; B.invUntil = 0; const shoot = () => { A.nextAttackAt = 0; A.ammoF = 3; g.attack('a', null); run(g, 0.6); };
+  for (let i = 0; i < 3; i++) shoot();
+  assert.ok(g.t >= B.charmUntil, '3번째까지는 평범한 공격 (맞아도 매혹 아님)'); assert.equal(A.empNext, true); assert.equal(g.snapshot().players.find((p) => p.id === 'a').em, 1, '강화 준비 표시');
+  shoot(); assert.ok(B.charmUntil > g.t && B.charmBy === 'a', '4번째(강화된 공격)가 맞아서 매혹'); assert.equal(A.empNext, false);
   B.x = 20; B.y = 10; B.kx = B.ky = 0; g.setInput('b', { mx: 0, my: 0, run: false }); const x = B.x; run(g, 1);
   assert.ok(Math.abs(B.x - x + B.cfg.walkSpeed * 0.5) < 0.5, `절반 속도로 따라옴 ${x - B.x}`);
-  // 쌓임 만료
-  B.charmUntil = 0; B.charmStack = null; B.invUntil = 0; B.x = 14;
-  A.nextAttackAt = 0; A.ammoF = 3; g.attack('a', null); run(g, 6);
-  A.nextAttackAt = 0; A.ammoF = 3; g.attack('a', null); run(g, 0.8);
-  assert.ok(g.t >= B.charmUntil, '6초 지나 쌓임 초기화');
+  B.charmUntil = 0; B.invUntil = 0; B.x = 14; B.y = 10; for (let i = 0; i < 3; i++) shoot(); // 다시 3번 → 다음이 강화
+  A.x = 30; A.y = 18; shoot(); assert.equal(A.empNext, false, '강화된 공격은 빗나가도 소모'); assert.ok(g.t >= B.charmUntil, '빗나가면 매혹 없음');
 });
 
 test('궁극기 충전: 가만히 있어도 초당 3%, 탱커는 맞을 때마다 2% 더, 궁극기로 때린 피해는 충전 절반', () => {
@@ -1518,22 +1520,21 @@ test('궁극기 충전: 가만히 있어도 초당 3%, 탱커는 맞을 때마�
   A.x = 10; A.y = 10; B.x = 10.9; B.y = 10; B.invUntil = 0; A.ult = 0; B.ult = 0; B.stunned = false;
   const before = B.ult; g.attack('a', null);
   const dealt = B.cfg.hp - B.hp;
-  assert.ok(Math.abs(B.ult - before - (dealt * 0.5 + B.cfg.ult.need * 0.02)) < 0.2, `탱커 충전 ${B.ult}`);
-  assert.ok(Math.abs(A.ult - dealt) < 0.2, '평타로 때리면 피해만큼');
+  assert.ok(Math.abs(B.ult - before - (dealt * 0.5 * g._chargeMul(B) + B.cfg.ult.need * 0.02)) < 0.2, `탱커 충전 ${B.ult}`);
+  assert.ok(Math.abs(A.ult - dealt * g._chargeMul(A)) < 0.2, '평타로 때리면 피해만큼(DPS 보정)');
   // 궁극기로 때린 피해는 절반: 반경 3칸 폭발로 둘을 때리면 (10 × 2) × 0.5 = 10
   const C = g.join({ token: 'c', name: 'C', charId: 'orc' }); C.x = 10; C.y = 11; C.invUntil = 0; B.invUntil = 0;
   A.cfg = { ...A.cfg, ult: { name: 't', need: 1000, type: 'burst', radius: 3, dmg: 10, knock: 0 } };
   A.ult = 1000; g.ult('a', null);
-  assert.ok(Math.abs(A.ult - 10) < 0.01, `궁극기로 때린 충전 ${A.ult}`);
+  assert.ok(Math.abs(A.ult - 10 * g._chargeMul(A)) < 0.01, `궁극기로 때린 충전 ${A.ult}`);
 });
 
-test('개구리 평타 3번 맞으면 혀로 묶인다 (궁극기와 같은 효과, 3초)', () => {
+test('개구리: 3번 공격할 때마다 다음 혀가 강화돼서 적중하면 묶는다 (궁극기와 같은 효과, 3초)', () => {
   const { g, A, B } = duo('frog', 'blue');
-  A.x = 10; A.y = 10; B.x = 12.5; B.y = 10; B.invUntil = 0;
-  for (let i = 0; i < 2; i++) { A.nextAttackAt = 0; A.ammoF = 3; g.attack('a', null); }
-  assert.equal(B.tether, null, '2번까지는 안 묶임');
-  A.nextAttackAt = 0; A.ammoF = 3; g.attack('a', null);
-  assert.ok(B.tether && B.tether.by === 'a' && B.tether.until - g.t > 2.5, '3번째에 묶임');
+  A.x = 10; A.y = 10; B.x = 12.5; B.y = 10; B.invUntil = 0; const lash = () => { A.nextAttackAt = 0; A.ammoF = 3; g.attack('a', null); };
+  for (let i = 0; i < 3; i++) lash();
+  assert.equal(B.tether, null, '3번째까지는 안 묶임'); assert.equal(A.empNext, true);
+  lash(); assert.ok(B.tether && B.tether.by === 'a' && B.tether.until - g.t > 2.5, '4번째(강화)에 묶임');
   assert.equal(g.snapshot().players.find((p) => p.id === 'b').tt, 'a');
   g.setInput('b', { mx: 1, my: 0, run: false }); const x = B.x; run(g, 1);
   assert.ok(B.x - x < B.cfg.walkSpeed * 0.6, `멀어지는 이동이 느림 ${B.x - x}`);

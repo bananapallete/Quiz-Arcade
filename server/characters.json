@@ -7,7 +7,7 @@
     "walkSpeed": 6,
     "runSpeed": 9,
     "runGauge": 2.8,
-    "runRecharge": 11.2,
+    "runRecharge": 8,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -15,8 +15,8 @@
     },
     "attack": {
       "type": "melee",
-      "dmgMin": 5,
-      "dmgMax": 7,
+      "dmgMin": 3,
+      "dmgMax": 5,
       "interval": 0.3333,
       "range": 1.7,
       "knockback": 0,
@@ -44,7 +44,7 @@
     },
     "ammo": {
       "max": 3,
-      "reload": 1
+      "reload": 0.6
     },
     "role": "melee",
     "atkInfo": "3연타, 마지막 강타",
@@ -70,7 +70,7 @@
     "walkSpeed": 6,
     "runSpeed": 9,
     "runGauge": 2.8,
-    "runRecharge": 11.2,
+    "runRecharge": 8,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -78,8 +78,8 @@
     },
     "attack": {
       "type": "ranged",
-      "dmgMin": 4,
-      "dmgMax": 4,
+      "dmgMin": 5,
+      "dmgMax": 5,
       "interval": 0.5,
       "range": 5,
       "knockback": 0,
@@ -119,7 +119,7 @@
     "walkSpeed": 6.5,
     "runSpeed": 9.75,
     "runGauge": 4.2,
-    "runRecharge": 14,
+    "runRecharge": 10,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -169,7 +169,7 @@
     "walkSpeed": 5.5,
     "runSpeed": 8.25,
     "runGauge": 2.8,
-    "runRecharge": 11.2,
+    "runRecharge": 8,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -177,8 +177,8 @@
     },
     "attack": {
       "type": "ranged",
-      "dmgMin": 9,
-      "dmgMax": 9,
+      "dmgMin": 10,
+      "dmgMax": 10,
       "interval": 0.9,
       "range": 4.5,
       "knockback": 0,
@@ -220,7 +220,7 @@
     "walkSpeed": 5.5,
     "runSpeed": 8.25,
     "runGauge": 2.8,
-    "runRecharge": 11.2,
+    "runRecharge": 8,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -284,8 +284,8 @@
     },
     "attack": {
       "type": "melee",
-      "dmgMin": 5,
-      "dmgMax": 5,
+      "dmgMin": 4,
+      "dmgMax": 4,
       "interval": 0.3,
       "range": 1.7,
       "knockback": 0,
@@ -316,7 +316,7 @@
     },
     "ammo": {
       "max": 3,
-      "reload": 0.9
+      "reload": 0.65
     },
     "role": "melee",
     "atkInfo": "3연타, 회전 베기",
@@ -342,7 +342,7 @@
     "walkSpeed": 4.5,
     "runSpeed": 6.75,
     "runGauge": 2.8,
-    "runRecharge": 14,
+    "runRecharge": 10,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -350,9 +350,9 @@
     },
     "attack": {
       "type": "melee",
-      "dmgMin": 5,
-      "dmgMax": 5,
-      "interval": 0.8,
+      "dmgMin": 4,
+      "dmgMax": 4,
+      "interval": 1.04,
       "range": 4,
       "knockback": 0,
       "canAttackWhileRunning": true,
@@ -365,7 +365,7 @@
     "scale": 1.2,
     "ammo": {
       "max": 3,
-      "reload": 2.2
+      "reload": 1.3
     },
     "role": "tank",
     "atkInfo": "예고 후 넓은 강타",
@@ -404,7 +404,7 @@
     "walkSpeed": 6,
     "runSpeed": 9,
     "runGauge": 2.8,
-    "runRecharge": 11.2,
+    "runRecharge": 8,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -412,8 +412,8 @@
     },
     "attack": {
       "type": "ranged",
-      "dmgMin": 6,
-      "dmgMax": 6,
+      "dmgMin": 7,
+      "dmgMax": 7,
       "interval": 0.5,
       "range": 4,
       "knockback": 0,
@@ -426,7 +426,6 @@
       "fx": "spark",
       "charm": {
         "stacks": 3,
-        "window": 5,
         "sec": 2
       }
     },
@@ -436,7 +435,7 @@
       "reload": 1.5
     },
     "role": "ranged",
-    "atkInfo": "반짝 연사, 3타 매혹",
+    "atkInfo": "3번 쏘면 다음 공격이 매혹",
     "ult": {
       "name": "매혹",
       "need": 90,
@@ -470,8 +469,8 @@
     },
     "attack": {
       "type": "melee",
-      "dmgMin": 4,
-      "dmgMax": 4,
+      "dmgMin": 3,
+      "dmgMax": 3,
       "interval": 0.9,
       "burst": {
         "n": 3,
@@ -506,7 +505,7 @@
     "scale": 1.1,
     "ammo": {
       "max": 3,
-      "reload": 6.5
+      "reload": 3.0
     },
     "role": "tank",
     "atkInfo": "3연타, 충격파",
@@ -517,7 +516,7 @@
       "sec": 5,
       "spd": 1,
       "dmg": 4,
-      "gap": 0.2,
+      "gap": 0.3,
       "knock": 1.2,
       "range": 1.9,
       "width": 1.3,
@@ -533,7 +532,7 @@
     "walkSpeed": 7.5,
     "runSpeed": 11.25,
     "runGauge": 4.2,
-    "runRecharge": 14,
+    "runRecharge": 10,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -541,8 +540,8 @@
     },
     "attack": {
       "type": "melee",
-      "dmgMin": 5,
-      "dmgMax": 5,
+      "dmgMin": 4,
+      "dmgMax": 4,
       "interval": 0.28,
       "range": 1.1,
       "knockback": 0,
@@ -554,7 +553,7 @@
     "pickupRadius": 1.4,
     "ammo": {
       "max": 3,
-      "reload": 0.9
+      "reload": 0.6
     },
     "role": "melee",
     "atkInfo": "초고속 물기",
@@ -581,7 +580,7 @@
     "walkSpeed": 6,
     "runSpeed": 9,
     "runGauge": 2.8,
-    "runRecharge": 11.2,
+    "runRecharge": 8,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -649,9 +648,9 @@
     },
     "attack": {
       "type": "melee",
-      "dmgMin": 4,
-      "dmgMax": 4,
-      "interval": 0.75,
+      "dmgMin": 3,
+      "dmgMax": 3,
+      "interval": 0.86,
       "range": 2,
       "knockback": 0,
       "canAttackWhileRunning": true,
@@ -663,7 +662,7 @@
     "scale": 1.15,
     "ammo": {
       "max": 3,
-      "reload": 1.65
+      "reload": 1.0
     },
     "guard": 0.4,
     "role": "tank",
@@ -695,7 +694,7 @@
     "walkSpeed": 7.5,
     "runSpeed": 11.25,
     "runGauge": 2.8,
-    "runRecharge": 11.2,
+    "runRecharge": 8,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -703,8 +702,8 @@
     },
     "attack": {
       "type": "melee",
-      "dmgMin": 5,
-      "dmgMax": 7,
+      "dmgMin": 3,
+      "dmgMax": 5,
       "interval": 0.3,
       "range": 1.1,
       "knockback": 0,
@@ -716,7 +715,7 @@
     "scale": 0.85,
     "ammo": {
       "max": 3,
-      "reload": 0.9
+      "reload": 0.55
     },
     "role": "speed",
     "atkInfo": "빠른 할퀴기, 크리 확률↑",
@@ -754,9 +753,9 @@
     },
     "attack": {
       "type": "melee",
-      "dmgMin": 6,
-      "dmgMax": 6,
-      "interval": 0.3,
+      "dmgMin": 3,
+      "dmgMax": 3,
+      "interval": 0.4,
       "range": 2.6,
       "arcDeg": 90,
       "multi": true,
@@ -767,7 +766,7 @@
     },
     "ammo": {
       "max": 3,
-      "reload": 0.9
+      "reload": 0.7
     },
     "role": "tank",
     "atkInfo": "넓게 휘두르기",
@@ -792,7 +791,7 @@
     "walkSpeed": 7,
     "runSpeed": 10.5,
     "runGauge": 4.2,
-    "runRecharge": 14,
+    "runRecharge": 10,
     "stunSec": 2,
     "invincibleSec": 3,
     "pickupRadius": 1.6,
@@ -801,8 +800,8 @@
     },
     "attack": {
       "type": "melee",
-      "dmgMin": 3,
-      "dmgMax": 6,
+      "dmgMin": 2,
+      "dmgMax": 5,
       "interval": 0.25,
       "range": 1.1,
       "knockback": 0,
@@ -829,7 +828,7 @@
     },
     "ammo": {
       "max": 3,
-      "reload": 0.9
+      "reload": 0.6
     },
     "role": "speed",
     "atkInfo": "빠른 3연타",
@@ -849,11 +848,11 @@
     "name": "개구리",
     "sprite": "frog",
     "radius": 0.4,
-    "hp": 50,
+    "hp": 55,
     "walkSpeed": 7,
     "runSpeed": 10.5,
     "runGauge": 2.8,
-    "runRecharge": 11.2,
+    "runRecharge": 8,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -862,15 +861,14 @@
     "attack": {
       "type": "ranged",
       "fx": "tongue",
-      "dmgMin": 2,
-      "dmgMax": 4,
+      "dmgMin": 3,
+      "dmgMax": 5,
       "interval": 0.5,
       "range": 3.5,
       "knockback": 0,
       "canAttackWhileRunning": true,
       "tether": {
         "stacks": 3,
-        "window": 5,
         "sec": 3,
         "len": 3,
         "resist": 0.5,
@@ -882,7 +880,7 @@
       "reload": 1.5
     },
     "role": "speed",
-    "atkInfo": "혀 공격, 3번 맞으면 묶임",
+    "atkInfo": "3번 쓰면 다음 혀가 적을 묶음",
     "ult": {
       "name": "혀 올가미",
       "need": 90,
@@ -918,8 +916,8 @@
     },
     "attack": {
       "type": "melee",
-      "dmgMin": 5,
-      "dmgMax": 5,
+      "dmgMin": 4,
+      "dmgMax": 4,
       "interval": 0.35,
       "range": 1.1,
       "knockback": 0,
@@ -946,7 +944,7 @@
     },
     "ammo": {
       "max": 3,
-      "reload": 1.05
+      "reload": 0.75
     },
     "role": "melee",
     "atkInfo": "3연타 베기",
@@ -977,7 +975,7 @@
     "walkSpeed": 4,
     "runSpeed": 6,
     "runGauge": 2.8,
-    "runRecharge": 14,
+    "runRecharge": 10,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -985,9 +983,9 @@
     },
     "attack": {
       "type": "melee",
-      "dmgMin": 7,
-      "dmgMax": 7,
-      "interval": 1,
+      "dmgMin": 6,
+      "dmgMax": 6,
+      "interval": 1.15,
       "range": 1.5,
       "knockback": 0,
       "canAttackWhileRunning": true,
@@ -998,7 +996,7 @@
     },
     "ammo": {
       "max": 3,
-      "reload": 2.2
+      "reload": 1.3
     },
     "role": "tank",
     "atkInfo": "주변 전체 쾅",
@@ -1036,8 +1034,8 @@
     },
     "attack": {
       "type": "melee",
-      "dmgMin": 7,
-      "dmgMax": 7,
+      "dmgMin": 5,
+      "dmgMax": 5,
       "interval": 0.7,
       "range": 1.2,
       "knockback": 0,
@@ -1051,7 +1049,7 @@
     },
     "ammo": {
       "max": 3,
-      "reload": 2.1
+      "reload": 1.25
     },
     "role": "tank",
     "atkInfo": "2칸 돌진 박치기",
@@ -1081,7 +1079,7 @@
     "walkSpeed": 6,
     "runSpeed": 9,
     "runGauge": 2.8,
-    "runRecharge": 11.2,
+    "runRecharge": 8,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -1135,7 +1133,7 @@
     "walkSpeed": 8,
     "runSpeed": 12,
     "runGauge": 4.2,
-    "runRecharge": 14,
+    "runRecharge": 10,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -1185,7 +1183,7 @@
     "walkSpeed": 6,
     "runSpeed": 9,
     "runGauge": 2.8,
-    "runRecharge": 11.2,
+    "runRecharge": 8,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {
@@ -1237,7 +1235,7 @@
     "walkSpeed": 6,
     "runSpeed": 9,
     "runGauge": 2.8,
-    "runRecharge": 11.2,
+    "runRecharge": 8,
     "stunSec": 2,
     "invincibleSec": 3,
     "skill": {

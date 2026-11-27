@@ -2,6 +2,7 @@
 // 모든 판정(이동, 충돌, 공격, 구역, 점수)은 서버가 한다.
 
 import { blockWalls, buffOf, charge, CHARGE_TAKEN, hit as ultHit, ultReady, minionsSnapshot, updateUlts, useUlt, wallsSnapshot, zonesSnapshot } from './ult.js';
+import { dpsOf } from './balance.js';
 import { calCell, calCenter, calLayout, fmtScore, ULT_CHARGE, RUN_DRAIN, CHAR_CD_SEC, COIN, COMBO_RESET_SEC, CRIT, ITEM, MAP, PHASE, READ_SEC, SPRITE, zoneAt, ZONES } from '../shared/constants.js';
 
 const KNOCK_DECAY = 12; // 밀림 속도 감쇠(1/s). 총 밀림 거리 = 처음 속도 / 감쇠
@@ -44,7 +45,7 @@ export class Game {
     this.itemClock = 0;
     this.coinsSpawned = 0; // 지금까지 생성한 동전 수 (습득된 것 포함)
     this.showRank = false; // 빔프로젝터에 순위표를 띄울지
-    this.showQr = true; this.hideAns = false; this.timerPaused = false; this.frozen = false; this.multiplier = 1; this.notice = null; this.screenMode = 'quiz'; this.cal = null; this.noAtk = false; this.noUlt = false; this.god = false; this.scoreLog = []; this.history = []; this.histSeq = 0; // 진행자 기능
+    this.showQr = true; this.hideAns = false; this.timerPaused = false; this.frozen = false; this.multiplier = 1; this.notice = null; this.screenMode = 'quiz'; this.cal = null; this._cmCache = new WeakMap(); this.noAtk = false; this.noUlt = false; this.god = false; this.scoreLog = []; this.history = []; this.histSeq = 0; // 진행자 기능
     this.locked = null; // 시간이 끝난 시점에 굳어진 판정 (정답 공개 때 점수에 반영)
     this.realPending = new Map(); // 현실 퀴즈: 진행자가 입력한 점수 id → 점수
     this.realConfirmed = false;
@@ -534,6 +535,8 @@ export class Game {
     if (Math.abs(dx) > 0.15) p.face = dx > 0 ? 1 : -1;
     p.nextAttackAt = this.t + a.interval / (buffOf(this, p)?.atk ?? 1);
     p.ammoF -= 1;
+    let emp = false; // 3번째 공격마다 다음 공격이 강화 (공주 매혹 · 개구리 혀 묶기)
+    if (a.charm || a.tether) { emp = !!p.empNext; p.empNext = false; if (!emp) { p.empCount = (p.empCount || 0) + 1; if (p.empCount >= (a.charm || a.tether).stacks) { p.empCount = 0; p.empNext = true; } } }
     // 공격 모션이 재생되는 동안 (이동 속도 감소가 적용되는 시간)
     p.attackUntil = this.t + (a.burst ? a.burst.gap + 0.1 : (SPRITE.attackSteps[step]?.ms ?? ATTACK_ANIM_SEC * 1000) / 1000);
     p.lastAttackAt = this.t;
@@ -553,7 +556,7 @@ export class Game {
       return;
     }
     if (a.projectile) { // 투사체: 날아가서 닿아야 맞는다 (피할 수 있음)
-      this._shoot(p, a, aim, dx, dy, range, near);
+      this._shoot(p, a, aim, dx, dy, range, near, emp);
       this.events.push({ e: 'atk', id: p.id, dx: r2(dx), dy: r2(dy), kind: 'proj', step, len: range });
       return;
     }
@@ -563,7 +566,7 @@ export class Game {
       this.events.push({ e: 'windup', id: p.id, dx: r2(dx), dy: r2(dy), range: r2(range), arc, sec: a.windup, fx: a.fx });
       return;
     }
-    this._strike(p, range, dx, dy, m, step, arc, multi, line, !!a.burst);
+    this._strike(p, range, dx, dy, m, step, arc, multi, line, !!a.burst, emp);
     for (let i = 1; i < (a.burst?.n ?? 1); i++) { // 나머지 타격: 탄창은 더 안 쓰고 gap 간격으로 이어서
       this.tasks.push({ at: this.t + i * a.burst.gap, fn: () => {
         if (p.stunned || this.t < p.rootUntil || this.t < p.charmUntil || p.channel) return;
@@ -575,11 +578,11 @@ export class Game {
     }
   }
 
-  _strike(p, range, dx, dy, m, step, arc, multi, line, fast = false) {
+  _strike(p, range, dx, dy, m, step, arc, multi, line, fast = false, emp = false) {
     const a = p.cfg.attack;
     const hits = this._pickTargets(p, range, dx, dy, arc, line);
     this.events.push({ e: 'atk', id: p.id, dx: r2(dx), dy: r2(dy), kind: a.type, fx: a.fx, arc, lineW: line, fast, step, range: r2(range), len: r2(hits[0] && !(multi && a.type === 'ranged') ? hits[0].dist : range) });
-    for (const h of multi ? hits : hits.slice(0, 1)) this._hit(h.o, p, dx, dy, m.dmg ?? 1, m.knockback ?? 1); // multi: 범위 안 모두
+    for (const h of multi ? hits : hits.slice(0, 1)) { this._emp = emp; this._hit(h.o, p, dx, dy, m.dmg ?? 1, m.knockback ?? 1); } // multi: 범위 안 모두
   }
 
   // ---------- 투사체 ----------
@@ -604,9 +607,9 @@ export class Game {
     this.events.push({ e: 'chain', id: p.id, pts });
   }
 
-  _shoot(p, a, aim, dx, dy, range, near) {
+  _shoot(p, a, aim, dx, dy, range, near, emp = false) {
     const pr = a.projectile;
-    const base = { id: ++this.projSeq, owner: p.id, art: pr.art, dmgMin: a.dmgMin, dmgMax: a.dmgMax, knock: a.knockback };
+    const base = { id: ++this.projSeq, owner: p.id, art: pr.art, dmgMin: a.dmgMin, dmgMax: a.dmgMax, knock: a.knockback, emp };
     if (pr.lob) {
       const L = this._lobLanding(p, { dx, dy, manual: !!(Math.hypot(Number(aim?.x) || 0, Number(aim?.y) || 0) > 0.2), near }, range, aim);
       const dist = Math.hypot(L.x - p.x, L.y - p.y);
@@ -615,6 +618,9 @@ export class Game {
       this.projectiles.set(base.id, { ...base, kind: 'bolt', x: p.x, y: p.y, dx, dy, vx: dx * pr.speed, vy: dy * pr.speed, speed: pr.speed, travel: 0, maxDist: range, radius: pr.radius, pierce: !!pr.pierce || !!pr.boomerang, hit: new Set(), boom: pr.boomerang ? { ph: 'out', wait: pr.boomerang.wait, until: 0 } : null });
     }
   }
+
+  /** 투사체가 맞았을 때: 강화된 평타 여부를 알려 주고 피해 처리 */
+  _projHit(q, o, owner, dmg, knock, dx, dy, art) { this._emp = !!q.emp; this._applyHit(o, owner, dmg, knock, dx, dy, art); }
 
   _projDamage(q) {
     return q.dmgMin + Math.floor(Math.random() * (q.dmgMax - q.dmgMin + 1));
@@ -632,7 +638,7 @@ export class Game {
           const d = Math.hypot(o.x - q.tx, o.y - q.ty);
           if (d > q.r + o.cfg.radius) continue;
           const nx = d > 1e-6 ? (o.x - q.tx) / d : 1, ny = d > 1e-6 ? (o.y - q.ty) / d : 0;
-          this._applyHit(o, this.players.get(q.owner) || { id: q.owner }, this._projDamage(q), q.knock, nx, ny, q.art);
+          this._projHit(q, o, this.players.get(q.owner) || { id: q.owner }, this._projDamage(q), q.knock, nx, ny, q.art);
         }
         if (q.heal && ownerP) for (const o of this._allies(ownerP)) { // 간호사: 터지는 범위 안 아군은 회복
           if (Math.hypot(o.x - q.tx, o.y - q.ty) > q.r + o.cfg.radius) continue;
@@ -670,7 +676,7 @@ export class Game {
         const k = l2 > 0 ? Math.max(0, Math.min(1, ((o.x - px) * sx + (o.y - py) * sy) / l2)) : 0;
         if (Math.hypot(o.x - (px + sx * k), o.y - (py + sy * k)) > q.radius + o.cfg.radius) continue;
         q.hit.add(o.id);
-        if (q.ult) ultHit(this, o, this.players.get(q.owner) || { id: q.owner }, this._projDamage(q), q.knock, q.dx, q.dy, q.art); else this._applyHit(o, this.players.get(q.owner) || { id: q.owner }, this._projDamage(q), q.knock, q.dx, q.dy, q.art);
+        if (q.ult) ultHit(this, o, this.players.get(q.owner) || { id: q.owner }, this._projDamage(q), q.knock, q.dx, q.dy, q.art); else this._projHit(q, o, this.players.get(q.owner) || { id: q.owner }, this._projDamage(q), q.knock, q.dx, q.dy, q.art);
         if (q.root) { o.rootUntil = Math.max(o.rootUntil, this.t + q.root); if (q.carried) q.carried.set(o.id, this.t + (q.carry ?? q.root)); }
         if (!q.pierce) { gone = true; break; }
       }
@@ -797,7 +803,15 @@ export class Game {
     this._applyHit(target, attacker, dmg, a.knockback * knockMul, dx, dy, a.fx);
   }
 
+  /** 피해로 얻는 궁극기 충전량의 배수: DPS가 낮을수록 더 채워 줘서 캐릭터마다 궁극기 주기가 비슷해짐 (6 ÷ 내 DPS, 0.6~1.5배) */
+  _chargeMul(p) {
+    if (!p.cfg) return 1;
+    let m = this._cmCache.get(p.cfg); if (m === undefined) { m = Math.max(0.6, Math.min(1.5, 6 / Math.max(0.1, dpsOf(p.cfg).dps))); this._cmCache.set(p.cfg, m); }
+    return m;
+  }
+
   _applyHit(target, attacker, rawDmg, knock, dx, dy, fx) {
+    const emp = this._emp; this._emp = false; // 이번 타격이 '강화된 평타'인가 (한 번 쓰면 사라짐)
     if (target.ghost) return; // 유령은 맞지도 밀리지도 않음
     if (this.t < target.invUntil || (this.god && !target.isBot)) { // 무적: 피해도 밀림도 없음
       this.events.push({ e: 'block', id: target.id, x: r2(target.x), y: r2(target.y) });
@@ -817,22 +831,14 @@ export class Game {
       if (attacker.cfg) {
         let add = dmg * (this.ultDepth > 0 ? ULT_CHARGE.ultHit : 1);
         if (this.ultDepth > 0) { add = Math.min(add, attacker.ultRoom ?? 0); attacker.ultRoom = (attacker.ultRoom ?? 0) - add; } // 궁극기로 채우는 양은 한 번에 게이지의 5%까지 (여러 명 합쳐서)
-        charge(attacker, add);
+        charge(attacker, add * this._chargeMul(attacker));
       }
-      charge(target, dmg * CHARGE_TAKEN);
+      charge(target, dmg * CHARGE_TAKEN * this._chargeMul(target));
       if (target.cfg.role === 'tank' && target.cfg.ult) charge(target, target.cfg.ult.need * ULT_CHARGE.tankHit); // 탱커는 맞을 때마다 2% 더
-      const cm = attacker.cfg?.attack?.charm; // 평타 중첩 매혹(공주): window초 안에 stacks번 맞으면 sec초 매혹
-      const tt = attacker.cfg?.attack?.tether; // 평타 중첩 혀 묶임(개구리): window초 안에 stacks번 맞으면 sec초 묶임
-      if (tt) {
-        const st = target.tetherStack && this.t < target.tetherStack.until ? target.tetherStack : (target.tetherStack = { n: 0, until: 0 });
-        st.n++; st.until = this.t + tt.window;
-        if (st.n >= tt.stacks) { target.tetherStack = null; target.tether = { by: attacker.id, until: this.t + tt.sec, len: tt.len, resist: tt.resist, pull: tt.pull }; this.events.push({ e: 'tetherStart', id: attacker.id, x: r2(target.x), y: r2(target.y), r: 1 }); }
-      }
-      if (cm) {
-        const st = target.charmStack && this.t < target.charmStack.until ? target.charmStack : (target.charmStack = { n: 0, until: 0 });
-        st.n++; st.until = this.t + cm.window;
-        if (st.n >= cm.stacks) { target.charmStack = null; target.charmUntil = this.t + cm.sec; target.charmBy = attacker.id; this.events.push({ e: 'charm', id: attacker.id, x: r2(target.x), y: r2(target.y), r: 0.9 }); }
-      }
+      const cm = emp ? attacker.cfg?.attack?.charm : null; // 3번 공격할 때마다 다음 공격이 강화(공주: 매혹) — 적중하면 발동
+      const tt = emp ? attacker.cfg?.attack?.tether : null; // 강화된 다음 공격(개구리): 적중하면 혀로 묶음
+      if (tt) { target.tether = { by: attacker.id, until: this.t + tt.sec, len: tt.len, resist: tt.resist, pull: tt.pull }; this.events.push({ e: 'tetherStart', id: attacker.id, x: r2(target.x), y: r2(target.y), r: 1 }); }
+      if (cm) { target.charmUntil = this.t + cm.sec; target.charmBy = attacker.id; this.events.push({ e: 'charm', id: attacker.id, x: r2(target.x), y: r2(target.y), r: 0.9 }); }
       target.hp = Math.max(0, target.hp - dmg);
       if (target.hp === 0) this._ko(target);
     }
@@ -1156,7 +1162,7 @@ export class Game {
         tn: p.cfg.tint || null, zs: buffOf(this, p)?.morph ? 1 : (p.cfg.scale || 1) * (buffOf(this, p)?.scale || 1),
         am: Math.floor(p.ammoF + 1e-9), amf: r2(p.ammoF % 1), mam: p.cfg.ammo?.max ?? 0,
         ul: p.cfg.ult ? r2(p.ult / p.cfg.ult.need) : 0, ur: ultReady(p) ? 1 : 0, ub: buffOf(this, p) ? r2(p.buff.until - this.t) : 0, pr: buffOf(this, p)?.morph === 'phoenix' ? p.cfg.ult.radius : 0, pu: buffOf(this, p)?.morph === 'phoenix' ? r2(1 - (p.buff.until - this.t) / p.cfg.ult.sec) : 0, mo: buffOf(this, p)?.morph === 'phoenix' && p.cfg.ult.sec - (p.buff.until - this.t) < 0.7 ? 1 : 0, sl: this._stealthed(p) ? 1 : 0, ch: p.channel ? 1 : 0, cm: this.t < p.charmUntil ? 1 : 0, tt: p.tether && this.t < p.tether.until ? p.tether.by : 0, rv: p.stunned ? r2(Math.max(0, p.stunUntil - this.t)) : 0, ob: p.orbit && this.t < p.orbit.until ? { a: r2(p.orbit.a0 + p.orbit.w * (this.t - p.orbit.t0)), w: p.orbit.w, n: p.orbit.n, r: p.orbit.r } : 0, bn: this.t < p.burnUntil ? 1 : 0, rt: this.t < p.rootUntil ? 1 : 0,
-        si: this.t < (p.silenceUntil || 0) ? 1 : 0, sd: p.shield && this.t < p.shield.until ? r2(p.shield.until - this.t) : 0, ot: p.out ? 1 : 0, gh: p.ghost ? 1 : 0, ct: p.home ? 0 : 1, tm: p.team || 0, sc: this.totalScore(p), cn: p.coins, sp: r2(Math.max(0, p.speedUntil - this.t)),
+        si: this.t < (p.silenceUntil || 0) ? 1 : 0, sd: p.shield && this.t < p.shield.until ? r2(p.shield.until - this.t) : 0, ot: p.out ? 1 : 0, em: p.empNext ? 1 : 0, gh: p.ghost ? 1 : 0, ct: p.home ? 0 : 1, tm: p.team || 0, sc: this.totalScore(p), cn: p.coins, sp: r2(Math.max(0, p.speedUntil - this.t)),
       });
     }
     const q = this.question
