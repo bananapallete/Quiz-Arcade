@@ -1757,3 +1757,12 @@ test('맵으로 이동: 문제 없이 대기실 그대로, 맵만 선택한 문�
   g.ask(1); assert.equal(g.snapshot().pv, null);
   g.previewMap(bq); g.cancelQuestion(); assert.equal(g.snapshot().pv, null); assert.equal(g.snapshot().mp, null);
 });
+
+test('아이템·평소 동전은 참가자가 몰린 곳 위주로 생긴다 (밀집도 가중 스폰)', () => {
+  const g = new Game(chars, quizzes);
+  for (let i = 0; i < 6; i++) { const p = g.join({ token: `p${i}`, name: `P${i}`, charId: 'blue' }); p.x = 8 + (i % 3); p.y = 8 + Math.floor(i / 3); }
+  let near = 0; const N = 300;
+  for (let i = 0; i < N; i++) { const s = g._crowdSpot(); if (Math.hypot(s.x - 9, s.y - 8.5) < 8) near++; assert.ok(Math.hypot(s.x - 9, s.y - 8.5) > 0.5); }
+  assert.ok(near / N > 0.6, `몰린 곳 근처 비율 ${near / N}`); // 고르게 뿌리면 약 0.2
+  const g2 = new Game(chars, quizzes); const s2 = g2._crowdSpot(); assert.ok(Number.isFinite(s2.x), '사람이 없어도 동작');
+});

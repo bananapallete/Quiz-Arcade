@@ -3,8 +3,8 @@
 
 import { blockWalls, buffOf, charge, CHARGE_TAKEN, hit as ultHit, ultReady, minionsSnapshot, updateUlts, useUlt, wallsSnapshot, zonesSnapshot } from './ult.js';
 import { dpsOf } from './balance.js';
-import { BRAWL_MAP, BRAWL_REVIVE_SEC, brawlSpawn, inBush, inObstacle, pushOut } from '../shared/brawlMap.js';
-import { calCell, calCenter, calLayout, fmtScore, isCombat, PREP_SEC, REGEN, ULT_CHARGE, RUN_DRAIN, CHAR_CD_SEC, COIN, COMBO_RESET_SEC, CRIT, ITEM, MAP, PHASE, READ_SEC, SPRITE, zoneAt, ZONES } from '../shared/constants.js';
+import { BRAWL_MAP, BRAWL_REVIVE_SEC, brawlSpawn, inBush, inObstacle, inWater, pushOut } from '../shared/brawlMap.js';
+import { calCell, calCenter, calLayout, fmtScore, isCombat, PREP_SEC, REGEN, ULT_CHARGE, RUN_DRAIN, CHAR_CD_SEC, COIN, COMBO_RESET_SEC, CRIT, CROWD, ITEM, MAP, PHASE, READ_SEC, SPRITE, zoneAt, ZONES } from '../shared/constants.js';
 
 const KNOCK_DECAY = 12; // 밀림 속도 감쇠(1/s). 총 밀림 거리 = 처음 속도 / 감쇠
 const ATTACK_ANIM_SEC = 0.25;
@@ -939,7 +939,7 @@ export class Game {
   _updateCoins(dt, active) {
     if (active.some((p) => !p.isBot)) { // 참가자가 있을 때만 30초 시계가 간다
       this.coinClock += dt;
-      if (this.coinClock >= COIN.spawnEverySec) { this.coinClock = 0; this.spawnCoin(); }
+      if (this.coinClock >= COIN.spawnEverySec) { this.coinClock = 0; const c = this._crowdSpot([...this.coins.values()]); this.spawnCoin(c.x, c.y); } // 평소 동전도 사람이 몰린 곳 위주로
     }
     for (const c of [...this.coins.values()]) {
       if (this.t < c.readyAt) continue; // 생성 직후이거나, 떨어진 뒤 줍기 금지 시간 중
@@ -958,10 +958,32 @@ export class Game {
   }
 
   // ---------- 아이템: 하트(체력 회복) · 신발(이동 속도 증가) ----------
+  /**
+   * 밀집도 가중 스폰: 맵에서 후보 지점을 여러 개 뽑아, 살아 있는 참가자가 많이 몰린 곳일수록 높은 확률로 고른다.
+   * 점수 = Σ exp(-거리² / 2σ²) (σ = CROWD.sigma칸). 바로 발밑(minDist칸 안)·다른 아이템/동전 근처는 제외, 아무도 없으면 고르게.
+   */
+  _crowdSpot(avoid = []) {
+    const ps = [...this.players.values()].filter((p) => p.connected && !p.ghost && !p.home), big = this.solids, C = CROWD;
+    const ok = (x, y) => !(big && (inObstacle(x, y) || inWater(x, y))) && avoid.every((o) => Math.hypot(o.x - x, o.y - y) > 2);
+    const cand = [];
+    for (let i = 0; i < C.samples * 3 && cand.length < C.samples; i++) {
+      const x = rand(1.5, this.map.w - 1.5), y = rand(1.5, this.map.h - 1.5);
+      if (!ok(x, y)) continue;
+      let w = C.floor, near = false;
+      for (const p of ps) { const d2 = (p.x - x) ** 2 + (p.y - y) ** 2; if (d2 < C.minDist ** 2) near = true; w += Math.exp(-d2 / (2 * C.sigma ** 2)); }
+      cand.push({ x, y, w: near ? 0 : w });
+    }
+    const tot = cand.reduce((a, c) => a + c.w, 0);
+    if (!cand.length) return { x: rand(1.5, this.map.w - 1.5), y: rand(1.5, this.map.h - 1.5) };
+    if (tot <= 0) return cand[Math.floor(Math.random() * cand.length)];
+    let r = Math.random() * tot; for (const c of cand) { r -= c.w; if (r <= 0) return c; } // 룰렛 휠: 점수에 비례해 고름
+    return cand[cand.length - 1];
+  }
+
   spawnItem(k, x, y) {
     if (this.items.size >= ITEM.maxOnMap) return null;
     k ??= Math.random() < 0.5 ? 'heart' : 'shoe';
-    if (x == null) { x = rand(1.5, this.map.w - 1.5); y = rand(1.5, this.map.h - 1.5); }
+    if (x == null) ({ x, y } = this._crowdSpot([...this.items.values()]));
     const it = { id: ++this.itemSeq, k, x, y };
     this.items.set(it.id, it);
     this.events.push({ e: 'itemSpawn', id: it.id, k, x: r2(x), y: r2(y) });

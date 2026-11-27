@@ -28,6 +28,8 @@ export const RUN_DRAIN = 1.4;
 export const CHAR_CD_SEC = 60; // 퀴즈 중 캐릭터 변경 쿨타임 (대기실은 제한 없음)
 
 // 아이템: 하트(체력 회복) · 신발(잠깐 빨라짐). 동전처럼 맵에 생기고 닿으면 자동으로 먹는다
+/** 밀집도 가중 스폰 (아이템·평소 동전): 후보 samples개 중 사람이 몰린 곳일수록 잘 뽑힘 */
+export const CROWD = { samples: 16, sigma: 4, minDist: 1.5, floor: 0.05 }; // sigma: 몰림을 세는 반경(칸) · minDist: 발밑엔 안 생김 · floor: 아무도 없는 곳도 조금은 뽑힘
 export const ITEM = {
   spawnEverySec: 8, // 이 간격으로 하트/신발 중 하나가 생김
   maxOnMap: 5,
