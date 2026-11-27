@@ -47,7 +47,7 @@ export function renderQuizTop(el, s, rows, meId) {
   const nt = document.getElementById('qnt'); if (nt) { nt.hidden = !s.nt; if (s.nt) nt.textContent = s.nt; document.getElementById('qx2').hidden = s.x2 !== 2; document.getElementById('qfz').hidden = !s.fz; }
   renderTopRank(el.querySelector('#toprank'), rows, meId);
   const q = s.q, show = !!q && s.phase !== PHASE.LOBBY, qb = el.querySelector('.q'), tm = el.querySelector('.tm'), tg = el.querySelector('.tg');
-  qb.hidden = !show; tm.hidden = !show; tg.style.visibility = show ? 'visible' : 'hidden';
+  qb.hidden = !show || (q.type === 'brawl' && s.phase === PHASE.MOVING); tm.hidden = !show; tg.style.visibility = show ? 'visible' : 'hidden';
   if (!show) return;
   const no = qb.querySelector('.no'), p = qb.querySelector('p'), th = qb.querySelector('.th');
   const ans = s.reveal && s.reveal.answer != null && !s.ha ? (q.type === 'choice' ? `${s.reveal.answer}번` : s.reveal.answer) : '';
