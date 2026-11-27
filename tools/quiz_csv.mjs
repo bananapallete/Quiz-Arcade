@@ -1,6 +1,6 @@
 // 퀴즈 시트(CSV) → 서버가 읽는 JSON. 구글 시트에서 [파일 → 다운로드 → CSV]로 받은 파일을 쓴다.
 // 사용: node tools/quiz_csv.mjs design/quiz-template.csv server/quizzes.json   (서버 실행 때 QUIZ_FILE=server/quizzes.json)
-// 열: 번호,유형(ox|choice|real|brawl),문제,보기1~4,정답,제한시간(초),방식(개인|팀|현실),이미지(URL, 선택)
+// 열: 번호,유형(ox|choice|real|brawl|calendar),문제,보기1~4,정답,제한시간(초),방식(개인|팀|현실),이미지(URL, 선택)
 import { readFileSync, writeFileSync } from 'node:fs';
 const [src, out] = process.argv.slice(2);
 function parse(text) { // 따옴표·쉼표·줄바꿈을 아는 작은 CSV 파서
@@ -20,6 +20,7 @@ const quizzes = rows.map((r, i) => {
   if (type === 'choice') { q.options = ['보기1', '보기2', '보기3', '보기4'].map((n) => col(r, n)).filter(Boolean); q.answer = Number(col(r, '정답')); if (!q.options.length || !(q.answer >= 1 && q.answer <= q.options.length)) throw new Error(`${i + 2}행: 객관식은 보기와 정답(1~보기 수)이 필요해요`); }
   else if (type === 'ox') { q.answer = col(r, '정답').toUpperCase(); if (!['O', 'X'].includes(q.answer)) throw new Error(`${i + 2}행: OX 정답은 O 또는 X`); }
   else if (type === 'brawl') { q.answer = null; q.pts = Number(col(r, '정답')) || 5; q.time = Number(col(r, '제한시간')) || 90; q.mode = '대난투'; } // 대난투: 정답 칸 = 우승 점수, 제한시간 = 최대 시간
+  else if (type === 'calendar') { q.answer = null; q.days = Number(col(r, '보기1')) || 30; q.start = Number(col(r, '보기2')) || 0; q.bad = col(r, '보기3').split(/[\s,]+/).map(Number).filter((d) => d >= 1 && d <= q.days); q.time = Number(col(r, '제한시간')) || 300; q.mode = '달력'; } // 달력: 보기1=그 달 일수, 보기2=1일의 요일(0일~6토), 보기3=탈락 날짜(공백으로 구분), 제한시간=최대 시간
   else q.answer = null; // real: 현실 퀴즈는 관리자가 점수를 직접 부여
   if (col(r, '이미지')) q.image = col(r, '이미지');
   if (!q.text) throw new Error(`${i + 2}행: 문제가 비었어요`);

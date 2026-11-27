@@ -110,7 +110,7 @@ function hud(s) {
     $('#hp').style.width = `${(p.hp / p.mhp) * 100}%`;
     $('#rg').style.width = `${(p.rg / p.mrg) * 100}%`;
     $('#score').textContent = `🪙${p.cn} ${fmtScore(p.sc)}`;
-    $('#flag').textContent = p.st ? '기절' : p.inv || s.gd ? '무적' : '';
+    $('#flag').textContent = p.gh ? '유령' : p.st ? '기절' : p.inv || s.gd ? '무적' : '';
   }
   const counting = s.phase === PHASE.READING || s.phase === PHASE.MOVING;
   $('#phase').textContent = ((phaseText[s.phase] || '') + (counting ? ` ${Math.ceil(s.left)}` : '')).trim();
@@ -127,7 +127,7 @@ function hud(s) {
     const mine = s.reveal.results.find((r) => r.id === ME);
     const ans = s.q.type === 'choice' ? `${s.reveal.answer}번` : s.reveal.answer;
     rv.hidden = false;
-    if (s.reveal.brawl) rv.textContent = mine ? (mine.correct ? `우승 +${mine.gain}` : mine.out ? '탈락' : '패배') : '대난투 종료'; else
+    if (s.reveal.cal) rv.textContent = mine ? (mine.correct ? `생존 +${fmtScore(mine.gain)}` : '탈락') : '달력 종료'; else if (s.reveal.brawl) rv.textContent = mine ? (mine.correct ? `우승 +${mine.gain}` : mine.out ? '탈락' : '패배') : '대난투 종료'; else
     rv.textContent = `정답 ${ans}` + (mine ? ` ${mine.correct ? `+${mine.gain}${mine.rank ? ` ${mine.rank}등` : ''}` : (mine.zone == null ? '무응답' : '오답') + (mine.dropped ? ` 🪙-${mine.dropped}` : '')}` : '');
     rv.className = mine?.correct ? 'ok' : 'bad';
   } else rv.hidden = true;

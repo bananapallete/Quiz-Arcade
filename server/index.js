@@ -95,6 +95,7 @@ io.on('connection', (socket) => {
     const n = Math.min(30, Math.max(1, Number(d?.count) || 1));
     for (let i = 0; i < n; i++) game.addBot(d?.mode, d?.charId);
   });
+  host('host:calFinish', () => ({ ok: game.calFinish() }));
   host('host:addSandbags', () => game.addSandbags());
   host('host:clearSandbags', () => game.clearSandbags());
   host('host:clearBots', () => game.clearBots());

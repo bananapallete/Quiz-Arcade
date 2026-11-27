@@ -349,8 +349,24 @@ export class WorldScene extends Phaser.Scene {
   }
 
   // ---------- 구역 ----------
+  /** 달력 퀴즈 판: 날짜 칸. 채점으로 드러난 칸만 초록(탈락)/노랑(안전)으로 표시, 정산 때는 탈락 칸 전부 공개 */
+  drawCalendar(s) {
+    const l = s.cal?.l || s.reveal?.l; if (!l) return;
+    const rv = s.cal?.rv || {}, bad = new Set(s.reveal?.cal ? s.reveal.bad : []), key = `cal|${s.phase}|${JSON.stringify(rv)}|${[...bad]}`;
+    if (key === this.zoneKey) return; this.zoneKey = key;
+    const g = this.zoneGfx.clear(); this.zoneImgs.forEach((i) => i.destroy()); this.zoneImgs = [];
+    for (let d = 1; d <= l.days; d++) {
+      const i = d - 1 + l.start, x = (l.x0 + (i % 7) * l.w) * BU + 3, y = (l.y0 + Math.floor(i / 7) * l.h) * BU + 3, cw = l.w * BU - 6, ch = l.h * BU - 6, st = bad.has(d) || rv[d] === 2 ? 2 : rv[d] === 1 ? 1 : 0;
+      g.fillStyle(st === 2 ? 0x6a9a2a : st === 1 ? 0xffe27a : 0x0d0f2a, st === 2 ? 0.8 : st === 1 ? 0.3 : 0.5).fillRect(x, y, cw, ch);
+      g.lineStyle(3, st === 2 ? 0xb6e36a : st === 1 ? 0xffd54a : 0x6c73c4, 1).strokeRect(x, y, cw, ch);
+      this.zoneImgs.push(this.add.text(x + 8, y + 4, String(d), { fontFamily: 'sans-serif', fontSize: `${Math.round(BU * 0.5)}px`, color: st === 2 ? '#eaffc8' : '#dfe3ff', fontStyle: '900', stroke: '#0d0f2a', strokeThickness: 4 }).setDepth(-79));
+      if (st) this.zoneImgs.push(this.add.text(x + cw - 8, y + ch - 4, st === 2 ? '✕' : '✓', { fontFamily: 'sans-serif', fontSize: `${Math.round(BU * 0.7)}px`, color: st === 2 ? '#eaffc8' : '#ffe27a', fontStyle: '900', stroke: '#0d0f2a', strokeThickness: 4 }).setOrigin(1, 1).setDepth(-79));
+    }
+  }
+
   drawZones(s) {
     const quiz = s.phase !== PHASE.LOBBY; // 대기실은 잔디 들판, 문제 중에는 남색 퀴즈 무대
+    if (quiz && s.q?.type === 'calendar') { this.quizFloor.setVisible(true); this.brawlFloor.setVisible(false); this.decor.forEach((o) => o.setVisible(false)); this.drawCalendar(s); return; }
     const brawl = quiz && s.q?.type === 'brawl';
     if (this.quizFloor.visible !== quiz || this.brawlFloor.visible !== brawl) { this.quizFloor.setVisible(quiz); this.brawlFloor.setVisible(brawl); this.decor.forEach((o) => o.setVisible(!quiz)); }
     const type = s.q?.type || 'ox';
@@ -394,7 +410,8 @@ export class WorldScene extends Phaser.Scene {
       orbitTick(this, v, now, BU);
       v.sprite.setFlipX(p.f < 0).setOrigin(p.f < 0 ? 1 - SPRITE.anchor[0] / SPRITE.cell : SPRITE.anchor[0] / SPRITE.cell, SPRITE.anchor[1] / SPRITE.cell); // 왼쪽을 볼 땐 기준점도 거울상으로 (체력바·이름이 몸 중앙에 맞게)
       const tint = p.si ? 0x8fa0c8 : p.tn ? parseInt(p.tn.slice(1), 16) : 0; // 침묵 중엔 회청색 // 캐릭터가 바뀌면 임시 색과 크기도 따라감
-      if (tint !== v.tint) { v.tint = tint; if (tint) v.sprite.setTint(tint); else v.sprite.clearTint(); }
+      if (!!p.gh !== !!v.gh) { v.gh = !!p.gh; v.tint = -1; if (p.gh) v.sprite.setTintFill(0x4d8dff); else v.sprite.clearTint(); } // 유령: 파란 실루엣 (끝나면 원래 색으로)
+      if (!p.gh && tint !== v.tint) { v.tint = tint; if (tint) v.sprite.setTint(tint); else v.sprite.clearTint(); }
       v.zsCur = (v.zsCur ?? (p.zs || 1)) + ((p.zs || 1) - (v.zsCur ?? (p.zs || 1))) * Math.min(1, (delta / 1000) * 8); // 진화 등 크기 변화는 부드럽게
       const pop = v.popAt && now > v.popAt && now < v.popAt + 200 ? 1 + 0.35 * Math.sin(Math.PI * ((now - v.popAt) / 200)) : 1; // 오라에 맞으면 깜빡 → 팡
       v.sprite.setScale(SPR_SCALE * v.zsCur * pop);
@@ -413,7 +430,7 @@ export class WorldScene extends Phaser.Scene {
 
       // 기절: 쓰러진 모습 / 무적: 깜빡임
       v.sprite.setAngle(p.st && !dies ? 80 * p.f : 0);
-      v.sprite.setAlpha(v.blinkUntil > now ? (Math.floor(now / 50) % 2 ? 0.2 : 1) : p.sl ? (p.id === this.focusId ? 0.35 : 0.12) : p.inv ? 0.45 + 0.35 * Math.sin(now / 70) : 1); // 은신 / 무적 깜빡임
+      v.sprite.setAlpha(p.gh ? 0.3 : v.blinkUntil > now ? (Math.floor(now / 50) % 2 ? 0.2 : 1) : p.sl ? (p.id === this.focusId ? 0.35 : 0.12) : p.inv ? 0.45 + 0.35 * Math.sin(now / 70) : 1); // 은신 / 무적 깜빡임
 
       // 체력바 + 이름: 하트 + 칸 나뉜 바 (내 것은 크게, 남의 것은 작게)
       phoenixTick(this, v, p, BU, pixText);
@@ -455,7 +472,7 @@ export class WorldScene extends Phaser.Scene {
       if (v.nameStr !== nm) { v.nameStr = nm; v.name.setText(nm); }
       if (lead && this.sys.game.renderer.type === Phaser.WEBGL && !v.lglow) { v.sprite.preFX.setPadding(24); v.lglow = v.sprite.preFX.addGlow(0xffd54a, 4, 0, false, 0.1, 12); } // 1등: 항상 노란 테두리로 빛남
       else if (!lead && v.lglow) { v.sprite.preFX.remove(v.lglow); v.lglow = null; }
-      v.name.setPosition(bx, by - 8).setDepth(v.y + 1).setAlpha(me || p.id === this.lockId ? 1 : 0.35); // 다른 사람 이름은 흐리게, 내가 조준한 상대만 또렷하게
+      v.name.setPosition(bx, by - 8).setDepth(v.y + 1).setAlpha(p.gh ? 0.3 : me || p.id === this.lockId ? 1 : 0.35); // 다른 사람 이름은 흐리게, 내가 조준한 상대만 또렷하게
       v.status.setText('').setPosition(bx, by - 32).setDepth(v.y + 1); // 상태이상 글자는 쓰지 않음
       const shown = Math.max(0, (p.cn || 0) - (v.pending || 0)); // 습득 연출이 끝나야 '기록'됨
       const bk = Math.max(0, 1 - (now - v.bump) / 250);

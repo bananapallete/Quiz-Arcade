@@ -52,8 +52,8 @@ export function renderQuizTop(el, s, rows, meId) {
   const no = qb.querySelector('.no'), p = qb.querySelector('p'), th = qb.querySelector('.th');
   const ans = s.reveal && s.reveal.answer != null && !s.ha ? (q.type === 'choice' ? `${s.reveal.answer}번` : s.reveal.answer) : '';
   no.className = `no${s.phase === PHASE.HOLD ? ' end' : s.phase === PHASE.REVEAL ? ' ans' : s.phase === PHASE.REAL ? ' real' : ''}`;
-  no.textContent = s.phase === PHASE.HOLD ? '종료' : s.phase === PHASE.REVEAL ? (s.reveal?.real ? '공개' : s.reveal?.brawl ? '결과' : ans ? `정답 ${ans}` : '종료') : s.phase === PHASE.REAL ? '현실' : `Q${q.id}`;
-  p.textContent = q.text + (q.type === 'brawl' && s.bw ? `  ⚔ ${s.bw.g !== s.bw.p ? `${s.bw.g}팀 ` : ''}${s.bw.p}명 생존` : '') + (q.type === 'choice' && q.options ? '  ' + q.options.map((o, i) => `${i + 1}.${o}`).join(' ') : '');
+  no.textContent = s.phase === PHASE.HOLD ? '종료' : s.phase === PHASE.REVEAL ? (s.reveal?.real ? '공개' : s.reveal?.brawl || s.reveal?.cal ? '결과' : ans ? `정답 ${ans}` : '종료') : s.phase === PHASE.REAL ? '현실' : `Q${q.id}`;
+  p.textContent = q.text + (q.type === 'calendar' && s.cal ? `  📅 ${s.cal.r}차 · 생존 ${s.cal.a}명 · 안전칸 ${s.cal.f}/${s.cal.s}` : '') + (q.type === 'brawl' && s.bw ? `  ⚔ ${s.bw.g !== s.bw.p ? `${s.bw.g}팀 ` : ''}${s.bw.p}명 생존` : '') + (q.type === 'choice' && q.options ? '  ' + q.options.map((o, i) => `${i + 1}.${o}`).join(' ') : '');
   th.hidden = !q.image; if (q.image) { th.style.backgroundImage = `url("${q.image}")`; th.dataset.url = q.image; }
   const reading = s.phase === PHASE.READING, moving = s.phase === PHASE.MOVING, total = reading ? READ_SEC : q.time || 15, f = (moving || reading) ? Math.max(0, Math.min(1, s.left / total)) : 0;
   tm.hidden = !(reading || moving || s.phase === PHASE.HOLD);

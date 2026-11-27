@@ -30,13 +30,13 @@ function renderQuestions() {
   $('#qlist').innerHTML = info.questions.map((q) => `
     <div class="q ${q.id === curId ? 'cur' : q.id === askId ? 'sel' : doneIds.has(q.id) ? 'done' : ''}">
       <i></i><span title="${esc(q.text)}">${q.id}. ${esc(q.text)}</span>
-      <button class="chip ${q.mode === '팀' || q.mode === '대난투' ? 'c-team' : q.mode === '현실' ? 'c-real' : 'c-ind'}" data-mode="${q.id}" style="cursor:pointer;font-size:11px">${esc(q.mode)}</button>
+      <button class="chip ${q.mode === '팀' || q.mode === '대난투' || q.mode === '달력' ? 'c-team' : q.mode === '현실' ? 'c-real' : 'c-ind'}" data-mode="${q.id}" style="cursor:pointer;font-size:11px">${esc(q.mode)}</button>
       <button class="btn sm go" data-pick="${q.id}">${q.id === askId ? '✓ 선택됨' : '선택'}</button>
     </div>`).join('');
 }
 $('#qlist').addEventListener('click', (e) => {
   const m = e.target.closest('[data-mode]'), p = e.target.closest('[data-pick]');
-  if (m) { const q = info.questions.find((x) => x.id === Number(m.dataset.mode)); if (q && q.type !== 'real' && q.type !== 'brawl') emit('host:setMode', { id: q.id, mode: q.mode === '팀' ? '개인' : '팀' }); }
+  if (m) { const q = info.questions.find((x) => x.id === Number(m.dataset.mode)); if (q && q.type !== 'real' && q.type !== 'brawl' && q.type !== 'calendar') emit('host:setMode', { id: q.id, mode: q.mode === '팀' ? '개인' : '팀' }); }
   if (p) { askId = Number(p.dataset.pick); renderCurrent(); renderQuestions(); }
 });
 function renderCurrent() {
@@ -48,6 +48,7 @@ function renderCurrent() {
 }
 $('#ask').addEventListener('click', () => { if (!askId) return; emit('host:ask', { id: askId }); const ids = info.questions.map((q) => q.id), i = ids.indexOf(askId); askId = ids[i + 1] ?? askId; renderQuestions(); }); // 출제하면 다음 문제가 자동 선택됨
 $('#gather2').addEventListener('click', () => emit('host:gather'));
+$('#cal-fin').addEventListener('click', () => { if (confirm('지금 상태로 정산하고 끝낼까요?')) emit('host:calFinish'); });
 $('#lobby').addEventListener('click', () => { const live = [PHASE.READING, PHASE.MOVING, PHASE.HOLD, PHASE.REAL].includes(st?.phase); if (!live || confirm('진행 중인 문제를 닫고 대기실로 갈까요? (점수 변화 없음)')) emit('host:lobby'); });
 $('#end').addEventListener('click', () => emit('host:end'));
 $('#hideans').addEventListener('click', () => emit('host:hideAns', { on: !st?.ha }));
@@ -135,7 +136,8 @@ let humans = [], lastKey = '', realKey = '';
 socket.on('state', (s) => {
   st = s; rankOn = !!s.rank;
   humans = s.players.filter((p) => p.ct); // 사람 + 점수 받는 테스트 봇
-  $('#s-players').textContent = `${humans.length}명 접속`; $('#s-phase').textContent = (phaseName[s.phase] || '-') + (s.bw ? ` · ⚔ ${s.bw.p}명` : ''); $('#s-left').textContent = s.left > 0 ? `⏱ ${Math.ceil(s.left)}초` : '-';
+  $('#s-players').textContent = `${humans.length}명 접속`; $('#s-phase').textContent = (phaseName[s.phase] || '-') + (s.bw ? ` · ⚔ ${s.bw.p}명` : '') + (s.cal ? ` · 📅 ${s.cal.r}차 생존 ${s.cal.a}명` : '');
+  $('#end').textContent = s.q?.type === 'calendar' ? '✓ 채점하기' : s.q?.type === 'brawl' ? '✓ 종료' : '✓ 정답 공개'; $('#cal-fin').hidden = !s.cal; $('#s-left').textContent = s.left > 0 ? `⏱ ${Math.ceil(s.left)}초` : '-';
   for (const [id, on] of [['hideans', s.ha], ['rank', rankOn], ['t-pause', s.tp], ['t-qr', s.qr], ['t-x2', s.x2 === 2], ['t-freeze', s.fz], ['t-god', s.gd], ['t-noatk', s.ca], ['t-noult', s.cu]]) $('#' + id).classList.toggle('on', !!on); // 스위치
   $('#t-undo').disabled = !s.ud;
   document.querySelectorAll('[data-screen]').forEach((b) => b.classList.toggle('on', b.dataset.screen === s.sm));
@@ -150,7 +152,7 @@ socket.on('state', (s) => {
   renderCurrent();
   // 실시간 응답
   const dist = s.dist || (s.reveal && s.reveal.dist) || null, keys = s.q?.type === 'choice' ? [1, 2, 3, 4].slice(0, s.q.options?.length || 4) : ['O', 'X'], tot = Math.max(1, humans.length);
-  $('#distbox').hidden = !s.q || s.q.type === 'real' || s.q.type === 'brawl' || s.phase === PHASE.LOBBY;
+  $('#distbox').hidden = !s.q || s.q.type === 'real' || s.q.type === 'brawl' || s.q.type === 'calendar' || s.phase === PHASE.LOBBY;
   if (dist) { const sum = Object.values(dist).reduce((a, b) => a + b, 0), na = humans.length - (sum - (dist['-'] || 0)); $('#d-n').textContent = `${humans.length - na + (dist['-'] ? 0 : 0)} / ${humans.length}명 구역에 있음`;
     $('#dist').innerHTML = [...keys, '-'].map((k) => `<div class="dist"><b style="color:${k === 'O' || k === 1 ? '#4a86d9' : k === 'X' || k === 2 ? '#e5483c' : '#666'}">${k === '-' ? '—' : k}</b><div class="t"><i style="width:${((dist[k] || 0) / tot) * 100}%;background:${k === 'O' || k === 1 ? '#4a86d9' : k === 'X' || k === 2 ? '#e5483c' : k === 3 ? '#4fae55' : k === 4 ? '#e0902a' : '#8b8b8b'}"></i></div><span>${dist[k] || 0}</span></div>`).join(''); }
   // 현실 퀴즈 패널

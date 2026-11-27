@@ -1271,8 +1271,8 @@ test('점수 기록: 수동·퀴즈·현실 점수가 게임마다 누가 몇 �
 test('대난투: 팀 전원이 탈락하면 끝나고, 마지막까지 남은 팀 전원이 점수를 받는다', () => {
   const g = new Game(chars, [{ type: 'brawl', text: '대난투', time: 60, pts: 5 }]);
   const mk = (t, team) => { const p = g.join({ token: t, name: t, charId: 'blue' }); p.team = team; return p; };
-  const a1 = mk('a1', 1), a2 = mk('a2', 1), b1 = mk('b1', 2), bot = g.addBot('idle', 'blue');
-  assert.ok(g.ask(1)); assert.equal(bot.connected, false, '봇은 치워짐'); assert.ok(g.snapshot().bw.g === 2);
+  const a1 = mk('a1', 1), a2 = mk('a2', 1), b1 = mk('b1', 2), bot = g.addBot('idle', 'blue'); bot.home = { x: 1, y: 1 };
+  assert.ok(g.ask(1)); assert.equal(bot.connected, false, '샌드백류 봇은 치워짐'); assert.ok(g.snapshot().bw.g === 2);
   run(g, 3.2); assert.equal(g.phase, PHASE.MOVING);
   a1.invUntil = a2.invUntil = b1.invUntil = 0; g.knockOut('b1');
   assert.equal(b1.out, true); assert.equal(b1.stunUntil, Infinity); run(g, 0.2);
@@ -1308,6 +1308,27 @@ test('샌드백: 삭제하면 샌드백만 사라지고(아군 유지), 다시 �
   const g = new Game(chars, quizzes); g.addSandbags(['blue']); g.addAllies(); const n = () => [...g.players.values()].filter((p) => p.name === '샌드백').length;
   assert.equal(n(), 9); g.addSandbags(['blue']); assert.equal(n(), 9, '중복 안 됨');
   g.clearSandbags(); assert.equal(n(), 0); assert.equal([...g.players.values()].filter((p) => p.ally).length, 4, '아군은 그대로');
+});
+
+test('달력 퀴즈: 채점 때 탈락 칸의 사람은 유령, 끝나면 생존자가 탈락자 수 ×2를 나눠 가진다', async () => {
+  const { calCenter } = await import('../shared/constants.js');
+  const g = new Game(chars, [{ type: 'calendar', text: '달력', days: 30, start: 0, bad: [2, 5], time: 100 }]);
+  const mk = (t) => g.join({ token: t, name: t, charId: 'blue' }), a = mk('a'), b = mk('b'), c = mk('c'), d = mk('d');
+  g.ask(1); run(g, 3.2); assert.equal(g.phase, PHASE.MOVING); const at = (p, day) => { const ct = calCenter(g.cal.l, day); p.x = ct.x; p.y = ct.y; };
+  at(a, 1); at(b, 2); at(c, 3); at(d, 5);
+  g.endQuestion(); assert.equal(b.ghost, true); assert.equal(d.ghost, true); assert.equal(a.ghost, false); assert.equal(g.phase, PHASE.MOVING, '둘 이상 남았으면 계속');
+  assert.deepEqual(g.snapshot().cal.rv, { 1: 1, 2: 2, 3: 1, 5: 2 }, '서 있던 칸만 드러남'); assert.ok(!('bad' in g.snapshot().q), '탈락 날짜는 숨김');
+  const hp = b.hp; g._applyHit(b, a, 5, 1, 1, 0); assert.equal(b.hp, hp, '유령은 안 맞음'); g._tryAttack(b, null); assert.equal(g.ult('b', null), false);
+  at(a, 3); at(c, 5); g.endQuestion(); // a는 3일(안전), c는 5일(탈락) → 최후의 1인
+  assert.equal(g.phase, PHASE.REVEAL); assert.ok(g.reveal.cal); assert.equal(g.reveal.elim, 3); assert.equal(g.reveal.survivors, 1);
+  assert.equal(a.score, 6, '탈락자 3명 ×2 = 6점'); assert.equal(b.score, 0); assert.equal(b.ghost, false, '끝나면 유령 해제'); assert.equal(g.snapshot().cal, null);
+});
+
+test('달력 퀴즈: 안전한 칸을 모두 찾아내면 끝나고, 시간이 끝나도 정산된다', async () => {
+  const { calCenter } = await import('../shared/constants.js');
+  const g = new Game(chars, [{ type: 'calendar', text: '달력', days: 28, start: 0, bad: [], time: 20 }]), a = g.join({ token: 'a', name: 'a', charId: 'blue' }), b = g.join({ token: 'b', name: 'b', charId: 'blue' });
+  g.ask(1); run(g, 3.2); a.x = calCenter(g.cal.l, 1).x; a.y = calCenter(g.cal.l, 1).y; b.x = calCenter(g.cal.l, 2).x; b.y = calCenter(g.cal.l, 2).y;
+  g.endQuestion(); assert.equal(g.phase, PHASE.MOVING, '찾은 칸 2/28'); run(g, 21); assert.equal(g.phase, PHASE.REVEAL, '시간 끝 → 정산'); assert.equal(g.reveal.elim, 0); assert.equal(a.score, 0);
 });
 
 test('난타(격투가): 5초간 앞으로 걸어가며 전방 직선을 연타하고 끝나면 멈춘다', () => {

@@ -55,6 +55,19 @@ export const ZONES = {
   ],
 };
 
+/** 달력 퀴즈 판: 문제 카드 아래를 7열 × 주 수만큼 칸으로 나눔 (days일, 1일이 start요일(0=일)에 시작) */
+export function calLayout(q) {
+  const start = q.start || 0, days = q.days || 30, rows = Math.ceil((start + days) / 7), x0 = 1.1, y0 = 5.7;
+  return { x0, y0, w: (MAP.w - 2.2) / 7, h: (MAP.h - 1.8 - y0) / rows, rows, start, days }; // 아래는 하단 안내 막대 자리
+}
+/** 그 위치의 날짜(없으면 null) */
+export function calCell(l, x, y) {
+  const c = Math.floor((x - l.x0) / l.w), r = Math.floor((y - l.y0) / l.h);
+  if (c < 0 || c > 6 || r < 0 || r >= l.rows) return null;
+  const d = r * 7 + c - l.start + 1; return d >= 1 && d <= l.days ? d : null;
+}
+export const calCenter = (l, d) => { const i = d - 1 + l.start; return { x: l.x0 + (i % 7 + 0.5) * l.w, y: l.y0 + (Math.floor(i / 7) + 0.5) * l.h }; };
+
 /** 캐릭터 중심이 들어있는 구역 id (없으면 null = 무응답) */
 export function zoneAt(type, x, y) {
   for (const z of ZONES[type] || []) if ((x - z.cx) ** 2 + (y - z.cy) ** 2 <= z.r * z.r) return z.id;

@@ -68,16 +68,17 @@ export function renderScreenUi(el, s) {
   if (live) {
     const reading = ph === PHASE.READING, moving = ph === PHASE.MOVING, total = reading ? READ_SEC : q.time || 15, f = reading || moving ? Math.max(0, Math.min(1, s.left / total)) : 0;
     el.querySelector('.qn').textContent = `Q${q.id}`;
-    const chip = el.querySelector('.chip'); chip.className = `chip ${q.mode === '팀' || q.mode === '대난투' ? 'team' : q.mode === '현실' ? 'real' : 'ind'}`; chip.textContent = q.mode === '팀' ? '팀전' : q.mode === '현실' ? '현실' : q.mode === '대난투' ? '대난투' : '개인전';
+    const chip = el.querySelector('.chip'); chip.className = `chip ${q.mode === '팀' || q.mode === '대난투' || q.mode === '달력' ? 'team' : q.mode === '현실' ? 'real' : 'ind'}`; chip.textContent = q.mode === '팀' ? '팀전' : q.mode === '현실' ? '현실' : q.mode === '대난투' ? '대난투' : q.mode === '달력' ? '달력' : '개인전';
     const num = el.querySelector('.num'); num.hidden = !(reading || moving || ph === PHASE.HOLD); num.textContent = reading || moving ? Math.ceil(s.left) : 0; num.classList.toggle('low', ph === PHASE.HOLD || (moving && f <= 0.25));
     const gauge = el.querySelector('.gauge'); gauge.hidden = ph === PHASE.REAL || ph === PHASE.REVEAL; gauge.className = `gauge${moving && f > 0.5 ? ' ok' : ph === PHASE.HOLD || (moving && f <= 0.25) ? ' low' : ''}`; gauge.firstChild.style.width = `${f * 100}%`;
     const main = el.querySelector('.main'); main.className = `main${q.image ? '' : ' noimg'}`; el.querySelector('.card').textContent = q.text;
     const img = el.querySelector('.img'); img.hidden = !q.image; if (q.image) img.firstChild.style.backgroundImage = `url("${q.image}")`;
   }
   // 구역 안내 (시간 종료 후엔 구역별 인원)
-  const showLegend = live && ph !== PHASE.REAL && !(ph === PHASE.REVEAL && (s.reveal?.real || s.reveal?.brawl)) && !s.rank && !(q?.type === 'brawl' && !s.bw);
+  const showLegend = live && ph !== PHASE.REAL && !(ph === PHASE.REVEAL && (s.reveal?.real || s.reveal?.brawl || s.reveal?.cal)) && !s.rank && !(q?.type === 'brawl' && !s.bw) && !(q?.type === 'calendar' && !s.cal);
   legend.hidden = !showLegend;
-  if (showLegend && q.type === 'brawl') legend.innerHTML = `<div class="zone" style="background:#c0392b"><b>⚔</b><small>${s.bw.g !== s.bw.p ? `${s.bw.g}팀 · ` : ''}${s.bw.p}명 생존</small></div>`;
+  if (showLegend && q.type === 'calendar') legend.innerHTML = `<div class="zone" style="background:#3f7d3a"><b>📅</b><small>${s.cal.r}차 채점 · 생존 ${s.cal.a}명 · 안전칸 ${s.cal.f}/${s.cal.s}</small></div>`;
+  else if (showLegend && q.type === 'brawl') legend.innerHTML = `<div class="zone" style="background:#c0392b"><b>⚔</b><small>${s.bw.g !== s.bw.p ? `${s.bw.g}팀 · ` : ''}${s.bw.p}명 생존</small></div>`;
   else if (showLegend) {
     const keys = q.type === 'choice' ? [1, 2, 3, 4].slice(0, q.options?.length || 4) : ['O', 'X'], dist = (ph === PHASE.HOLD || ph === PHASE.MOVING) ? s.dist : null;
     legend.innerHTML = keys.map((k) => `<div class="zone z-${k}"><b>${k}</b><small>${q.type === 'choice' ? esc(q.options?.[k - 1]) : ''}</small>${ph === PHASE.HOLD && dist ? `<span style="margin-left:auto">${dist[k] || 0}명</span>` : ''}</div>`).join('');
@@ -88,7 +89,8 @@ export function renderScreenUi(el, s) {
   rev.hidden = !showRev;
   if (showRev) {
     const r = s.reveal;
-    if (r.brawl) rev.innerHTML = `<div class="ttl">대난투 우승</div><div class="rows">${r.winners.map((w) => `<div><b>★</b><span>${w.team ? `${w.team}팀` : esc(w.names.join(', '))}</span><small>${w.team ? esc(w.names.join(', ')) : ''}</small><span>+${fmtScore(r.results.find((x) => x.correct)?.gain || 0)}</span></div>`).join('') || '<div><b>-</b><span>승자 없음</span></div>'}</div>`;
+    if (r.cal) { const sv = r.results.filter((x) => x.correct); rev.innerHTML = `<div class="ttl">달력 결과 · 탈락 ${r.elim}명 × 2 = ${fmtScore(r.pool)}점</div><div class="rows">${sv.slice(0, 8).map((x) => `<div><b>★</b><span>${esc(x.name)}</span><small>${x.team ? `${x.team}팀` : ''}</small><span>+${fmtScore(x.gain)}</span></div>`).join('') || '<div><b>-</b><span>생존자 없음</span></div>'}</div>`; }
+    else if (r.brawl) rev.innerHTML = `<div class="ttl">대난투 우승</div><div class="rows">${r.winners.map((w) => `<div><b>★</b><span>${w.team ? `${w.team}팀` : esc(w.names.join(', '))}</span><small>${w.team ? esc(w.names.join(', ')) : ''}</small><span>+${fmtScore(r.results.find((x) => x.correct)?.gain || 0)}</span></div>`).join('') || '<div><b>-</b><span>승자 없음</span></div>'}</div>`;
     else if (r.real) rev.innerHTML = `<div class="ttl">현실 퀴즈 결과</div><div class="rows">${r.results.slice(0, 8).map((x, i) => `<div><b>${i + 1}</b><span>${esc(x.name)}</span><small>${x.team ? `${x.team}팀` : ''}</small><span>+${fmtScore(x.gain)}</span></div>`).join('')}</div>`;
     else {
       const ans = q.type === 'choice' ? `${r.answer}번` : r.answer, d = r.dist || {}, keys = q.type === 'choice' ? [1, 2, 3, 4].slice(0, q.options?.length || 4) : ['O', 'X'], tot = Math.max(1, Object.values(d).reduce((a, b) => a + b, 0));
