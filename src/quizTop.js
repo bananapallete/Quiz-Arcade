@@ -1,5 +1,5 @@
 // 플레이어 화면 상단 UI: 좌상단 1~3등 · 문제(+이미지 썸네일, 탭하면 크게) · 제한시간 링 · 맨 위 시간 게이지. 폰 크기에 맞춰 vw/vh로 늘고 줄어든다.
-import { PHASE, READ_SEC } from '../shared/constants.js';
+import { isCombat, PHASE, READ_SEC } from '../shared/constants.js';
 import { renderTopRank } from './topRank.js';
 
 const CSS = `
@@ -24,6 +24,19 @@ const CSS = `
 #qx2{position:fixed;left:max(10px,env(safe-area-inset-left,0px));bottom:48px;z-index:30;background:#e5483c;color:#fff;border:3px solid #14122b;border-radius:10px;padding:2px 9px;font-weight:900;font-size:14px;pointer-events:none}#qx2[hidden]{display:none}
 #qfz{position:fixed;inset:0;z-index:60;background:#14122baa;color:#fff;display:grid;place-items:center;font-weight:900;font-size:26px;pointer-events:none}#qfz[hidden]{display:none}
 @media (orientation:portrait){#qtop .row{grid-template-columns:minmax(0,1fr) auto;gap:2vw}#qtop #toprank{grid-column:1/-1;grid-row:2;justify-self:start}#qtop .tm .ring{width:15vw;height:15vw}#qtop .tm b{font-size:6.4vw}#qtop .q{padding:1.2vh 2.4vw;gap:2vw;border-radius:12px}#qtop .no{font-size:calc(3vw + 4px)}#qtop .q p{font-size:calc(3vw + 3px);-webkit-line-clamp:3}#qtop .th{width:22vw;height:16vw}#qtop #toprank div{font-size:calc(2.4vw + 4px)}}
+#qtop .q{cursor:pointer}
+#qpop{position:fixed;inset:0;z-index:40;background:#14122b99;display:grid;place-items:center;padding:16px;transition:background .3s}#qpop[hidden]{display:none}
+#qpop .c{box-sizing:border-box;width:min(640px,92vw);max-height:86vh;overflow:auto;background:#f6e6c8;border:4px solid #14122b;border-radius:18px;box-shadow:0 6px 0 #14122b88;padding:18px 20px;display:grid;gap:12px;color:#5a3a24;transition:transform .32s cubic-bezier(.5,0,.75,0),opacity .32s;transform-origin:50% 0}
+#qpop .c .no{justify-self:start;font-size:18px;font-weight:900;color:#fff;background:#f0a000;border:2px solid #14122b;border-radius:8px;padding:1px 8px}
+#qpop .c p{margin:0;font-weight:900;font-size:clamp(20px,5.2vw,30px);line-height:1.3;word-break:keep-all}
+#qpop .c ol{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:8px}#qpop .c li{background:#fff;border:3px solid #14122b;border-radius:12px;padding:8px 10px;font-weight:900;font-size:clamp(15px,3.8vw,20px)}#qpop .c li b{color:#d98a00;margin-right:6px}
+#qpop .c img{max-width:100%;max-height:34vh;justify-self:center;border:3px solid #14122b;border-radius:12px;background:#fff}
+#qpop .h{font-size:14px;font-weight:800;color:#7a4e32;text-align:center;opacity:0;transition:opacity .3s}#qpop .h.on{opacity:1}
+#qpop.out{background:#14122b00}#qpop.out .c{transform:translateY(-42vh) scale(.25);opacity:0}
+#qprep{position:fixed;left:50%;top:44%;transform:translate(-50%,-50%);z-index:35;pointer-events:none;display:grid;justify-items:center;gap:4px;text-align:center}#qprep[hidden]{display:none}
+#qprep b{font-size:min(30vw,30vh);line-height:1;font-weight:900;color:#fff;-webkit-text-stroke:6px #14122b;paint-order:stroke fill}
+#qprep i{font-style:normal;font-size:clamp(22px,6vw,40px);font-weight:900;color:#ffd54a;-webkit-text-stroke:4px #14122b;paint-order:stroke fill}
+#qprep small{font-size:clamp(13px,3.4vw,18px);font-weight:900;color:#fff;background:#14122bcc;border-radius:99px;padding:4px 12px}
 #qbig{position:fixed;inset:0;z-index:70;background:#14122bcc;display:grid;place-items:center}#qbig[hidden]{display:none}
 #qbig img{max-width:80vw;max-height:80vh;border:4px solid #14122b;border-radius:16px;background:#fff}
 `;
@@ -36,17 +49,51 @@ export function mountQuizTop() {
     el.innerHTML = '<div class="tg"><i></i></div><div class="row"><div id="toprank"></div><div class="q"><span class="no"></span><p></p><div class="th" hidden></div></div><div class="tm"><div class="ring"><b></b></div></div></div>';
     document.body.append(el);
     const big = document.createElement('div'); big.id = 'qbig'; big.hidden = true; big.innerHTML = '<img alt="">'; document.body.append(big);
+    const pop = document.createElement('div'); pop.id = 'qpop'; pop.hidden = true; pop.innerHTML = '<div class="c"><span class="no"></span><p></p><ol></ol><img alt="" hidden><div class="h">아무 곳이나 누르면 팝업이 닫힙니다.</div></div>'; document.body.append(pop);
+    pop.addEventListener('pointerdown', (e) => { e.stopPropagation(); if (pop.dataset.at && performance.now() - Number(pop.dataset.at) < 3000) return; closePop(); }); // 처음 뜬 팝업은 3초 뒤부터 닫힘
+    const prep = document.createElement('div'); prep.id = 'qprep'; prep.hidden = true; prep.innerHTML = '<b></b><i>전투 준비!</i><small>공격·궁극기·달리기 불가</small>'; document.body.append(prep);
     for (const [id, tx] of [['qnt', ''], ['qx2', '점수 ×2'], ['qfz', '잠시 멈춤']]) { const d = document.createElement('div'); d.id = id; d.hidden = true; d.textContent = tx; document.body.append(d); }
     big.addEventListener('click', () => { big.hidden = true; });
+    el.querySelector('.q').addEventListener('click', (e) => { if (!e.target.closest('.th')) openPop(false); }); // 줄어든 문제를 누르면 다시 크게
     el.querySelector('.th').addEventListener('click', () => { const u = el.querySelector('.th').dataset.url; if (u) { big.querySelector('img').src = u; big.hidden = false; } });
   }
   return el;
+}
+
+// ---------- 퀴즈 팝업: 문제가 시작되면 10초 동안 크게, 닫으면 맨 위로 줄어듦 ----------
+let popKey = null, popQ = null, popAuto = false;
+function fillPop(q) {
+  const pop = document.getElementById('qpop'), c = pop.querySelector('.c');
+  c.querySelector('.no').textContent = `Q${q.id}`; c.querySelector('p').textContent = q.text;
+  const ol = c.querySelector('ol'); ol.hidden = !(q.type === 'choice' && q.options); ol.innerHTML = q.type === 'choice' && q.options ? q.options.map((o, i) => `<li><b>${i + 1}</b>${String(o).replace(/[<>&]/g, '')}</li>`).join('') : '';
+  const im = c.querySelector('img'); im.hidden = !q.image; if (q.image) im.src = q.image;
+}
+function openPop(auto) {
+  const pop = document.getElementById('qpop'); if (!popQ || !pop) return;
+  fillPop(popQ); popAuto = auto; pop.classList.remove('out'); pop.hidden = false;
+  if (auto) { pop.dataset.at = performance.now(); pop.querySelector('.h').classList.remove('on'); setTimeout(() => { if (popAuto && !pop.hidden) pop.querySelector('.h').classList.add('on'); }, 3000); }
+  else { delete pop.dataset.at; pop.querySelector('.h').classList.remove('on'); }
+}
+function closePop() {
+  const pop = document.getElementById('qpop'); if (!pop || pop.hidden || pop.classList.contains('out')) return;
+  popAuto = false; pop.classList.add('out'); setTimeout(() => { if (pop.classList.contains('out')) { pop.hidden = true; pop.classList.remove('out'); } }, 330);
 }
 
 /** s: 서버 상태, rows: [{id,name,score}] 점수순, meId: 내 id */
 export function renderQuizTop(el, s, rows, meId) {
   const nt = document.getElementById('qnt'); if (nt) { nt.hidden = !s.nt; if (s.nt) nt.textContent = s.nt; document.getElementById('qx2').hidden = s.x2 !== 2; document.getElementById('qfz').hidden = !s.fz; }
   renderTopRank(el.querySelector('#toprank'), rows, meId);
+  { // 퀴즈 모드: 문제 시작 때 팝업 (10초 뒤 자동으로 줄어듦) · 전투 모드: 큰 준비 카운트다운
+    const live = !!s.q && (s.phase === PHASE.READING || s.phase === PHASE.MOVING), quiz = live && !isCombat(s.q) && s.q.type !== 'real';
+    popQ = s.q && s.phase !== PHASE.LOBBY && !isCombat(s.q) ? s.q : null;
+    if (!popQ) closePop();
+    const key = quiz ? `${s.q.id}:${s.q.text}` : null;
+    if (quiz && s.pl > 0 && key !== popKey) { popKey = key; openPop(true); }
+    if (!live) popKey = null;
+    if (popAuto && !(s.pl > 0)) closePop();
+    const prep = document.getElementById('qprep'), on = live && isCombat(s.q) && s.pl > 0;
+    prep.hidden = !on; if (on) prep.querySelector('b').textContent = Math.ceil(s.pl);
+  }
   const q = s.q, show = !!q && s.phase !== PHASE.LOBBY, qb = el.querySelector('.q'), tm = el.querySelector('.tm'), tg = el.querySelector('.tg');
   qb.hidden = !show || (q.type === 'brawl' && s.phase === PHASE.MOVING); tm.hidden = !show; tg.style.visibility = show ? 'visible' : 'hidden';
   if (!show) return;
@@ -54,7 +101,7 @@ export function renderQuizTop(el, s, rows, meId) {
   const ans = s.reveal && s.reveal.answer != null && !s.ha ? (q.type === 'choice' ? `${s.reveal.answer}번` : s.reveal.answer) : '';
   no.className = `no${s.phase === PHASE.HOLD ? ' end' : s.phase === PHASE.REVEAL ? ' ans' : s.phase === PHASE.REAL ? ' real' : ''}`;
   no.textContent = s.phase === PHASE.HOLD ? '종료' : s.phase === PHASE.REVEAL ? (s.reveal?.real ? '공개' : s.reveal?.brawl || s.reveal?.cal || s.reveal?.coin ? '결과' : ans ? `정답 ${ans}` : '종료') : s.phase === PHASE.REAL ? '현실' : `Q${q.id}`;
-  p.textContent = q.text + (q.type === 'calendar' && s.cal ? `  📅 ${s.cal.l.month ? `${s.cal.l.month}월 · ` : ''}${s.cal.r}차 · 생존 ${s.cal.a}명 · 안전칸 ${s.cal.f}/${s.cal.s}` : '') + (q.type === 'coin' && s.cr ? `  🪙 ${s.cr.find((r) => r[0] === meId)?.[2] ?? 0} · 1등 ${s.cr[0]?.[2] ?? 0}` : '') + (s.tr?.m ? `  🏆 ${s.tr.r}R ${s.tr.m[0]}팀 vs ${s.tr.m[1]}팀` : '') + (q.type === 'brawl' && s.bw ? `  ⚔ ${s.bw.tm.map(([t, al, n]) => `${t}팀 ${al}/${n}`).join(' · ')}${s.bw.lk > 0 ? ` · 준비 ${Math.ceil(s.bw.lk)}` : ''}` : '') + (q.type === 'choice' && q.options ? '  ' + q.options.map((o, i) => `${i + 1}.${o}`).join(' ') : '');
+  p.textContent = q.text + (q.type === 'calendar' && s.cal ? `  📅 ${s.cal.l.month ? `${s.cal.l.month}월 · ` : ''}${s.cal.r}차 · 생존 ${s.cal.a}명 · 안전칸 ${s.cal.f}/${s.cal.s}` : '') + (q.type === 'coin' && s.cr ? `  🪙 ${s.cr.find((r) => r[0] === meId)?.[2] ?? 0} · 1등 ${s.cr[0]?.[2] ?? 0}` : '') + (s.tr?.m ? `  🏆 ${s.tr.r}R ${s.tr.m[0]}팀 vs ${s.tr.m[1]}팀` : '') + (q.type === 'brawl' && s.bw ? `  ⚔ ${s.bw.tm.map(([t, al, n]) => `${t}팀 ${al}/${n}`).join(' · ')}` : '') + (q.type === 'choice' && q.options ? '  ' + q.options.map((o, i) => `${i + 1}.${o}`).join(' ') : '');
   th.hidden = !q.image; if (q.image) { th.style.backgroundImage = `url("${q.image}")`; th.dataset.url = q.image; }
   const reading = s.phase === PHASE.READING, moving = s.phase === PHASE.MOVING, total = reading ? READ_SEC : q.time || 15, f = (moving || reading) ? Math.max(0, Math.min(1, s.left / total)) : 0;
   tm.hidden = !(reading || moving || s.phase === PHASE.HOLD);

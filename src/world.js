@@ -326,7 +326,7 @@ export class WorldScene extends Phaser.Scene {
     const v = this.views.get(e.id);
     if (e.e === 'regen' && v) this._regenFx(v, e.amount);
     if (e.e === 'eggBreak') shockRing(this, { x: e.x, y: e.y, r: 1 }, BU); // 알이 깨짐
-    if (e.e === 'ghost' && v && this._brawlOn) v.ghostDieUntil = now + 800; // 대난투에서 쓰러졌을 때만 죽음 모션 (달력 탈락은 해당 없음)
+    if (e.e === 'ghost' && v && (this._brawlOn || e.q)) v.ghostDieUntil = now + 800; // 대난투에서 쓰러졌을 때만 죽음 모션 (달력 탈락은 해당 없음)
     if (e.e === 'ult' && v) {
       if (['channel', 'charm', 'magnet', 'tether', 'stage', 'brood', 'rally'].includes(e.t)) auraPulse(this, { ...e, r: e.r || 2.25 }, BU, e.t === 'charm' ? [0xffe6f2, 0xffb3d9, 0xff7ab8, 0xc94c8a] : undefined);
       if (e.t === 'rush') speedLines(this, e, BU);

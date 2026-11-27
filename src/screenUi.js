@@ -88,12 +88,13 @@ export function renderScreenUi(el, s) {
   legend.hidden = !showLegend;
   if (showLegend && q.type === 'calendar') legend.innerHTML = `<div class="zone" style="background:#3f7d3a"><b>📅</b><small>${s.cal.l.month ? `${s.cal.l.month}월 · ` : ''}${s.cal.r}차 채점 · 생존 ${s.cal.a}명 · 안전칸 ${s.cal.f}/${s.cal.s}</small></div>`;
   else if (showLegend && q.type === 'coin') legend.innerHTML = `<div class="zone" style="background:#d98a00"><b>🪙</b><small>${s.cr.slice(0, 3).map(([, n, c], i) => `${i + 1}. ${esc(n)} ${c}`).join(' · ') || '-'}</small></div>`;
-  else if (showLegend && q.type === 'brawl') legend.innerHTML = `<div class="zone" style="background:#c0392b"><b>${s.tr ? '🏆' : '⚔'}</b><small>${s.tr?.m ? `${s.tr.r}R ${s.tr.m[0]}팀 vs ${s.tr.m[1]}팀 · ` : ''}${s.bw.tm.map(([t, al, n]) => `${t}팀 ${al}/${n}`).join(' · ')}${s.bw.lk > 0 ? ` · 준비 ${Math.ceil(s.bw.lk)}초 (공격·궁극기·달리기 불가)` : ''}</small></div>`;
+  else if (showLegend && q.type === 'brawl') legend.innerHTML = `<div class="zone" style="background:#c0392b"><b>${s.tr ? '🏆' : '⚔'}</b><small>${s.tr?.m ? `${s.tr.r}R ${s.tr.m[0]}팀 vs ${s.tr.m[1]}팀 · ` : ''}${s.bw.tm.map(([t, al, n]) => `${t}팀 ${al}/${n}`).join(' · ')}</small></div>`;
   else if (showLegend) {
     const keys = q.type === 'choice' ? [1, 2, 3, 4].slice(0, q.options?.length || 4) : ['O', 'X'], dist = (ph === PHASE.HOLD || ph === PHASE.MOVING) ? s.dist : null;
     legend.innerHTML = keys.map((k) => `<div class="zone z-${k}"><b>${k}</b><small>${q.type === 'choice' ? esc(q.options?.[k - 1]) : ''}</small>${ph === PHASE.HOLD && dist ? `<span style="margin-left:auto">${dist[k] || 0}명</span>` : ''}</div>`).join('');
   }
-  end.hidden = ph !== PHASE.HOLD || s.rank; end.innerHTML = '시간 종료<small>정답 공개를 기다리는 중</small>';
+  const prep = live && s.pc && s.pl > 0 && !s.rank; // 전투 모드 준비 시간: 크게 카운트다운
+  end.hidden = !(ph === PHASE.HOLD || prep) || s.rank; end.innerHTML = prep ? `<div style="font-size:22vh;line-height:1">${Math.ceil(s.pl)}</div>전투 준비!<small>공격·궁극기·달리기 불가</small>` : '시간 종료<small>정답 공개를 기다리는 중</small>';
   // 정답 공개
   const showRev = ph === PHASE.REVEAL && s.reveal && !s.rank && !s.ha;
   rev.hidden = !showRev;
