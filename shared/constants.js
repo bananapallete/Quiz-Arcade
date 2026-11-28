@@ -54,11 +54,11 @@ export const ZONES = {
     { id: 'O', cx: 14, cy: 11, r: 5, label: 'O' },
     { id: 'X', cx: 26, cy: 11, r: 5, label: 'X' },
   ],
-  choice: [ // 2×2: 위 1·2, 아래 3·4
-    { id: 1, cx: 13, cy: 7.2, r: 4.2, label: '1' },
-    { id: 2, cx: 27, cy: 7.2, r: 4.2, label: '2' },
-    { id: 3, cx: 13, cy: 16.8, r: 4.2, label: '3' },
-    { id: 4, cx: 27, cy: 16.8, r: 4.2, label: '4' },
+  choice: [ // 2×2: 위 1·2, 아래 3·4 (가로·세로 간격 9.6으로 같게)
+    { id: 1, cx: 15.2, cy: 7.2, r: 4.2, label: '1' },
+    { id: 2, cx: 24.8, cy: 7.2, r: 4.2, label: '2' },
+    { id: 3, cx: 15.2, cy: 16.8, r: 4.2, label: '3' },
+    { id: 4, cx: 24.8, cy: 16.8, r: 4.2, label: '4' },
   ],
 };
 
