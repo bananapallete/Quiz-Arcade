@@ -206,10 +206,10 @@ socket.on('state', (s) => {
     $('#realok').disabled = false; $('#realrev').disabled = !s.real?.confirmed; $('#realok').textContent = s.real?.confirmed ? '확인됨 ✓' : '확인';
   }
   // 참가자 표
-  const lb = [...humans].sort((a, b) => b.sc - a.sc), key = JSON.stringify([lb.map((p) => [p.id, p.n, p.tm, p.sc, p.cn, p.watch, p.rep]), s.teams, s.cs]);
+  const lb = [...humans].sort((a, b) => b.sc - a.sc), key = JSON.stringify([lb.map((p) => [p.id, p.n, p.tm, p.sc, p.cn, p.watch, p.rep]), s.teams, s.cs, s.off]);
   if (key !== lastKey) {
     lastKey = key; const tc = s.teams?.length || 0;
-    $('#plist').innerHTML = lb.map((p, i) => `<div class="pl"><span>${i + 1}</span><span data-name="${p.id}" data-nm="${esc(p.n)}" style="cursor:pointer">${esc(p.n)} <small style="opacity:.6">🪙${p.cn}</small></span><span>${fmtScore(p.sc)}</span><div class="stp"><b data-kick="${p.id}" data-nm="${esc(p.n)}" title="퇴장">✕</b></div></div>`).join('') || '<div style="opacity:.6">접속한 참가자가 없어요</div>';
+    $('#plist').innerHTML = lb.map((p, i) => `<div class="pl"><span>${i + 1}</span><span data-name="${p.id}" data-nm="${esc(p.n)}" style="cursor:pointer">${esc(p.n)} <small style="opacity:.6">🪙${p.cn}</small></span><span>${fmtScore(p.sc)}</span><div class="stp"><b data-kick="${p.id}" data-nm="${esc(p.n)}" title="퇴장">✕</b></div></div>`).join('') + (s.off || []).map(([id, n]) => `<div class="pl" style="opacity:.6"><span>-</span><span>${esc(n)} <small>끊김</small></span><span></span><div class="stp"><b data-kick="${id}" data-nm="${esc(n)}" title="퇴장">✕</b></div></div>`).join('') || '<div style="opacity:.6">접속한 참가자가 없어요</div>';
     $('#sgrid').innerHTML = lb.map((p, i) => `<div class="sc" style="border-color:${p.tm ? TEAMC[p.tm] : 'var(--navy)'}"><span class="nm"><i data-castid="${p.id}" class="${s.cs?.id === p.id ? 'on' : ''}" title="빔프로젝터로 중계">📺</i><span>${i + 1}. ${esc(p.n)}${p.watch ? ' <small style="opacity:.6">관전</small>' : ''}</span></span><b class="m" data-id="${p.id}" data-sg="-1">−</b><span class="pt">${fmtScore(p.sc)}</span><b class="p" data-id="${p.id}" data-sg="1">＋</b></div>`).join('') || '<div style="opacity:.6">접속한 참가자가 없어요</div>';
     renderBoard();
     $('#tt').innerHTML = (s.teams || []).map((t) => `<span class="pill" style="background:${TEAMC[t.t]}99">${t.t}팀 ${fmtScore(t.score)}</span>`).join('');

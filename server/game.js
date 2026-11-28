@@ -55,6 +55,7 @@ export class Game {
     this.locked = null; // 시간이 끝난 시점에 굳어진 판정 (정답 공개 때 점수에 반영)
     this.realPending = new Map(); // 현실 퀴즈: 진행자가 입력한 점수 id → 점수
     this.realConfirmed = false;
+    this.kicked = new Set(); // 내보낸 참가자 토큰
     this.repSeq = 0; // 토너먼트 대표 지정 순서
     this.teamCount = 2; // 팀은 항상 2팀 (들어오면 인원이 적은 팀으로)
     this.log = []; // 진행자 화면 기록
@@ -273,7 +274,7 @@ export class Game {
   announce(text, sec = 8) { const t = String(text || '').slice(0, 80).trim(); this.notice = t ? { text: t, until: this.t + Math.min(30, Math.max(2, Number(sec) || 8)) } : null; if (t) this._log(`공지: ${t}`); return true; }
   setScreen(mode) { if (!['title', 'quiz', 'map', 'rank'].includes(mode)) return false; this.screenMode = mode; this.showRank = mode === 'rank'; return true; }
   rename(id, name) { const p = this.players.get(id), n = String(name || '').trim().slice(0, 10); if (!p || !n) return false; p.name = n; return true; }
-  kick(id) { const p = this.players.get(id); if (!p) return false; this.realPending.delete(id); this.players.delete(id); this._log(`${p.name} 퇴장`); return true; }
+  kick(id) { const p = this.players.get(id); if (!p) return false; this.realPending.delete(id); if (!p.isBot) this.kicked.add(id); /* 내보낸 토큰으로는 다시 못 들어옴 (닉네임부터 새로) */ this.players.delete(id); this._log(`${p.name} 퇴장`); return true; }
   /** 출제를 취소하고 대기실로 (점수 변화 없음) */
   cancelQuestion() { this._unpark(); this.preview = null; this._endBrawlWorld(); this._clearUltWorld(); this.brawl = null; this.cal = null; this.tour = null; this.coinRun = null; for (const p of this.players.values()) { if (p.ghost && p.hp <= 0) p.hp = p.cfg.hp; p.out = false; p.ghost = false; p.stunned = false; p.stunUntil = 0; } this.phase = PHASE.LOBBY; this.question = null; this.reveal = null; this.locked = null; this.realPending = new Map(); this.timerPaused = false; this._log('출제 취소'); return true; }
   /** 동전 비: n개를 sec초에 걸쳐 맵 곳곳에 떨어뜨림 (기본 동전 한도와 별개) */
@@ -769,12 +770,12 @@ export class Game {
     }
     if (a.chain) { // 체인 라이트닝: 맞히면 가까운 다른 적에게 최대 bounces번 튕김
       this._chain(p, a, dx, dy, range);
-      this.events.push({ e: 'atk', id: p.id, dx: r2(dx), dy: r2(dy), kind: 'proj', fx: 'chain', step, len: range });
+      this.events.push({ e: 'atk', id: p.id, dx: r2(dx), dy: r2(dy), kind: 'proj', fx: 'chain', step, len: range, emp: emp ? 1 : 0 });
       return;
     }
     if (a.projectile) { // 투사체: 날아가서 닿아야 맞는다 (피할 수 있음)
       this._shoot(p, a, aim, dx, dy, range, near, emp);
-      this.events.push({ e: 'atk', id: p.id, dx: r2(dx), dy: r2(dy), kind: 'proj', art: a.projectile.art, lob: !!a.projectile.lob, step, len: range });
+      this.events.push({ e: 'atk', id: p.id, dx: r2(dx), dy: r2(dy), kind: 'proj', art: a.projectile.art, lob: !!a.projectile.lob, step, len: range, emp: emp ? 1 : 0 });
       return;
     }
     if (a.windup) { // 예고 후 타격: 범위를 보여 주는 동안 피할 수 있다
@@ -798,7 +799,7 @@ export class Game {
   _strike(p, range, dx, dy, m, step, arc, multi, line, fast = false, emp = false) {
     const a = p.cfg.attack;
     const hits = this._pickTargets(p, range, dx, dy, arc, line);
-    this.events.push({ e: 'atk', id: p.id, dx: r2(dx), dy: r2(dy), kind: a.type, fx: a.fx, arc, lineW: line, fast, step, range: r2(range), len: r2(hits[0] && !(multi && a.type === 'ranged') ? hits[0].dist : range) });
+    this.events.push({ e: 'atk', id: p.id, dx: r2(dx), dy: r2(dy), kind: a.type, fx: a.fx, arc, lineW: line, fast, step, range: r2(range), len: r2(hits[0] && !(multi && a.type === 'ranged') ? hits[0].dist : range), emp: emp ? 1 : 0 });
     for (const h of multi ? hits : hits.slice(0, 1)) { this._emp = emp; this._hit(h.o, p, dx, dy, m.dmg ?? 1, m.knockback ?? 1); } // multi: 범위 안 모두
   }
 
@@ -1483,6 +1484,7 @@ export class Game {
       mp: this.map === MAP ? null : [this.map.w, this.map.h],
       pv: this.preview && this.phase === PHASE.LOBBY ? { type: this.preview.type, l: this.preview.type === 'calendar' ? calLayout(this.preview) : undefined } : null, // 맵 미리 보기
       cs: this.cast,
+      off: this.humans().filter((p) => !p.connected && !p.parked).map((p) => [p.id, p.name]), // 접속이 끊긴 참가자 (진행자 화면: 내보내기용)
       pl: r2(this._prep()), pc: isCombat(this.question) ? 1 : 0, // 준비 시간 남은 초 · 전투 모드인가
       tr: this.tour ? { r: this.tour.round, m: this.tour.cur, n: this.tour.alive.length, log: this.tour.log } : null,
       cr: this.coinRun && (this.phase === PHASE.READING || this.phase === PHASE.MOVING) ? Object.keys(this.coinRun.start).map((id) => this.players.get(id)).filter((p) => p && this._present(p)).map((p) => [p.id, p.name, this._coinGot(p)]).sort((a, b) => b[2] - a[2]) : null,

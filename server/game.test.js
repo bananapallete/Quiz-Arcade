@@ -1836,3 +1836,10 @@ test('투척병: 공격 간격 절반, 떨어진 곳에 2초 동안 불길(0.5�
   run(g, 1.5); assert.equal(g.zonesU.size, 0, '2초 뒤 꺼짐');
   assert.equal(chars.bomber.attack.interval, 0.4);
 });
+
+test('내보내기: 접속이 끊긴 사람도 목록(off)에 보이고 내보낼 수 있으며, 그 토큰은 기억됨', () => {
+  const g = new Game(chars, quizzes);
+  const a = g.join({ token: 'a', name: 'A', charId: 'blue' }); g.setConnected('a', false);
+  assert.deepEqual(g.snapshot().off, [['a', 'A']]);
+  assert.equal(g.kick('a'), true); assert.ok(g.kicked.has('a')); assert.deepEqual(g.snapshot().off, []);
+});

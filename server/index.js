@@ -59,6 +59,7 @@ const BOOT = String(Date.now()); // 서버가 새로 뜰 때마다 바뀜 → �
 io.on('connection', (socket) => {
   socket.emit('boot', BOOT);
   socket.on('join', (data, ack) => {
+    if (data?.token && game.kicked.has(data.token)) return ack?.({ ok: false, kicked: true }); // 내보낸 사람: 저장된 정보로 자동 입장 못 함
     const token = data?.token && game.players.has(data.token) ? data.token : randomUUID();
     const p = game.join({ token, name: data?.name, charId: data?.charId });
     if (!p) return ack?.({ ok: false, error: '인원이 가득 찼어요' });

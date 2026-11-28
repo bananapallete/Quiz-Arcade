@@ -158,6 +158,13 @@ const pitchOf = (id) => { let h = 0; for (const c of String(id || '')) h = (h * 
 /** 나와의 거리 d(칸)에 따른 음량: 3칸 안은 그대로, 16칸이 넘으면 안 들림 */
 export const loudness = (d) => (d <= 3 ? 1 : Math.max(0, 1 - (d - 3) / 13) ** 2);
 
+/** 강화 평타: 공주는 반짝이는 하트 차임, 개구리는 '뾰옹' 혀 소리, 나머지는 반짝임 */
+function empSound(ch, v) {
+  if (ch === 'princess') { [1047, 1319, 1568, 2093].forEach((f, i) => tone(f, f * 1.01, 0.28, 'triangle', 0.2 * v, i * 0.05)); tone(2637, 3136, 0.35, 'sine', 0.12 * v, 0.2, 6); }
+  else if (ch === 'frog') { tone(180, 720, 0.18, 'square', 0.22 * v); tone(720, 260, 0.22, 'triangle', 0.2 * v, 0.17); noise(0.12, 1800, 600, 0.2 * v, 0.02); }
+  else [880, 1320, 1760].forEach((f, i) => tone(f, f, 0.2, 'triangle', 0.18 * v, i * 0.05));
+}
+
 // 떴다 떴다 비행기 (미레도레미미미 레레레 미솔솔 미레도레미미미 레레미레도), 쏠 때마다 다음 음
 const C5 = 523.25, AIRPLANE = 'EDCDEEE DDD EGG EDCDEEE DDEDC'.replace(/ /g, '').split('').map((n) => C5 * 2 ** ({ C: 0, D: 2, E: 4, G: 7 }[n] / 12));
 const divaStep = new Map();
@@ -197,6 +204,7 @@ export function sfxEvent(e, c) {
     return;
   }
   let k = null;
+  if (e.e === 'atk' && e.emp) empSound(c.charId, v * (c.mine ? 1 : 0.8)); // 강화 평타(공주 매혹 · 개구리 혀 묶기): 특별한 소리를 따로 얹음
   if (e.e === 'atk' && c.charId === 'gaga') { divaNote(e.id, v * (c.mine ? 1 : 0.8)); return; } // 디바 평타: 떴다 떴다 비행기를 한 음씩
   if (e.e === 'atk') {
     if (e.kind === 'melee') k = e.fx === 'smash' ? 'smash' : e.fx === 'bump' ? 'thump' : e.fx === 'punch' ? 'punch' : 'swing';

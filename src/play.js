@@ -267,6 +267,7 @@ function applyJoin(res) {
 }
 function join(data) {
   socket.emit('join', data, (res) => {
+    if (res?.kicked) return resetMe(); // 내보내진 사람: 처음부터 (닉네임 입력)
     if (!res?.ok) { $('#conn').hidden = false; $('#conn').textContent = res?.error || '입장 실패'; return; }
     applyJoin(res);
   });
@@ -316,6 +317,7 @@ socket.on('connect', () => {
   else if (savedName()) { $('#nick').hidden = true; openPicker('join'); }
   else { $('#pick').hidden = true; $('#nick').hidden = false; setTimeout(() => nickIn.focus(), 50); }
 });
-socket.on('kicked', () => { save(null); me = null; ME = null; $('#conn').hidden = false; $('#conn').textContent = '진행자가 내보냈어요'; });
+function resetMe() { save(null); try { localStorage.removeItem(NAME_KEY); } catch { /* 저장 불가 */ } me = null; ME = null; $('#conn').hidden = false; $('#conn').textContent = '진행자가 내보냈어요'; setTimeout(() => location.reload(), 1800); } // 저장된 정보를 지우고 새로고침 → 닉네임 입력부터
+socket.on('kicked', resetMe);
 socket.on('disconnect', () => { resetControls(); $('#conn').hidden = false; $('#conn').textContent = '연결 끊김 · 다시 연결 중…'; });
 window.__world = scene;
