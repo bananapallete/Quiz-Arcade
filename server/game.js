@@ -237,7 +237,7 @@ export class Game {
     this.phaseEnd = this.t + READ_SEC;
     this.prepUntil = q.type === 'real' ? 0 : this.t + PREP_SEC; // 준비 시간 (공격·궁극기 불가, 궁극기 게이지도 멈춤)
     this._log(`문제 ${q.id} 출제`);
-    for (const p of this.players.values()) { p.out = false; p.ghost = false; p.stunned = false; p.stunUntil = 0; this._refill(p); } // 문제마다 체력·달리기 게이지 가득
+    for (const p of this.players.values()) { p.out = false; p.ghost = false; p.stunned = false; p.stunUntil = 0; this._refill(p); this._clearLobbyEffects(p); } // 대기실 효과는 넘기지 않음 · 문제마다 체력·달리기 게이지 가득
     if (q.type === 'brawl' && q.tour) this._tourSetup();
     else if (q.type === 'brawl') this._brawlSetup();
     if (q.type === 'calendar') this._calSetup();
@@ -407,6 +407,13 @@ export class Game {
     if (q.type === 'brawl') { this.map = BRAWL_MAP; this.solids = true; for (const p of this.players.values()) if (p.isBot && p.connected && p.home) this._park(p); }
     this.gather();
     this._log(`Q${q.id} 맵으로 이동`); return true;
+  }
+
+  /** 문제 시작: 대기실에서 생긴 효과는 게임으로 넘기지 않음 (신발 속도·화상·묶임·둔화·보호막·침묵·회복·밀림·공격 예고·연타 단계) */
+  _clearLobbyEffects(p) {
+    p.speedUntil = 0; p.burnUntil = 0; p.burnBy = null; p.tether = null; p.tetherStack = null; p.charmStack = null; p.charmBy = null;
+    p.slowUntil = 0; p.slowMul = 1; p.atkSlowUntil = 0; p.shield = null; p.silenceUntil = 0; p.regen = null; p.invUntil = 0;
+    p.kx = p.ky = 0; p.dash = null; p.windup = null; p.comboStep = 0; p.nextAttackAt = 0; p.empNext = false; p.empCount = 0; p.attackUntil = 0;
   }
 
   _refill(p) {

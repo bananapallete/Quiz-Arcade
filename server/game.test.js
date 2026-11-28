@@ -1891,3 +1891,12 @@ test('이번 게임 점수(폰 좌측 상단): 게임이 시작되면 0부터, �
   g.ask(1); assert.equal(g.gameBoard()[0].score, 0, '새 게임은 0부터'); assert.equal(g.leaderboard()[0].score, 10, '총점은 그대로');
   a.coins = 2; g.adjust('a', 3); assert.equal(g.gameBoard()[0].score, 4);
 });
+
+test('대기실에서 생긴 것은 게임으로 넘어가지 않는다: 궁극기 게이지·신발 속도·화상·둔화·보호막 초기화', () => {
+  const g = new Game(chars, quizzes);
+  const a = g.join({ token: 'a', name: 'A', charId: 'blue' });
+  a.ult = 80; a.speedUntil = 99; a.burnUntil = 99; a.slowUntil = 99; a.shield = { until: 99, mul: 0.5 }; a.silenceUntil = 99; a.hp = 3;
+  g.ask(1);
+  assert.equal(a.ult, 0); assert.equal(a.hp, a.cfg.hp);
+  assert.ok(a.speedUntil <= g.t && a.burnUntil <= g.t && a.slowUntil <= g.t && a.silenceUntil <= g.t); assert.equal(a.shield, null);
+});
