@@ -16,8 +16,8 @@ const HOST_KEY = process.env.HOST_KEY || ''; // 비워두면 누구나 /host 사
 const isProd = process.env.NODE_ENV === 'production';
 
 const characters = JSON.parse(readFileSync(path.join(root, 'server/characters.json'), 'utf8'));
-// QUIZ_FILE=server/quizzes.json 로 시트(tools/quiz_csv.mjs)에서 만든 문제를 쓴다 (현실 퀴즈 포함)
-const quizzes = JSON.parse(readFileSync(path.resolve(root, process.env.QUIZ_FILE || 'server/quizzes.test.json'), 'utf8'));
+// 문제 파일: 기본 server/quizzes.json (QUIZ_FILE로 바꿀 수 있음, 시트는 tools/quiz_csv.mjs로 변환). 테스트는 server/quizzes.test.json을 씀
+const quizzes = JSON.parse(readFileSync(path.resolve(root, process.env.QUIZ_FILE || 'server/quizzes.json'), 'utf8'));
 const game = new Game(characters, quizzes);
 
 const app = express();

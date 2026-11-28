@@ -150,10 +150,12 @@ export function renderQuizTop(el, s, rows, meId) {
     const live = !!s.q && (s.phase === PHASE.READING || s.phase === PHASE.MOVING), quiz = live && !isCombat(s.q) && s.q.type !== 'real';
     popQ = s.q && s.phase !== PHASE.LOBBY && !isCombat(s.q) ? s.q : null;
     if (!popQ) closePop();
-    const key = quiz ? `${s.q.id}:${s.q.text}` : null;
-    if (quiz && s.pl > 0 && key !== popKey) { popKey = key; openPop(true); }
-    if (!live) popKey = null;
-    if (popAuto && !(s.pl > 0)) closePop();
+    const real = !!s.q && s.q.type === 'real' && s.phase === PHASE.REAL; // 현실 퀴즈(예: 히든싱어): 출제 팝업만, 직접 닫을 때까지
+    if (real) popQ = s.q;
+    const key = quiz || real ? `${s.q.id}:${s.q.text}` : null;
+    if (((quiz && s.pl > 0) || real) && key !== popKey) { popKey = key; openPop(true); }
+    if (!live && !real) popKey = null;
+    if (popAuto && !(s.pl > 0) && !real) closePop();
     const prep = document.getElementById('qprep'), on = live && isCombat(s.q) && s.pl > 0;
     prep.hidden = !on; if (on) prep.querySelector('b').textContent = Math.ceil(s.pl);
   }

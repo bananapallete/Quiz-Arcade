@@ -190,16 +190,18 @@ export class Game {
 
   // ---------- 얼굴 투표: 대기실에 아직 안 낸 문제의 출제자 얼굴이 서 있고, 때리면 그 문제에 한 표 (한 사람 한 표, 마지막에 때린 얼굴) ----------
   _lobbyish() { return this.phase === PHASE.LOBBY || this.phase === PHASE.REVEAL; }
-  syncFaces() {
-    const want = this.questions.filter((q) => q.face && !this.asked.has(q.id));
-    for (const [id, p] of this.players) if (p.faceQ && !want.some((q) => q.id === p.faceQ)) this.players.delete(id); // 낸 문제의 얼굴은 치움
-    const half = Math.ceil(want.length / 2), rows = [want.slice(0, half), want.slice(half)];
-    rows.forEach((row, r) => row.forEach((q, i) => {
-      const x = row.length > 1 ? 8 + (21 * i) / (row.length - 1) : 18, y = r ? 18.8 : 13.4; // 두 줄 (위·아래), 가운데 넓게
-      let f = [...this.players.values()].find((p) => p.faceQ === q.id);
-      if (!f) { f = this._spawn({ id: `face-${q.id}`, name: q.author || q.face, charId: 'blue', isBot: true, botMode: 'idle' }); f.faceQ = q.id; f.faceImg = q.face; f.team = 0; }
-      f.x = x; f.y = y; f.home = { x, y }; f.kx = f.ky = 0;
-    }));
+  syncFaces() { // 출제자마다 얼굴 하나 (여러 문제를 냈으면 아직 안 낸 첫 문제에 표), 맵 중앙을 기준으로 두 줄
+    const want = [], seen = new Set();
+    for (const q of this.questions) if (q.face && !this.asked.has(q.id) && !seen.has(q.face)) { seen.add(q.face); want.push(q); }
+    for (const [id, p] of this.players) if (p.faceQ && !want.some((q) => q.face === p.faceImg)) this.players.delete(id); // 문제를 다 낸 출제자는 치움
+    const cols = Math.ceil(want.length / 2), gap = Math.min(3.8, 30 / Math.max(1, cols - 1));
+    want.forEach((q, k) => {
+      const r = k < cols ? 0 : 1, i = r ? k - cols : k, n = r ? want.length - cols : cols;
+      const x = MAP.w / 2 + (i - (n - 1) / 2) * gap, y = MAP.h / 2 + (r ? 2.9 : -2.9);
+      let f = [...this.players.values()].find((p) => p.faceImg === q.face);
+      if (!f) { f = this._spawn({ id: `face-${q.face}`, name: q.author || q.face, charId: 'blue', isBot: true, botMode: 'idle' }); f.faceImg = q.face; f.team = 0; f.cfg = { ...f.cfg, radius: 1.3 }; } // 얼굴이 커서 맞는 범위도 넓게
+      f.faceQ = q.id; f.x = x; f.y = y; f.home = { x, y }; f.kx = f.ky = 0;
+    });
     for (const [pid, qid] of this.votes) if (!want.some((q) => q.id === qid)) this.votes.delete(pid);
   }
   voteCounts() { const n = {}; for (const q of this.votes.values()) n[q] = (n[q] || 0) + 1; return n; }

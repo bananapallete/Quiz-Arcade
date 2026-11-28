@@ -476,16 +476,16 @@ export class WorldScene extends Phaser.Scene {
       seen.add(f.id);
       let v = this.faceViews.get(f.id);
       if (!v) {
-        const key = `face-${f.img}`, img = this.add.image(0, 0, '__WHITE').setVisible(false), ring = this.add.graphics(), lab = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: '22px', fontStyle: '900', color: '#1f2d3a', stroke: '#ffffff', strokeThickness: 5 }).setOrigin(0.5, 0);
+        const key = `face-${f.img}`, img = this.add.image(0, 0, '__WHITE').setVisible(false), ring = this.add.graphics(), lab = this.add.text(0, 0, '', { fontFamily: 'sans-serif', fontSize: '30px', fontStyle: '900', color: '#1f2d3a', stroke: '#ffffff', strokeThickness: 6 }).setOrigin(0.5, 0);
         v = { img, ring, lab, key, pop: 0 }; this.faceViews.set(f.id, v);
         const show = () => { // 사진이 있으면 사진, 없으면 이름 두 글자 카드
           if (!this.faceViews.has(f.id)) return;
           if (this.textures.exists(key)) { img.setTexture(key).setVisible(true); v.ph?.destroy(); v.ph = null; }
-          else { img.setVisible(false); v.ph ||= this.add.text(0, 0, f.n.slice(0, 2), { fontFamily: 'sans-serif', fontSize: '40px', fontStyle: '900', color: '#ffffff', backgroundColor: '#9a62d6', padding: { x: 14, y: 18 } }).setOrigin(0.5); }
+          else { img.setVisible(false); v.ph ||= this.add.text(0, 0, f.n.slice(0, 2), { fontFamily: 'sans-serif', fontSize: '72px', fontStyle: '900', color: '#ffffff', backgroundColor: '#9a62d6', padding: { x: 26, y: 34 } }).setOrigin(0.5); }
         };
         if (this.textures.exists(key)) show(); else { this.load.image(key, `/faces/${encodeURIComponent(f.img)}.png`); this.load.once('complete', show); this.load.start(); }
       }
-      const x = f.x * BU, y = f.y * BU, n = s.vt?.[f.q] || 0, sz = 1.7 * BU;
+      const x = f.x * BU, y = f.y * BU, n = s.vt?.[f.q] || 0, sz = 3.4 * BU;
       v.x = x; v.y = y; v.mine = mine === f.q;
       if (v.img.visible) v.img.setDisplaySize(sz, sz);
       v.lab.setText(`${f.n}${n ? ` 👊${n}` : ''}`).setPosition(x, y + sz * 0.45).setDepth(y + 2);
@@ -497,7 +497,7 @@ export class WorldScene extends Phaser.Scene {
   _faceTick(now) {
     for (const v of this.faceViews?.values() || []) {
       const u = (now - v.pop) / 260, k = u < 1 ? 1 + 0.25 * Math.sin(Math.PI * u) : 1, sh = u < 1 ? Math.sin(u * 30) * 6 * (1 - u) : 0; // 맞으면 흔들리며 팡
-      const sz = 1.7 * BU * k;
+      const sz = 3.4 * BU * k;
       if (v.img.visible) v.img.setPosition(v.x + sh, v.y).setDisplaySize(sz, sz).setDepth(v.y + 1);
       v.ph?.setPosition(v.x + sh, v.y).setScale(k).setDepth(v.y + 1);
       v.ring.clear(); if (v.mine) v.ring.lineStyle(6, 0xffd54a, 1).strokeCircle(v.x, v.y, sz * 0.55).setDepth(v.y);
