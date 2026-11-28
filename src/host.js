@@ -90,16 +90,28 @@ $('#cast-list').addEventListener('click', (e) => { const b = e.target.closest('[
 $('#sgrid').addEventListener('click', (e) => { const c = e.target.closest('[data-castid]'); if (c) { emit('host:cast', st?.cs?.id === c.dataset.castid ? { m: 'auto' } : { id: c.dataset.castid }); return; } const b = e.target.closest('[data-sg]'); if (b) emit('host:adjust', { id: b.dataset.id, delta: Number(b.dataset.sg) * (Number($('#adj-step').value) || 1) }); });
 // 팀 끌어놓기
 let dragging = false, dirtyBoard = false;
-$('#tboard').addEventListener('click', (e) => { const c = e.target.closest('[data-drag]'); if (c && !dragging) emit('host:rep', { id: c.dataset.drag }); }); // 눌러서 토너먼트 대표 ★
-$('#tboard').addEventListener('dragstart', (e) => { const c = e.target.closest('[data-drag]'); if (!c) return; dragging = true; e.dataTransfer.setData('text/plain', c.dataset.drag); });
-$('#tboard').addEventListener('dragend', () => { dragging = false; if (dirtyBoard) renderBoard(); });
-$('#tboard').addEventListener('dragover', (e) => { const z = e.target.closest('[data-drop]'); if (z) { e.preventDefault(); z.classList.add('over'); } });
-$('#tboard').addEventListener('dragleave', (e) => { e.target.closest('[data-drop]')?.classList.remove('over'); });
-$('#tboard').addEventListener('drop', (e) => { const z = e.target.closest('[data-drop]'); if (!z) return; e.preventDefault(); z.classList.remove('over'); dragging = false; emit('host:setTeam', { id: e.dataTransfer.getData('text/plain'), team: Number(z.dataset.drop) }); });
+// 팀 보드: 포인터로 끌어서 이동(마우스·터치 공통), 끌지 않고 누르면 토너먼트 대표 ★
+let drag = null;
+const zoneAt = (x, y) => document.elementFromPoint(x, y)?.closest('[data-drop]');
+const clearOver = () => document.querySelectorAll('#tboard .over').forEach((z) => z.classList.remove('over'));
+$('#tboard').addEventListener('pointerdown', (e) => { const c = e.target.closest('[data-drag]'); if (!c) return; drag = { id: c.dataset.drag, el: c, x0: e.clientX, y0: e.clientY }; c.setPointerCapture(e.pointerId); });
+$('#tboard').addEventListener('pointermove', (e) => {
+  if (!drag) return; const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
+  if (!dragging && Math.hypot(dx, dy) < 8) return;
+  dragging = true; drag.el.style.cssText = `transform:translate(${dx}px,${dy}px);pointer-events:none;position:relative;z-index:9;box-shadow:0 4px 10px #0005`;
+  clearOver(); zoneAt(e.clientX, e.clientY)?.classList.add('over');
+});
+const dropEnd = (e) => {
+  if (!drag) return; const d = drag; drag = null;
+  if (dragging) { const z = zoneAt(e.clientX, e.clientY); clearOver(); d.el.style.cssText = ''; dragging = false; if (z) emit('host:setTeam', { id: d.id, team: Number(z.dataset.drop) }); if (dirtyBoard) renderBoard(); }
+  else { emit('host:rep', { id: d.id }); if (dirtyBoard) renderBoard(); }
+};
+$('#tboard').addEventListener('pointerup', dropEnd);
+$('#tboard').addEventListener('pointercancel', (e) => { if (drag) { drag.el.style.cssText = ''; drag = null; dragging = false; clearOver(); if (dirtyBoard) renderBoard(); } });
 function renderBoard() {
-  if (dragging) { dirtyBoard = true; return; } dirtyBoard = false;
+  if (drag) { dirtyBoard = true; return; } dirtyBoard = false;
   const cols = humans.some((p) => !p.tm) ? [1, 2, 0] : [1, 2]; // 항상 2팀 (팀 없는 사람이 있을 때만 미배정 칸)
-  $('#tboard').innerHTML = cols.map((t) => { const ms = humans.filter((p) => (p.tm || 0) === t); return `<div class="tc" data-drop="${t}" style="${t ? `border-color:${TEAMC[t]}` : ''}"><h4>${t ? `${t}팀 · ${ms.length}명 · ★${ms.filter((p) => p.rep).length}/2` : '미배정'}</h4>${ms.map((p) => `<span class="chip${p.rep ? ' rep' : ''}" draggable="true" data-drag="${p.id}">${p.rep ? '★ ' : ''}${esc(p.n)}</span>`).join('')}</div>`; }).join('');
+  $('#tboard').innerHTML = cols.map((t) => { const ms = humans.filter((p) => (p.tm || 0) === t); return `<div class="tc" data-drop="${t}" style="${t ? `border-color:${TEAMC[t]}` : ''}"><h4>${t ? `${t}팀 · ${ms.length}명 · ★${ms.filter((p) => p.rep).length}/2` : '미배정'}</h4>${ms.map((p) => `<span class="chip${p.rep ? ' rep' : ''}" data-drag="${p.id}">${p.rep ? '★ ' : ''}${esc(p.n)}</span>`).join('')}</div>`; }).join('');
 }
 // 기록
 function renderHistory() {
