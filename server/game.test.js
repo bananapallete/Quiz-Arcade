@@ -1853,8 +1853,10 @@ test('얼굴 투표: 대기실에 안 낸 문제의 출제자 얼굴이 서 있�
   assert.deepEqual(g.snapshot().vt, { 1: 1, 2: 1 }, 'a는 마지막에 때린 2번으로 옮김');
   assert.equal(f1.hp, f1.cfg.hp, '얼굴은 안 다침'); assert.ok(!g.snapshot().players.some((p) => p.id === 'face-가'), '얼굴은 players가 아니라 fc로');
   assert.ok(!g.leaderboard().some((r) => r.id.startsWith('face')));
-  g.ask(1); assert.deepEqual(g.snapshot().fc, [], '문제 중엔 얼굴 숨김'); assert.ok(!g.players.has('face-가'), '낸 문제 얼굴은 사라짐'); assert.deepEqual(g.snapshot().vt, { 2: 1 });
-  g.cancelQuestion(); assert.deepEqual(fs().map((f) => f.q), [2]);
+  g.ask(1); assert.deepEqual(g.snapshot().fc, [], '문제 중엔 얼굴 숨김'); assert.deepEqual(g.snapshot().vt, { 2: 1 });
+  g.cancelQuestion(); assert.deepEqual(fs().map((f) => [f.q, f.d]), [[1, 1], [2, 0]], '다 푼 출제자 얼굴은 반투명(d)으로 남음');
+  g._applyHit(f1, b, 5, 1, 1, 0); assert.deepEqual(g.snapshot().vt, { 2: 1 }, '다 푼 얼굴은 때려도 투표 안 됨');
+  assert.ok(!g._enemies(a).includes(f1), '조준 대상에서 빠짐'); assert.ok(g._enemies(a).includes(f2));
 });
 
 test('동전 모으기 팀전: 팀 합계가 많은 팀 전원이 점수, 개인전↔팀전 전환', () => {
@@ -1903,4 +1905,5 @@ test('얼굴 투표: 한 출제자가 여러 문제를 냈으면 얼굴은 하�
   assert.equal(g.snapshot().fc.length, 1); const f = g.players.get('face-민규'); assert.equal(f.faceQ, 1);
   g._applyHit(f, a, 5, 1, 1, 0); assert.deepEqual(g.snapshot().vt, { 1: 1 });
   g.ask(1); g.cancelQuestion(); assert.equal(g.players.get('face-민규').faceQ, 2, '다음 문제로'); assert.deepEqual(g.snapshot().vt, {});
+  g.ask(2); g.cancelQuestion(); assert.equal(g.players.get('face-민규').faceDone, true, '다 풀면 반투명');
 });

@@ -190,19 +190,19 @@ export class Game {
 
   // ---------- 얼굴 투표: 대기실에 아직 안 낸 문제의 출제자 얼굴이 서 있고, 때리면 그 문제에 한 표 (한 사람 한 표, 마지막에 때린 얼굴) ----------
   _lobbyish() { return this.phase === PHASE.LOBBY && !this.preview; } // 얼굴은 대기실에서만 (맵 미리 보기·문제·결과 땐 숨김)
-  syncFaces() { // 출제자마다 얼굴 하나 (여러 문제를 냈으면 아직 안 낸 첫 문제에 표), 맵 중앙을 기준으로 두 줄
-    const want = [], seen = new Set();
-    for (const q of this.questions) if (q.face && !this.asked.has(q.id) && !seen.has(q.face)) { seen.add(q.face); want.push(q); }
-    for (const [id, p] of this.players) if (p.faceQ && !want.some((q) => q.face === p.faceImg)) this.players.delete(id); // 문제를 다 낸 출제자는 치움
-    const cols = Math.ceil(want.length / 2), gap = Math.min(3.8, 30 / Math.max(1, cols - 1));
-    want.forEach((q, k) => {
-      const r = k < cols ? 0 : 1, i = r ? k - cols : k, n = r ? want.length - cols : cols;
+  syncFaces() { // 출제자마다 얼굴 하나 (안 낸 첫 문제에 표). 문제를 다 낸 출제자는 반투명 무적(조준·투표 안 됨)으로 남음. 맵 중앙 두 줄
+    const all = [], seen = new Set();
+    for (const q of this.questions) if (q.face && !seen.has(q.face)) { seen.add(q.face); all.push(this.questions.find((x) => x.face === q.face && !this.asked.has(x.id)) || q); }
+    for (const [id, p] of this.players) if (p.faceQ && !all.some((q) => q.face === p.faceImg)) this.players.delete(id);
+    const cols = Math.ceil(all.length / 2), gap = Math.min(3.8, 30 / Math.max(1, cols - 1));
+    all.forEach((q, k) => {
+      const r = k < cols ? 0 : 1, i = r ? k - cols : k, n = r ? all.length - cols : cols;
       const x = MAP.w / 2 + (i - (n - 1) / 2) * gap, y = MAP.h / 2 + (r ? 2.9 : -2.9);
       let f = [...this.players.values()].find((p) => p.faceImg === q.face);
       if (!f) { f = this._spawn({ id: `face-${q.face}`, name: q.author || q.face, charId: 'blue', isBot: true, botMode: 'idle' }); f.faceImg = q.face; f.team = 0; f.cfg = { ...f.cfg, radius: 1.3 }; } // 얼굴이 커서 맞는 범위도 넓게
-      f.faceQ = q.id; f.x = x; f.y = y; f.home = { x, y }; f.kx = f.ky = 0;
+      f.faceQ = q.id; f.faceDone = this.asked.has(q.id); f.x = x; f.y = y; f.home = { x, y }; f.kx = f.ky = 0;
     });
-    for (const [pid, qid] of this.votes) if (!want.some((q) => q.id === qid)) this.votes.delete(pid);
+    for (const [pid, qid] of this.votes) if (this.asked.has(qid) || !all.some((q) => q.id === qid)) this.votes.delete(pid);
   }
   voteCounts() { const n = {}; for (const q of this.votes.values()) n[q] = (n[q] || 0) + 1; return n; }
 
@@ -730,7 +730,7 @@ export class Game {
   }
 
   _enemies(p) {
-    return [...this.players.values()].filter((o) => o !== p && o.connected && !o.out && !o.ghost && !this._sameSide(p, o) && !(o.faceQ && (!this._lobbyish() || p.faceQ || p.home))); // 같은 팀·아군 봇은 적이 아님
+    return [...this.players.values()].filter((o) => o !== p && o.connected && !o.out && !o.ghost && !this._sameSide(p, o) && !(o.faceQ && (o.faceDone || !this._lobbyish() || p.faceQ || p.home))); // 다 푼 출제자 얼굴은 조준 안 됨 // 같은 팀·아군 봇은 적이 아님
   }
 
   // 지금 공격을 하면 몇 타째인지, 그 타의 배율과 사거리
@@ -916,7 +916,7 @@ export class Game {
 
   _updateProjectiles(dt) {
     for (const q of [...this.projectiles.values()]) {
-      const ownerP = this.players.get(q.owner), foes = [...this.players.values()].filter((o) => o.connected && !o.ghost && o.id !== q.owner && !(ownerP && this._sameSide(ownerP, o)));
+      const ownerP = this.players.get(q.owner), foes = [...this.players.values()].filter((o) => o.connected && !o.ghost && o.id !== q.owner && !(ownerP && this._sameSide(ownerP, o)) && !(o.faceQ && (o.faceDone || !this._lobbyish()))); // 다 푼·숨은 얼굴은 투사체도 통과
       if (q.kind === 'lob') {
         const u = (this.t - q.t0) / q.T;
         if (u < 1) { q.x = q.sx + (q.tx - q.sx) * u; q.y = q.sy + (q.ty - q.sy) * u; continue; }
@@ -1130,7 +1130,7 @@ export class Game {
 
   _applyHit(target, attacker, rawDmg, knock, dx, dy, fx) {
     const emp = this._emp; this._emp = false; // 이번 타격이 '강화된 평타'인가 (한 번 쓰면 사라짐)
-    if (target.faceQ) { const a = attacker.id && this.players.get(attacker.id); if (a && !a.home && !a.faceQ && !a.isBot) { this.votes.set(a.id, target.faceQ); this.events.push({ e: 'vote', id: target.id, by: a.id }); } return; } // 얼굴: 피해 없이 한 표
+    if (target.faceQ) { const a = attacker.id && this.players.get(attacker.id); if (a && !target.faceDone && !a.home && !a.faceQ && !a.isBot) { this.votes.set(a.id, target.faceQ); this.events.push({ e: 'vote', id: target.id, by: a.id }); } return; } // 얼굴: 피해 없이 한 표
     if (target.ghost) return; // 유령은 맞지도 밀리지도 않음
     if (this.t < target.invUntil || (this.god && !target.isBot)) { // 무적: 피해도 밀림도 없음
       this.events.push({ e: 'block', id: target.id, x: r2(target.x), y: r2(target.y) });
@@ -1558,7 +1558,7 @@ export class Game {
       mp: this.map === MAP ? null : [this.map.w, this.map.h],
       pv: this.preview && this.phase === PHASE.LOBBY ? { type: this.preview.type, l: this.preview.type === 'calendar' ? calLayout(this.preview) : undefined, title: this.preview.title, author: this.preview.author, face: this.preview.face } : null, // 맵 미리 보기
       gs: this.phase === PHASE.REVEAL ? Object.fromEntries(this.contestants().filter((p) => this._present(p)).map((p) => [p.id, [p.gs?.k || 0, p.gs?.d || 0, p.gs?.dmg || 0, p.coins]])) : null, // 결과 화면: 킬·데스·피해·동전
-      fc: this._lobbyish() ? [...this.players.values()].filter((p) => p.faceQ && p.connected).map((p) => ({ id: p.id, q: p.faceQ, x: r2(p.x), y: r2(p.y), n: p.name, img: p.faceImg })) : [], vt: this.voteCounts(), vm: Object.fromEntries(this.votes), // 얼굴 투표 (vm: 누가 어디에)
+      fc: this._lobbyish() ? [...this.players.values()].filter((p) => p.faceQ && p.connected).map((p) => ({ id: p.id, q: p.faceQ, x: r2(p.x), y: r2(p.y), n: p.name, img: p.faceImg, d: p.faceDone ? 1 : 0 })) : [], vt: this.voteCounts(), vm: Object.fromEntries(this.votes), // 얼굴 투표 (vm: 누가 어디에)
       cs: this.cast,
       off: this.humans().filter((p) => !p.connected && !p.parked).map((p) => [p.id, p.name]), // 접속이 끊긴 참가자 (진행자 화면: 내보내기용)
       pl: r2(this._prep()), pc: isCombat(this.question) ? 1 : 0, // 준비 시간 남은 초 · 전투 모드인가
