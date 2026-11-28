@@ -1210,8 +1210,9 @@ test('진행자 도구: 타이머 일시정지·±시간, 점수 되돌리기·2
   assert.ok(g.kick('a')); assert.equal(g.players.has('a'), false);
 });
 
-test('대기실 QR: 진행자가 닫고 열 수 있다', () => {
-  const g = new Game(chars, quizzes); assert.equal(g.snapshot().qr, 1); g.setQr(false); assert.equal(g.snapshot().qr, 0); g.setQr(true); assert.equal(g.snapshot().qr, 1);
+test('대기실 QR·친구 얼굴: 처음엔 꺼져 있고 진행자가 켜고 끈다', () => {
+  const g = new Game(chars, quizzes); assert.equal(g.snapshot().qr, 0); g.setQr(true); assert.equal(g.snapshot().qr, 1); g.setQr(false); assert.equal(g.snapshot().qr, 0);
+  g.syncFaces(); assert.equal(g.snapshot().sf, 0); assert.deepEqual(g.snapshot().fc, [], '얼굴은 처음엔 숨김'); g.setFaces(true); assert.ok(g.snapshot().fc.length > 0);
 });
 
 test('캐릭터 변경: 대기실은 자유, 퀴즈 중엔 60초 쿨타임(체력 비율 유지, 궁극기 초기화)', () => {
@@ -1817,7 +1818,7 @@ test('내보내기: 접속이 끊긴 사람도 목록(off)에 보이고 내보�
 
 test('얼굴 투표: 대기실에 안 낸 문제의 출제자 얼굴이 서 있고, 때리면 한 표(한 사람 한 표), 낸 문제의 얼굴은 사라진다', () => {
   const qs = [{ type: 'ox', text: 'a', answer: 'O', author: '가', face: '가' }, { type: 'ox', text: 'b', answer: 'X', author: '나', face: '나' }, { type: 'ox', text: 'c', answer: 'O' }];
-  const g = new Game(chars, qs); g.syncFaces();
+  const g = new Game(chars, qs); g.syncFaces(); g.setFaces(true);
   const fs = () => g.snapshot().fc; assert.deepEqual(fs().map((f) => f.q), [1, 2], '얼굴 있는 문제만');
   const a = g.join({ token: 'a', name: 'A', charId: 'blue' }), b = g.join({ token: 'b', name: 'B', charId: 'blue' });
   const f1 = g.players.get('face-가'), f2 = g.players.get('face-나');
@@ -1877,7 +1878,7 @@ test('이번 게임 기록: 킬·데스·입힌 피해를 세고, 결과 화면 
 
 test('얼굴 투표: 한 출제자가 여러 문제를 냈으면 얼굴은 하나, 안 낸 첫 문제에 표가 가고 그 문제를 내면 다음 문제로', () => {
   const qs = [{ type: 'ox', text: 'a', answer: 'O', author: '민규', face: '민규' }, { type: 'ox', text: 'b', answer: 'X', author: '민규', face: '민규' }];
-  const g = new Game(chars, qs); g.syncFaces(); const a = g.join({ token: 'a', name: 'A', charId: 'blue' });
+  const g = new Game(chars, qs); g.syncFaces(); g.setFaces(true); const a = g.join({ token: 'a', name: 'A', charId: 'blue' });
   assert.equal(g.snapshot().fc.length, 1); const f = g.players.get('face-민규'); assert.equal(f.faceQ, 1);
   g._applyHit(f, a, 5, 1, 1, 0); assert.deepEqual(g.snapshot().vt, { 1: 1 });
   g.ask(1); g.cancelQuestion(); assert.equal(g.players.get('face-민규').faceQ, 2, '다음 문제로'); assert.deepEqual(g.snapshot().vt, {});

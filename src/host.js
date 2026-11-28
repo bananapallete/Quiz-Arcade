@@ -159,6 +159,7 @@ $('#t-undo').addEventListener('click', () => emit('host:undo'));
 $('#t-x2').addEventListener('click', () => emit('host:x2', { on: st?.x2 !== 2 }));
 $('#t-freeze').addEventListener('click', () => emit('host:freeze', { on: !st?.fz }));
 $('#t-qr').addEventListener('click', () => emit('host:qr', { on: !st?.qr }));
+$('#t-faces').addEventListener('click', () => emit('host:faces', { on: !st?.sf })); // 대기실 친구 얼굴
 $('#c-rain').addEventListener('click', () => emit('host:coinRain', { n: 24 }));
 const step = (d) => { const ids = info.questions.map((q) => q.id); const i = ids.indexOf(askId ?? curId); askId = ids[Math.min(ids.length - 1, Math.max(0, (i < 0 ? 0 : i) + d))]; renderCurrent(); renderQuestions(); };
 $('#q-next').addEventListener('click', () => step(1));
@@ -181,7 +182,7 @@ socket.on('state', (s) => {
   humans = (s.lb || []).map((r) => ({ id: r.id, n: r.name, tm: r.team, sc: r.score, cn: r.coins, rep: r.rep, watch: !s.players.some((p) => p.id === r.id) })); // 사람 + 점수 받는 테스트 봇 (순위표 기준 → 토너먼트 관전자도 빠지지 않음)
   $('#s-players').textContent = `${humans.length}명 접속`; $('#s-phase').textContent = (phaseName[s.phase] || '-') + (s.bw ? ` · ⚔ ${s.bw.p}명` : '') + (s.cal ? ` · 📅 ${s.cal.r}차 생존 ${s.cal.a}명` : '') + (s.tr?.m ? ` · 🏆 ${s.tr.r}R ${s.tr.m[0]}팀 vs ${s.tr.m[1]}팀` : '') + (s.cr ? ` · 🪙 1등 ${s.cr[0]?.[1] ?? '-'} ${s.cr[0]?.[2] ?? 0}` : '');
   $('#end').textContent = s.q?.type === 'calendar' ? '✓ 채점하기' : s.tr ? '✓ 경기 종료' : s.q?.type === 'brawl' || s.q?.type === 'coin' ? '✓ 종료' : '✓ 정답 공개'; $('#cal-fin').hidden = !s.cal; $('#s-left').textContent = s.left > 0 ? `⏱ ${Math.ceil(s.left)}초` : '-';
-  for (const [id, on] of [['hideans', s.ha], ['t-pause', s.tp], ['t-qr', s.qr], ['t-x2', s.x2 === 2], ['t-freeze', s.fz], ['t-god', s.gd], ['t-noatk', s.ca], ['t-noult', s.cu]]) $('#' + id).classList.toggle('on', !!on); // 스위치
+  for (const [id, on] of [['hideans', s.ha], ['t-pause', s.tp], ['t-qr', s.qr], ['t-faces', s.sf], ['t-x2', s.x2 === 2], ['t-freeze', s.fz], ['t-god', s.gd], ['t-noatk', s.ca], ['t-noult', s.cu]]) $('#' + id).classList.toggle('on', !!on); // 스위치
   $('#t-undo').disabled = !s.ud;
   document.querySelectorAll('[data-screen]').forEach((b) => b.classList.toggle('on', b.dataset.screen === s.sm));
   document.querySelectorAll('[data-cast]').forEach((b) => b.classList.toggle('on', b.dataset.cast === s.cs?.m));

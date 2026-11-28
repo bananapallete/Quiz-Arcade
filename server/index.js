@@ -119,6 +119,7 @@ io.on('connection', (socket) => {
   host('host:god', (d) => ({ ok: game.setGod(d?.on) }));
   host('host:hideAns', (d) => ({ ok: game.setHideAns(d?.on) }));
   host('host:qr', (d) => ({ ok: game.setQr(d?.on) }));
+  host('host:faces', (d) => ({ ok: game.setFaces(d?.on) })); // 대기실 친구 얼굴 보이기/숨기기
   host('host:reloadAll', () => { io.except('hosts').emit('reload'); return { ok: true }; }); // 진행자 외 모든 화면 새로고침
   host('host:cast', (d) => ({ ok: game.setCast(d?.m, d?.id) }));
   host('host:freeze', (d) => ({ ok: game.setFrozen(d?.on) }));

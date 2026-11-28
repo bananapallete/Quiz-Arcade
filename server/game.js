@@ -51,7 +51,7 @@ export class Game {
     this.itemClock = 0;
     this.coinsSpawned = 0; // 지금까지 생성한 동전 수 (습득된 것 포함)
     this.showRank = false; // 빔프로젝터에 순위표를 띄울지
-    this.showQr = true; this.hideAns = false; this.timerPaused = false; this.frozen = false; this.multiplier = 1; this.notice = null; this.screenMode = 'quiz'; this.cal = null; this.map = MAP; this.solids = false; this._cmCache = new WeakMap(); this.noAtk = false; this.noUlt = false; this.god = false; this.scoreLog = []; this.history = []; this.histSeq = 0; // 진행자 기능
+    this.showQr = false; this.showFaces = false; /* QR·친구 얼굴은 진행자가 켤 때만 */ this.hideAns = false; this.timerPaused = false; this.frozen = false; this.multiplier = 1; this.notice = null; this.screenMode = 'quiz'; this.cal = null; this.map = MAP; this.solids = false; this._cmCache = new WeakMap(); this.noAtk = false; this.noUlt = false; this.god = false; this.scoreLog = []; this.history = []; this.histSeq = 0; // 진행자 기능
     this.locked = null; // 시간이 끝난 시점에 굳어진 판정 (정답 공개 때 점수에 반영)
     this.realPending = new Map(); // 현실 퀴즈: 진행자가 입력한 점수 id → 점수
     this.realConfirmed = false;
@@ -189,7 +189,7 @@ export class Game {
   }
 
   // ---------- 얼굴 투표: 대기실에 아직 안 낸 문제의 출제자 얼굴이 서 있고, 때리면 그 문제에 한 표 (한 사람 한 표, 마지막에 때린 얼굴) ----------
-  _lobbyish() { return this.phase === PHASE.LOBBY && !this.preview; } // 얼굴은 대기실에서만 (맵 미리 보기·문제·결과 땐 숨김)
+  _lobbyish() { return this.showFaces && this.phase === PHASE.LOBBY && !this.preview; } // 얼굴은 대기실에서만 (맵 미리 보기·문제·결과 땐 숨김)
   syncFaces() { // 출제자마다 얼굴 하나 (안 낸 첫 문제에 표). 문제를 다 낸 출제자는 반투명 무적(조준·투표 안 됨)으로 남음. 맵 중앙 두 줄
     const all = [], seen = new Set();
     for (const q of this.questions) if (q.face && !seen.has(q.face)) { seen.add(q.face); all.push(this.questions.find((x) => x.face === q.face && !this.asked.has(x.id)) || q); }
@@ -313,6 +313,7 @@ export class Game {
   pauseTimer(on) { this.timerPaused = !!on; this._log(on ? '타이머 일시정지' : '타이머 재개'); return true; }
   addTime(sec) { if (this.phase !== PHASE.READING && this.phase !== PHASE.MOVING) return false; this.phaseEnd = Math.max(this.t + 1, this.phaseEnd + (Number(sec) || 0)); return true; }
   setCast(m, id) { const p = id && this.players.get(String(id)); this.cast = p ? { m: 'id', id: p.id } : { m: m === 'off' ? 'off' : 'auto', id: null }; this._log(p ? `중계: ${p.name}` : m === 'off' ? '중계 끔 (전체 맵)' : '중계: 자동 (1등)'); return true; }
+  setFaces(on) { this.showFaces = !!on; this._log(on ? '친구 얼굴 보이기' : '친구 얼굴 숨기기'); return true; }
   setQr(on) { this.showQr = !!on; return true; }
   setNoAtk(on) { this.noAtk = !!on; this._log(on ? '공격 금지' : '공격 허용'); return true; }
   setNoUlt(on) { this.noUlt = !!on; this._log(on ? '궁극기 금지' : '궁극기 허용'); return true; }
@@ -1561,7 +1562,7 @@ export class Game {
       bw: this.brawl && (this.phase === PHASE.READING || this.phase === PHASE.MOVING) ? { g: new Set(this._brawlAlive().map((p) => this._bKey(p))).size, p: this._brawlAlive().length, lk: r2(this._prep()), tm: [...new Set([...this.brawl.ids].map((id) => this.players.get(id)?.team))].filter(Boolean).sort((a, b) => a - b).map((t) => { const m = [...this.brawl.ids].map((id) => this.players.get(id)).filter((p) => p && p.team === t); return [t, m.filter((p) => p.connected && !p.ghost).length, m.length]; }) } : null,
       cal: this.cal && (this.phase === PHASE.READING || this.phase === PHASE.MOVING) ? { l: this.cal.l, rv: this.cal.rv, r: this.cal.round, a: this._calAlive().length, f: this.cal.found.size, s: this.cal.safe } : null,
       ca: this.noAtk ? 1 : 0, cu: this.noUlt ? 1 : 0, gd: this.god ? 1 : 0,
-      rank: this.showRank, ha: this.hideAns ? 1 : 0, qr: this.showQr ? 1 : 0, sm: this.screenMode, x2: this.multiplier, tp: this.timerPaused ? 1 : 0, fz: this.frozen ? 1 : 0, nt: this.notice && this.t < this.notice.until ? this.notice.text : null, ud: this.scoreLog.length,
+      rank: this.showRank, ha: this.hideAns ? 1 : 0, qr: this.showQr ? 1 : 0, sf: this.showFaces ? 1 : 0, sm: this.screenMode, x2: this.multiplier, tp: this.timerPaused ? 1 : 0, fz: this.frozen ? 1 : 0, nt: this.notice && this.t < this.notice.until ? this.notice.text : null, ud: this.scoreLog.length,
       dist: this.phase === PHASE.MOVING || this.phase === PHASE.HOLD ? this._liveDist() : null,
       teams: this._teamTotals(),
       real: this.phase === PHASE.REAL ? { pending: [...this.realPending].map(([id, pts]) => ({ id, pts })), confirmed: this.realConfirmed } : null,
