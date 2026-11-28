@@ -68,7 +68,13 @@
     "mode": "개인",
     "author": "동호",
     "face": "동호",
-    "title": "발라드 여제 찾기"
+    "title": "발라드 여제 찾기",
+    "optImages": [
+      "/quiz/lsy1.jpg",
+      "/quiz/lsy5.jpg",
+      "/quiz/lsy7.jpg",
+      "/quiz/lsy4.jpg"
+    ]
   },
   {
     "type": "choice",

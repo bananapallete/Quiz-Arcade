@@ -30,7 +30,7 @@ const CSS = `
 #qpop .c{box-sizing:border-box;width:min(640px,92vw);max-height:86vh;overflow:auto;background:#f6e6c8;border:4px solid #14122b;border-radius:18px;box-shadow:0 6px 0 #14122b88;padding:18px 20px;display:grid;gap:12px;color:#5a3a24;transition:transform .32s cubic-bezier(.5,0,.75,0),opacity .32s;transform-origin:50% 0}
 #qpop .c .no{justify-self:start;font-size:18px;font-weight:900;color:#fff;background:#f0a000;border:2px solid #14122b;border-radius:8px;padding:1px 8px}
 #qpop .c p{margin:0;font-weight:900;font-size:clamp(20px,5.2vw,30px);line-height:1.3;word-break:keep-all}
-#qpop .c ol{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:8px}#qpop .c li{background:#fff;border:3px solid #14122b;border-radius:12px;padding:8px 10px;font-weight:900;font-size:clamp(15px,3.8vw,20px)}#qpop .c li b{color:#d98a00;margin-right:6px}
+#qpop .c ol{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:8px}#qpop .c li{background:#fff;border:3px solid #14122b;border-radius:12px;padding:8px 10px;font-weight:900;font-size:clamp(15px,3.8vw,20px)}#qpop .c li b{color:#d98a00;margin-right:6px}#qpop .c li img{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;margin-bottom:6px}
 #qpop .c img{max-width:100%;max-height:34vh;justify-self:center;border:3px solid #14122b;border-radius:12px;background:#fff}
 #qpop .h{font-size:14px;font-weight:800;color:#7a4e32;text-align:center;opacity:0;transition:opacity .3s}#qpop .h.on{opacity:1}
 #qpop.out{background:#14122b00}#qpop.out .c{transform:translateY(-42vh) scale(.25);opacity:0}
@@ -80,7 +80,7 @@ let popKey = null, popQ = null, popAuto = false;
 function fillPop(q) {
   const pop = document.getElementById('qpop'), c = pop.querySelector('.c');
   c.querySelector('.no').textContent = q.vote ? '🗳' : `Q${q.id}`; c.querySelector('p').textContent = q.text;
-  const ol = c.querySelector('ol'); ol.hidden = !(q.type === 'choice' && q.options); ol.innerHTML = q.type === 'choice' && q.options ? q.options.map((o, i) => `<li><b>${i + 1}</b>${String(o).replace(/[<>&]/g, '')}</li>`).join('') : '';
+  const ol = c.querySelector('ol'); ol.hidden = !(q.type === 'choice' && q.options); ol.innerHTML = q.type === 'choice' && q.options ? q.options.map((o, i) => `<li>${q.oi?.[i] ? `<img src="${String(q.oi[i]).replace(/["<>&]/g, '')}" alt="">` : ''}<b>${i + 1}</b>${String(o).replace(/[<>&]/g, '')}</li>`).join('') : '';
   const im = c.querySelector('img'); im.hidden = !q.image; if (q.image) im.src = q.image;
 }
 function openPop(auto) {

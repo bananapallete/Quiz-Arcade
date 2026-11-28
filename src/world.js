@@ -453,7 +453,10 @@ export class WorldScene extends Phaser.Scene {
     if (this._decorOn !== !quiz) { this._decorOn = !quiz; this.decor.forEach((o) => o.setVisible(!quiz)); } // 문제 중(대난투 포함)엔 대기실 장식(나무·꽃)을 숨김
     const type = qt || 'ox';
     const ans = s.reveal?.answer;
-    const key = `${s.phase}|${type}|${ans ?? ''}`;
+    const oi = type === 'choice' && !s.pv ? s.q?.oi || [] : [], miss = oi.filter((u) => u && !this.textures.exists(`oi:${u}`));
+    if (miss.length) { miss.forEach((u) => this.load.image(`oi:${u}`, u)); this.load.once('complete', () => { this.zoneKey = null; if (this._lastS) this.drawZones(this._lastS); }); this.load.start(); } // 보기 이미지(앨범 커버 등)
+    this._lastS = s;
+    const key = `${s.phase}|${type}|${ans ?? ''}|${oi.filter((u) => u && this.textures.exists(`oi:${u}`)).join()}`;
     if (key === this.zoneKey) return;
     this.zoneKey = key;
     this.zoneGfx.clear();
@@ -464,6 +467,13 @@ export class WorldScene extends Phaser.Scene {
       const correct = s.phase === PHASE.REVEAL && z.id === ans;
       const alpha = { [PHASE.LOBBY]: 0.35, [PHASE.READING]: 0.6, [PHASE.MOVING]: 0.85 }[s.phase] ?? (correct ? 1 : 0.2);
       this.zoneImgs.push(this.add.image((z.cx - z.r) * BU - MAT_MARGIN * (BU / TILE), (z.cy - z.r) * BU - MAT_MARGIN * (BU / TILE), matTexture(this, type, z)).setOrigin(0).setScale(BU / TILE).setDepth(-80).setAlpha(alpha));
+      const u = oi[z.id - 1];
+      if (u && this.textures.exists(`oi:${u}`)) { // 보기 이미지: 구역 가운데 정사각형, 왼쪽 위에 번호
+        const side = z.r * 0.94 * BU, cy = (z.cy + (z.cy < MAP.h / 2 ? z.r * 0.415 : 0)) * BU, x0 = z.cx * BU - side / 2, y0 = cy - side / 2, ia = alpha >= 0.6 ? 1 : alpha; // 위 줄은 문제 카드에 가리지 않게 조금 아래로
+        this.zoneGfx.fillStyle(0x14122b, ia).fillRoundedRect(x0 - 5, y0 - 5, side + 10, side + 10, 10);
+        this.zoneImgs.push(this.add.image(z.cx * BU, cy, `oi:${u}`).setDisplaySize(side, side).setDepth(-79).setAlpha(ia));
+        this.zoneImgs.push(this.add.text(x0 - 4, y0 - 4, String(z.id), { fontFamily: 'sans-serif', fontStyle: '900', fontSize: `${Math.round(BU * 1.3)}px`, color: '#fff', backgroundColor: '#14122b', padding: { x: BU * 0.25, y: 0 } }).setDepth(-78).setAlpha(ia));
+      }
       if (correct) this.zoneGfx.lineStyle(6, 0xffffff, 1).strokeCircle(z.cx * BU, z.cy * BU, z.r * BU - 3); // 정답 구역 강조
     }
   }

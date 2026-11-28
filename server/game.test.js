@@ -734,7 +734,7 @@ test('공격형 봇도 문제를 풀고(구역으로 이동), 정지 봇은 풀�
   g.botsCanAttack = true;
   g.join({ token: 'h', name: 'H', charId: 'blue' });
   const fighters = Array.from({ length: 5 }, () => g.addBot('aggro', 'blue'));
-  g.ask(1); run(g, 3.1); run(g, 12);
+  g.ask(1); run(g, 3.1); run(g, 14.5);
   assert.ok(fighters.every((b) => zoneAt('ox', b.x, b.y) !== null), '공격형도 어느 구역엔가 도착');
 });
 
@@ -1216,13 +1216,15 @@ test('대기실 QR·친구 얼굴: 처음엔 꺼져 있고 진행자가 켜고 �
   g.syncFaces(); assert.equal(g.snapshot().sf, 0); assert.deepEqual(g.snapshot().fc, [], '얼굴은 처음엔 숨김'); g.setFaces(true); assert.ok(g.snapshot().fc.length > 0);
 });
 
-test('캐릭터 변경: 대기실·퀴즈 모두 30초 쿨타임(퀴즈 중엔 체력 비율 유지, 궁극기 초기화)', () => {
+test('캐릭터 변경: 대기실은 자유, 퀴즈 중엔 30초 쿨타임(체력 비율 유지, 궁극기 초기화)', () => {
   const g = new Game(chars, quizzes), a = g.join({ token: 'a', name: 'A', charId: 'blue' });
-  assert.equal(g.setChar('a', 'orc'), true); assert.equal(g.setChar('a', 'elf'), false, '대기실도 쿨타임'); assert.ok(g.charWait('a') > 25);
-  g.t += 31; g.ask(1); a.hp = Math.ceil(a.cfg.hp / 2); a.ult = 50;
-  assert.equal(g.setChar('a', 'elf'), true, '30초 뒤 가능'); assert.equal(a.charId, 'elf');
+  assert.equal(g.setChar('a', 'orc'), true); assert.equal(g.setChar('a', 'elf'), true, '대기실은 연속 변경 가능'); assert.equal(g.charWait('a'), 0);
+  g.ask(1); a.hp = Math.ceil(a.cfg.hp / 2); a.ult = 50;
+  assert.equal(g.setChar('a', 'orc'), true, '퀴즈 중 첫 변경'); assert.equal(a.charId, 'orc');
   assert.ok(Math.abs(a.hp / a.cfg.hp - 0.5) < 0.05, `체력 비율 유지 ${a.hp}/${a.cfg.hp}`); assert.equal(a.ult, 0);
-  assert.equal(g.setChar('a', 'orc'), false, '쿨타임 중'); g.t += 31; assert.equal(g.setChar('a', 'orc'), true);
+  assert.equal(g.setChar('a', 'elf'), false, '쿨타임 중'); assert.ok(g.charWait('a') > 25);
+  g.t += 31; assert.equal(g.setChar('a', 'elf'), true, '30초 뒤 가능');
+  g.setChar('a', 'orc'); g.cancelQuestion(); assert.equal(g.setChar('a', 'blue'), true, '대기실에서는 쿨타임 무시');
 });
 
 test('점수 기록: 수동·퀴즈·현실 점수가 게임마다 누가 몇 점인지 남고, 되돌리면 취소 표시', () => {

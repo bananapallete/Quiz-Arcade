@@ -25,7 +25,7 @@ export const ULT_CHARGE = { ultHit: 0.5, auto: 0.03, tankHit: 0.02, ultCap: 0.05
 
 // 달리기 게이지는 이 배수로 빨리 닳는다 (대쉬 캐릭터는 게이지가 없어서 균형을 맞추기 위함)
 export const RUN_DRAIN = 1.4;
-export const CHAR_CD_SEC = 30; // 캐릭터 변경 쿨타임 (대기실 포함)
+export const CHAR_CD_SEC = 30; // 퀴즈 중 캐릭터 변경 쿨타임 (대기실은 제한 없음)
 
 // 아이템: 하트(체력 회복) · 신발(잠깐 빨라짐). 동전처럼 맵에 생기고 닿으면 자동으로 먹는다
 /** 밀집도 가중 스폰 (아이템·평소 동전): 후보 samples개 중 사람이 몰린 곳일수록 잘 뽑힘 */
@@ -54,11 +54,11 @@ export const ZONES = {
     { id: 'O', cx: 14, cy: 11, r: 5, label: 'O' },
     { id: 'X', cx: 26, cy: 11, r: 5, label: 'X' },
   ],
-  choice: [ // 2×2: 위 1·2, 아래 3·4 (가로·세로 간격 9.6으로 같게)
-    { id: 1, cx: 15.2, cy: 7.2, r: 4.2, label: '1' },
-    { id: 2, cx: 24.8, cy: 7.2, r: 4.2, label: '2' },
-    { id: 3, cx: 15.2, cy: 16.8, r: 4.2, label: '3' },
-    { id: 4, cx: 24.8, cy: 16.8, r: 4.2, label: '4' },
+  choice: [ // 2×2: 위 1·2, 아래 3·4 (맵 높이에 꽉 차는 크기, 가로·세로 간격 0.8로 같게)
+    { id: 1, cx: 14.3, cy: 5.3, r: 5.3, label: '1' },
+    { id: 2, cx: 25.7, cy: 5.3, r: 5.3, label: '2' },
+    { id: 3, cx: 14.3, cy: 16.7, r: 5.3, label: '3' },
+    { id: 4, cx: 25.7, cy: 16.7, r: 5.3, label: '4' },
   ],
 };
 

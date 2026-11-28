@@ -106,13 +106,13 @@ export class Game {
     if (!p || p.isBot || !this.characters[charId] || this.charWait(id) > 0) return false;
     const lobby = this.phase === PHASE.LOBBY, ratio = p.hp / p.cfg.hp;
     p.charId = charId; p.cfg = this.characters[charId]; p.dash = null; p.baseCfg = null; this._refill(p);
-    p.charReadyAt = this.t + CHAR_CD_SEC;
+    if (!lobby) p.charReadyAt = this.t + CHAR_CD_SEC;
     if (!lobby) p.hp = Math.max(1, Math.ceil(p.cfg.hp * ratio)); // 퀴즈 중엔 체력 비율 유지(회복 꼼수 방지), 궁극기 충전은 초기화
     return true;
   }
 
   /** 지금 캐릭터를 바꾸려면 더 기다려야 하는 초 (대기실은 항상 0) */
-  charWait(id) { const p = this.players.get(id); return !p ? 0 : Math.max(0, Math.ceil((p.charReadyAt || 0) - this.t)); }
+  charWait(id) { const p = this.players.get(id); return !p || this.phase === PHASE.LOBBY ? 0 : Math.max(0, Math.ceil((p.charReadyAt || 0) - this.t)); }
 
   setConnected(id, connected) {
     const p = this.players.get(id);
@@ -256,6 +256,7 @@ export class Game {
       time: type === 'brawl' || type === 'calendar' || type === 'coin' ? Math.min(900, Math.max(20, Number(q.time) || (type === 'calendar' ? 300 : tour ? 90 : type === 'coin' ? 60 : 240))) : Math.min(60, Math.max(5, Number(q.time) || 15)),
       mode: type === 'real' ? '현실' : tour ? '토너먼트' : type === 'brawl' ? '대난투' : type === 'calendar' ? '달력' : type === 'coin' ? '동전' : q.mode === '팀' ? '팀' : '개인',
       image: q.image ? String(q.image).slice(0, 300) : undefined,
+      optImages: type === 'choice' && Array.isArray(q.optImages) ? q.optImages.slice(0, 4).map((u) => (u ? String(u).slice(0, 300) : '')) : undefined,
     };
     if (type === 'real') item.answer = null;
     if (type === 'brawl' || type === 'coin') item.pts = Math.max(1, Number(q.pts) || 5);
@@ -1545,7 +1546,7 @@ export class Game {
       });
     }
     const q = this.question
-      ? { id: this.question.id, type: this.question.type, text: this.question.text, options: this.question.options, time: this.question.time, mode: this.question.mode || '개인', image: this.question.image, tour: this.question.tour ? 1 : 0 }
+      ? { id: this.question.id, type: this.question.type, text: this.question.text, options: this.question.options, time: this.question.time, mode: this.question.mode || '개인', image: this.question.image, oi: this.question.optImages, tour: this.question.tour ? 1 : 0 }
       : null;
     return {
       phase: this.phase,
