@@ -209,13 +209,19 @@
     "title": "민규의 건강검진"
   },
   {
-    "type": "real",
+    "type": "choice",
     "text": "김현정 찾기",
-    "answer": null,
-    "time": 15,
-    "mode": "현실",
+    "options": [
+      "1번",
+      "2번",
+      "3번",
+      "4번"
+    ],
+    "answer": 1,
+    "time": 60,
+    "mode": "개인",
     "author": "영선",
     "face": "영선",
-    "title": "히든싱어"
+    "title": "김현정 찾기"
   }
 ]
