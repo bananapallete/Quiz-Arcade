@@ -201,7 +201,21 @@ export class Game {
     this.locked = null; this.phase = PHASE.REVEAL; this._log(`투표 결과: Q${win}`);
   }
 
+  /** 맵이 바뀔 때(다음 게임): 그 게임에서 모은 동전을 점수로 정산하고 동전은 0으로 */
+  _bankCoins() {
+    const rows = [];
+    for (const p of this.players.values()) {
+      if (!p.coins) continue;
+      const pts = Math.round(p.coins * COIN.value * 10) / 10;
+      if (!p.home) { p.score = Math.round((p.score + pts) * 10) / 10; rows.push({ id: p.id, name: p.name, team: p.team || 0, gain: pts }); }
+      p.coins = 0;
+    }
+    this.coins.clear();
+    if (rows.length) { this._hist('coin', '동전 정산', rows); this._log(`동전 정산 ${rows.length}명`); }
+  }
+
   _begin(q) {
+    this._bankCoins();
     this._unpark(); this.preview = null; this._endBrawlWorld(); this._clearUltWorld(); this.brawl = null; this.cal = null; this.tour = null; this.coinRun = null;
     this.question = q;
     this.reveal = null; this.locked = null; this.realPending = new Map(); this.realConfirmed = false;
@@ -375,7 +389,7 @@ export class Game {
   /** 진행자 '맵으로 이동': 대기실 그대로(문제 없음)에 맵만 그 문제의 맵으로 */
   previewMap(qid) {
     const q = this.questions.find((x) => x.id === qid); if (!q) return false;
-    this.cancelQuestion();
+    this.cancelQuestion(); this._bankCoins();
     this.preview = q;
     if (q.type === 'brawl') { this.map = BRAWL_MAP; this.solids = true; for (const p of this.players.values()) if (p.isBot && p.connected && p.home) this._park(p); }
     this.gather();

@@ -130,7 +130,7 @@ io.on('connection', (socket) => {
   host('host:screen', (d) => ({ ok: game.setScreen(d?.mode) }));
   host('host:rename', (d) => ({ ok: game.rename(String(d?.id), d?.name) }));
   host('host:kick', (d) => { const id = String(d?.id), ok = game.kick(id); for (const s of io.sockets.sockets.values()) if (s.data.pid === id) { s.emit('kicked'); s.disconnect(true); } return { ok }; });
-  host('host:lobby', () => { game.cancelQuestion(); game.gather(); io.emit('gathered'); return { ok: true }; }); // 대기실로: 문제를 닫고 모두 모음 (점수는 그대로)
+  host('host:lobby', () => { game.cancelQuestion(); game._bankCoins(); game.gather(); io.emit('gathered'); return { ok: true }; }); // 대기실로: 문제를 닫고 모두 모음 (점수는 그대로)
   host('host:coinRain', (d) => ({ ok: game.coinRain(Number(d?.n) || 24) }));
   host('host:realConfirm', () => ({ ok: game.realConfirm() }));
   host('host:realReveal', () => ({ ok: game.realReveal() }));

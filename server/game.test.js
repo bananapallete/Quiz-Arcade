@@ -503,8 +503,8 @@ test('동전: 문제를 틀리거나 무응답이면 전부 떨어뜨리고, 맞
   const ok = g.join({ token: 'o', name: 'OK', charId: 'blue' });
   const wrong = g.join({ token: 'w', name: 'WRONG', charId: 'blue' });
   const none = g.join({ token: 'n', name: 'NONE', charId: 'blue' });
-  [ok, wrong, none].forEach((p) => g.giveCoins(p.id, 3));
   g.ask(1); run(g, 3.1); // 정답 O (왼쪽)
+  [ok, wrong, none].forEach((p) => g.giveCoins(p.id, 3)); // 이번 게임에서 모은 동전 (출제 때 이전 동전은 정산돼서 0)
   const put = (p, x, y) => { p.x = x; p.y = y; p.kx = p.ky = 0; };
   put(ok, 12, 9); put(wrong, 28, 9); put(none, 20, 20);
   g.endQuestion();
@@ -543,8 +543,7 @@ test('봇: 문제가 나오면 무작위 구역으로 걸어가고, 틀린 구�
   g.coinsSpawned = COIN.maxTotal;
   g.join({ token: 'h', name: 'H', charId: 'blue' }); // 사람 한 명 (참가자 없으면 의미가 없어서)
   const bots = Array.from({ length: 6 }, () => g.addBot('wander', 'blue'));
-  bots.forEach((b) => { g.giveCoins(b.id, 2); });
-  g.ask(1); run(g, 3.1); run(g, 12);
+  g.ask(1); bots.forEach((b) => { g.giveCoins(b.id, 2); }); run(g, 3.1); run(g, 12);
   assert.ok(bots.every((b) => zoneAt('ox', b.x, b.y) !== null), '모든 봇이 어느 구역엔가 도착');
   g.endQuestion();
   const right = bots.filter((b) => zoneAt('ox', b.x, b.y) === 'O');
@@ -1874,4 +1873,12 @@ test('문제 제한시간 바꾸기: 동전 모으기 20~900초, 퀴즈 5~60초'
   g.setQuestionTime(coin.id, 90); assert.equal(coin.time, 90);
   g.setQuestionTime(coin.id, 5); assert.equal(coin.time, 20);
   g.setQuestionTime(ox.id, 100); assert.equal(ox.time, 60);
+});
+
+test('다음 게임으로 가면 모은 동전은 점수로 정산되고 0으로 (순위 점수는 그대로)', () => {
+  const g = new Game(chars, quizzes);
+  const a = g.join({ token: 'a', name: 'A', charId: 'blue' }); a.score = 2; a.coins = 6;
+  const before = g.totalScore(a); g.ask(1);
+  assert.equal(a.coins, 0); assert.equal(a.score, 5); assert.equal(g.totalScore(a), before);
+  a.coins = 2; g.previewMap(2); assert.equal(a.coins, 0); assert.equal(a.score, 6);
 });
