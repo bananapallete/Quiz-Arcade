@@ -47,7 +47,9 @@ const CSS = `
 #qcard .t{font-size:clamp(26px,7vw,40px);line-height:1;-webkit-text-stroke:4px #14122b;paint-order:stroke fill;color:#fff}#qcard .t.ok{color:#ffe27a}#qcard .t.bad{color:#ff9aa8}#qcard .t small{display:block;font-size:.5em;-webkit-text-stroke:3px #14122b;margin-top:4px}
 #qcard .hero{width:112px;height:112px;background-size:400% 100%;image-rendering:pixelated;animation:qhero .8s steps(4) infinite}@keyframes qhero{from{background-position:0 0}to{background-position:-448px 0}}
 #qcard .st{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%}#qcard .st div{background:#fff;border:3px solid #14122b;border-radius:12px;padding:5px 4px;text-align:center;font-size:20px}#qcard .st small{display:block;font-size:12px;color:#7a4e32}
-#qcard .pk{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;width:100%;background:#14122b;color:#fff;border-radius:14px;padding:8px 12px;font-size:30px}#qcard .pk span{text-align:center}#qcard .pk i{font-style:normal;font-size:20px;color:#ffd54a}#qcard .pk b.pop{animation:qpop .12s}@keyframes qpop{50%{transform:scale(1.25)}}
+#qcard .pk{position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;width:100%;background:#14122b;color:#fff;border-radius:14px;padding:8px 12px;font-size:30px}#qcard .pk span{text-align:center;display:grid}#qcard .pk span small{font-size:12px;color:#ffd54a}#qcard .pk i{font-style:normal;font-size:20px;color:#ffd54a}#qcard .pk b.pop{animation:qpop .14s}@keyframes qpop{50%{transform:scale(1.35);color:#ffe27a}}
+#qcard .fly{position:absolute;top:40%;left:18%;font-size:24px;pointer-events:none;animation:qfly .45s ease-in forwards}@keyframes qfly{0%{transform:translate(0,0) scale(1)}50%{transform:translate(28vw,-28px) scale(1.2)}100%{transform:translate(min(52vw,200px),0) scale(.5);opacity:0}}
+#qcard .ln{display:grid;grid-template-columns:1fr auto;width:100%;font-size:16px;padding:0 4px}#qcard .ln b{font-size:20px}
 #qcard .sum{font-size:clamp(30px,9vw,46px);color:#fff;-webkit-text-stroke:5px #14122b;paint-order:stroke fill}#qcard .sum small{font-size:.45em;-webkit-text-stroke:3px #14122b}
 #qpre{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);z-index:14;pointer-events:none;display:grid;justify-items:center;gap:6px;text-align:center}#qpre[hidden]{display:none}#qpre i{width:min(34vw,28vh);height:min(34vw,28vh);background:center/contain no-repeat}#qpre b{font-size:clamp(30px,9vw,60px);line-height:1.05;color:#fff;-webkit-text-stroke:6px #14122b;paint-order:stroke fill;word-break:keep-all;max-width:90vw}#qpre small{font-size:clamp(16px,4vw,24px);font-weight:900;color:#ffe27a;-webkit-text-stroke:4px #14122b;paint-order:stroke fill}
 #qbig{position:fixed;inset:0;z-index:70;background:#14122bcc;display:grid;place-items:center}#qbig[hidden]{display:none}
@@ -114,17 +116,19 @@ function showCard(s, meId) {
   const el = document.getElementById('qcard');
   el.innerHTML = `<div class="c">${m ? `<div class="t ${m[2] ? 'ok' : 'bad'}">${m[0]}${m[1] ? `<small>${m[1]}</small>` : ''}</div>` : ''}${lastSprite ? `<div class="hero" style="background-image:url(/characters/${lastSprite}/idle.png)"></div>` : ''}
     <div class="st"><div>${k}<small>⚔ 킬</small></div><div>${d}<small>💀 데스</small></div><div>${dmg}<small>💥 피해</small></div></div>
-    <div class="pk"><span>🪙 <b class="cn">${coins}</b></span><i>➜</i><span>⭐ <b class="sc">${fmtScore(gain)}</b></span></div>
+    <div class="ln"><span>문제 점수</span><b>+${fmtScore(gain)}</b></div>
+    <div class="pk"><span>🪙 <b class="cn">${coins}</b><small>동전</small></span><i>➜</i><span><b>+<em class="sc" style="font-style:normal;display:inline-block">0</em></b><small>부가점수</small></span></div>
     <div class="sum">+<span class="tot">${fmtScore(gain)}</span><small>점</small></div></div>`;
   el.hidden = false;
   el.onclick = () => { el.hidden = true; clearInterval(pkTimer); };
-  const cn = el.querySelector('.cn'), sc = el.querySelector('.sc'), tot = el.querySelector('.tot');
-  let left = coins, score = gain, i = 0; clearInterval(pkTimer);
+  const cn = el.querySelector('.cn'), sc = el.querySelector('.sc'), tot = el.querySelector('.tot'), pk = el.querySelector('.pk');
+  let left = coins, bonus = 0, i = 0; clearInterval(pkTimer);
   const step = Math.max(45, Math.min(160, 2200 / Math.max(1, coins))); // 많아도 2초 남짓에 끝나게
   setTimeout(() => {
     if (!left) { sfxScoreDone(); return; }
     pkTimer = setInterval(() => { // 동전 하나 → +0.5점
-      left--; score = Math.round((score + COIN.value) * 10) / 10; cn.textContent = left; sc.textContent = fmtScore(score); tot.textContent = fmtScore(score);
+      left--; bonus = Math.round((bonus + COIN.value) * 10) / 10; cn.textContent = left; sc.textContent = fmtScore(bonus); tot.textContent = fmtScore(Math.round((gain + bonus) * 10) / 10); // 동전 하나 → 부가점수 +0.5
+      const fly = document.createElement('div'); fly.className = 'fly'; fly.textContent = '🪙'; pk.append(fly); setTimeout(() => fly.remove(), 480); // 동전이 부가점수 쪽으로 날아감
       sc.classList.remove('pop'); void sc.offsetWidth; sc.classList.add('pop'); sfxCoinTick(i++);
       if (left <= 0) { clearInterval(pkTimer); sfxScoreDone(); }
     }, step);
