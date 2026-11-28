@@ -31,7 +31,7 @@ function spawnPos() {
 export class Game {
   constructor(characters, quizzes) {
     this.characters = characters;
-    this.questions = quizzes.map((q, i) => ({ ...q, id: i + 1, mode: q.type === 'real' ? '현실' : q.type === 'brawl' ? (q.tour ? '토너먼트' : '대난투') : q.type === 'calendar' ? '달력' : q.type === 'coin' ? '동전' : q.mode === '팀' ? '팀' : '개인' }));
+    this.questions = quizzes.map((q, i) => ({ ...q, id: i + 1, mode: q.type === 'real' ? '현실' : q.type === 'brawl' ? (q.tour ? '토너먼트' : '대난투') : q.type === 'calendar' ? '달력' : q.type === 'coin' ? (q.team ? '동전 팀' : '동전') : q.mode === '팀' ? '팀' : '개인' }));
     this.tour = null; // 팀 토너먼트 진행 상태
     this.coinRun = null; // 동전 모으기 진행 상태
     this.rounds = []; // 대난투·토너먼트 라운드별 팀 점수 기록 [{n, title, kind, teams:{팀:점수}}]
@@ -234,6 +234,7 @@ export class Game {
     if (type === 'real') item.answer = null;
     if (type === 'brawl' || type === 'coin') item.pts = Math.max(1, Number(q.pts) || 5);
     if (tour) item.tour = true;
+    if (type === 'coin' && (q.team || q.mode === '팀')) { item.team = true; item.mode = '동전 팀'; } // 동전 모으기 팀전
     if (type === 'calendar') { item.days = Math.min(31, Math.max(28, Number(q.days) || 30)); item.month = Math.min(12, Math.max(0, Number(q.month) || 0)); item.start = Math.min(6, Math.max(0, Number(q.start) || 0)); item.bad = (q.bad || []).map(Number).filter((d) => d >= 1 && d <= item.days); }
     this.questions.push(item);
     return item;
@@ -317,8 +318,15 @@ export class Game {
     p.team = Number(t) === 2 ? 2 : 1; return true; // 1팀 또는 2팀
   }
 
+  /** 진행자: 문제 제한시간(초) 바꾸기 — 퀴즈 5~60, 대난투·토너먼트·동전·달력 20~900 */
+  setQuestionTime(qid, sec) {
+    const q = this.questions.find((x) => x.id === qid), n = Math.round(Number(sec)); if (!q || !Number.isFinite(n)) return false;
+    const long = ['brawl', 'coin', 'calendar'].includes(q.type); q.time = Math.min(long ? 900 : 60, Math.max(long ? 20 : 5, n)); return true;
+  }
+
   setQuestionMode(qid, mode) {
-    const q = this.questions.find((x) => x.id === qid); if (!q || q.type === 'real' || q.type === 'brawl' || q.type === 'calendar' || q.type === 'coin') return false;
+    const q = this.questions.find((x) => x.id === qid); if (!q || q.type === 'real' || q.type === 'brawl' || q.type === 'calendar') return false;
+    if (q.type === 'coin') { q.team = mode === '팀'; q.mode = q.team ? '동전 팀' : '동전'; return true; } // 동전 모으기: 개인전 ↔ 팀전
     q.mode = mode === '팀' ? '팀' : '개인'; return true;
   }
 
@@ -567,6 +575,7 @@ export class Game {
     while (c.clock >= every) { c.clock -= every; if (this.coins.size < 40 + n * 2) { this.coinsSpawned = Math.max(0, this.coinsSpawned - 1); this.spawnCoin(); } }
   }
   _coinFinish() {
+    if (this.question.team) return this._coinFinishTeam();
     const q = this.question, pts = (q.pts || 5) * this.multiplier, prize = [pts, Math.round(pts * 6) / 10, Math.round(pts * 2) / 10], undo = [];
     const ps = Object.keys(this.coinRun.start).map((id) => this.players.get(id)).filter((p) => p && this._present(p));
     const ranked = ps.map((p) => ({ p, got: this._coinGot(p) })).sort((a, b) => b.got - a.got);
@@ -581,6 +590,25 @@ export class Game {
     this.reveal = { answer: null, coin: true, results, teams };
     this._pushUndo(`Q${q.id} 동전`, undo, this._hist('coin', `Q${q.id} ${q.text}`, results.map((r) => ({ id: r.id, name: r.name, team: r.team, gain: r.gain }))));
     this._log(`동전 모으기 종료 · 1등 ${results[0]?.name ?? '-'} ${results[0]?.got ?? 0}개`);
+    this.coinRun = null; this.coins.clear(); this._unpark(); this.phase = PHASE.REVEAL;
+  }
+
+  /** 동전 모으기 팀전: 팀원이 주운 동전을 합쳐 많은 팀 전원이 점수 (같으면 두 팀 다) */
+  _coinFinishTeam() {
+    const q = this.question, pts = (q.pts || 5) * this.multiplier, undo = [];
+    const ps = Object.keys(this.coinRun.start).map((id) => this.players.get(id)).filter((p) => p && this._present(p));
+    const teams = {}; for (const p of ps) if (p.team) teams[p.team] = (teams[p.team] || 0) + this._coinGot(p);
+    const top = Math.max(0, ...Object.values(teams)), win = new Set(Object.keys(teams).filter((t) => top > 0 && teams[t] === top).map(Number));
+    const results = ps.map((p) => ({ p, got: this._coinGot(p) })).sort((a, b) => b.got - a.got).map((r, i) => {
+      const gain = win.has(r.p.team) ? pts : 0;
+      if (gain) { r.p.score = Math.round((r.p.score + gain) * 10) / 10; undo.push([r.p.id, gain]); }
+      return { id: r.p.id, name: r.p.name, team: r.p.team || 0, got: r.got, rank: i + 1, correct: gain > 0, gain };
+    });
+    const tp = {}; for (const t of Object.keys(teams)) tp[t] = win.has(Number(t)) ? pts : 0;
+    this._round('coin', `Q${q.id} ${q.text}`, tp);
+    this.reveal = { answer: null, coin: true, teamCoin: true, results, teams, winTeams: [...win], rounds: this.rounds.slice(-12) };
+    this._pushUndo(`Q${q.id} 동전 팀`, undo, this._hist('coin', `Q${q.id} ${q.text}`, results.map((r) => ({ id: r.id, name: r.name, team: r.team, gain: r.gain }))));
+    this._log(`동전 팀전 종료 · ${[...win].map((t) => `${t}팀`).join(', ') || '승자 없음'}`);
     this.coinRun = null; this.coins.clear(); this._unpark(); this.phase = PHASE.REVEAL;
   }
 
@@ -1510,6 +1538,7 @@ export class Game {
       off: this.humans().filter((p) => !p.connected && !p.parked).map((p) => [p.id, p.name]), // 접속이 끊긴 참가자 (진행자 화면: 내보내기용)
       pl: r2(this._prep()), pc: isCombat(this.question) ? 1 : 0, // 준비 시간 남은 초 · 전투 모드인가
       tr: this.tour ? { r: this.tour.round, m: this.tour.cur, n: this.tour.alive.length, log: this.tour.log } : null,
+      ct: this.coinRun && this.question?.team ? Object.entries(Object.keys(this.coinRun.start).map((id) => this.players.get(id)).filter((p) => p && p.team).reduce((a, p) => { a[p.team] = (a[p.team] || 0) + this._coinGot(p); return a; }, {})) : null, // 동전 팀전: 팀별 합계
       cr: this.coinRun && (this.phase === PHASE.READING || this.phase === PHASE.MOVING) ? Object.keys(this.coinRun.start).map((id) => this.players.get(id)).filter((p) => p && this._present(p)).map((p) => [p.id, p.name, this._coinGot(p)]).sort((a, b) => b[2] - a[2]) : null,
       bw: this.brawl && (this.phase === PHASE.READING || this.phase === PHASE.MOVING) ? { g: new Set(this._brawlAlive().map((p) => this._bKey(p))).size, p: this._brawlAlive().length, lk: r2(this._prep()), tm: [...new Set([...this.brawl.ids].map((id) => this.players.get(id)?.team))].filter(Boolean).sort((a, b) => a - b).map((t) => { const m = [...this.brawl.ids].map((id) => this.players.get(id)).filter((p) => p && p.team === t); return [t, m.filter((p) => p.connected && !p.ghost).length, m.length]; }) } : null,
       cal: this.cal && (this.phase === PHASE.READING || this.phase === PHASE.MOVING) ? { l: this.cal.l, rv: this.cal.rv, r: this.cal.round, a: this._calAlive().length, f: this.cal.found.size, s: this.cal.safe } : null,

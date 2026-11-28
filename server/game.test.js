@@ -1854,3 +1854,24 @@ test('다음 문제 투표: 안 낸 문제 4개를 칸에 깔고, 사람이 가�
   assert.equal(g.phase, PHASE.REVEAL); assert.ok(g.reveal.vote); assert.equal(g.reveal.winner, 3);
   assert.ok(ps.every((p) => !p.ghost && p.score === 0));
 });
+
+test('동전 모으기 팀전: 팀 합계가 많은 팀 전원이 점수, 개인전↔팀전 전환', () => {
+  const g = new Game(chars, [{ type: 'coin', text: 'c', pts: 4, time: 20 }]);
+  assert.equal(g.setQuestionMode(1, '팀'), true); assert.equal(g.questions[0].mode, '동전 팀');
+  const a = g.join({ token: 'a', name: 'A', charId: 'blue' }), b = g.join({ token: 'b', name: 'B', charId: 'blue' }), c = g.join({ token: 'c', name: 'C', charId: 'blue' });
+  a.team = 1; b.team = 1; c.team = 2;
+  g.ask(1); run(g, 3.1); a.coins += 2; b.coins += 2; c.coins += 3; // 1팀 4 vs 2팀 3
+  assert.deepEqual(Object.fromEntries(g.snapshot().ct), { 1: 4, 2: 3 });
+  g.endQuestion();
+  assert.ok(g.reveal.teamCoin); assert.deepEqual(g.reveal.winTeams, [1]);
+  assert.equal(a.score, 4); assert.equal(b.score, 4, '적게 주운 팀원도'); assert.equal(c.score, 0, '혼자 많이 주워도 진 팀');
+  g.setQuestionMode(1, '개인'); assert.equal(g.questions[0].mode, '동전');
+});
+
+test('문제 제한시간 바꾸기: 동전 모으기 20~900초, 퀴즈 5~60초', () => {
+  const g = new Game(chars, quizzes);
+  const coin = g.questions.find((q) => q.type === 'coin'), ox = g.questions.find((q) => q.type === 'ox');
+  g.setQuestionTime(coin.id, 90); assert.equal(coin.time, 90);
+  g.setQuestionTime(coin.id, 5); assert.equal(coin.time, 20);
+  g.setQuestionTime(ox.id, 100); assert.equal(ox.time, 60);
+});

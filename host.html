@@ -77,7 +77,7 @@
         <div id="qlist" style="display:grid;gap:6px"></div>
         <details><summary>＋ 문제 추가</summary>
           <div style="display:grid;gap:6px;margin-top:8px">
-            <div style="display:flex;gap:6px"><div class="seg" id="q-type" data-v="ox" style="flex:1;min-width:0"><button class="btn sm on" data-t="ox">O/X</button><button class="btn sm" data-t="choice">객관식</button><button class="btn sm" data-t="real">현실</button><button class="btn sm" data-t="brawl">대난투</button><button class="btn sm" data-t="tourney">토너먼트</button><button class="btn sm" data-t="coin">동전</button></div></div>
+            <div style="display:flex;gap:6px"><div class="seg" id="q-type" data-v="ox" style="flex:1;min-width:0"><button class="btn sm on" data-t="ox">O/X</button><button class="btn sm" data-t="choice">객관식</button><button class="btn sm" data-t="real">현실</button><button class="btn sm" data-t="brawl">대난투</button><button class="btn sm" data-t="tourney">토너먼트</button><button class="btn sm" data-t="coin">동전</button><button class="btn sm" id="q-cteam" type="button" hidden>개인전</button></div></div>
             <input id="q-text" class="inp" placeholder="문제" /><input id="q-opts" class="inp" placeholder="객관식 보기 (쉼표로 구분)" />
             <div style="display:flex;gap:6px"><input id="q-ans" class="inp" placeholder="정답 · 점수" style="flex:1" /><input id="q-time" class="inp" type="number" value="15" min="5" max="900" title="제한시간(초)" style="width:70px" /><span style="align-self:center;font-weight:900">초</span></div>
             <input id="q-img" class="inp" placeholder="이미지 주소 (선택)" /><button class="btn go" id="q-add">추가</button>
@@ -90,7 +90,7 @@
       </div>
       <div class="col" style="background:transparent;padding:0;gap:10px">
         <div class="card"><div class="row2"><div><div style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><span class="pill" id="c-no">-</span><span class="pill" id="c-mode">-</span><span id="c-next" hidden></span></div><div class="qt" id="c-text">문제를 출제하세요</div></div><div class="th" id="c-img" hidden></div></div>
-          <div class="t2"><span style="font-weight:900">제한시간</span><div class="tbar"><i id="c-bar"></i></div></div></div>
+          <div class="t2"><span style="font-weight:900">⏱</span><button class="btn sm" id="qt-m">−10</button><b id="qt-v" style="min-width:52px;text-align:center">-</b><button class="btn sm" id="qt-p">＋10</button><div class="tbar"><i id="c-bar"></i></div></div></div>
         <div class="ctl" style="grid-template-columns:repeat(5,1fr)"><button class="btn go" id="ask">▶ 출제</button><button class="btn sky" id="vote">🗳 투표</button><button class="btn sky" id="premap">🗺 맵으로 이동</button><button class="btn sky" id="lobby">🏠 대기실로</button><button class="btn gold" id="end">✓ 정답 공개</button></div>
         <div class="card"><h3>진행 <em id="tools-state"></em></h3>
           <div class="ctl" style="grid-template-columns:repeat(4,1fr)"><button class="btn sm" id="t-m10">−10초</button><button class="btn sm" id="t-p10">＋10초</button><button class="btn sm" id="t-undo">↶ 점수 되돌리기</button><button class="btn sm gold" id="c-rain">🪙 동전 비</button></div>

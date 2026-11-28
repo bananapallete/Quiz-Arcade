@@ -32,11 +32,12 @@ function renderQuestions() {
   $('#qlist').innerHTML = info.questions.map((q) => `
     <div class="q ${q.id === curId ? 'cur' : q.id === askId ? 'sel' : doneIds.has(q.id) ? 'done' : ''}">
       <i></i><span title="${esc(q.text)}">${q.id}. ${esc(q.text)}</span>
-      <span class="chip ${q.mode === '현실' ? 'c-real' : q.mode === '개인' || q.mode === '팀' ? 'c-ind' : 'c-team'}" style="font-size:11px">${esc(q.mode === '팀' ? '개인' : q.mode)}</span>
+      ${q.type === 'coin' ? `<button class="chip c-team" data-coinmode="${q.id}" title="개인전 ↔ 팀전" style="font-size:11px;cursor:pointer">${esc(q.mode)} ⇄</button>` : `<span class="chip ${q.mode === '현실' ? 'c-real' : q.mode === '개인' || q.mode === '팀' ? 'c-ind' : 'c-team'}" style="font-size:11px">${esc(q.mode === '팀' ? '개인' : q.mode)}</span>`}
       <button class="btn sm go" data-pick="${q.id}">${q.id === askId ? '✓ 선택됨' : '선택'}</button>
     </div>`).join('');
 }
 $('#qlist').addEventListener('click', (e) => {
+  const cm = e.target.closest('[data-coinmode]'); if (cm) { const q = info.questions.find((x) => x.id === Number(cm.dataset.coinmode)); emit('host:setMode', { id: q.id, mode: q.mode === '동전 팀' ? '개인' : '팀' }); return; } // 동전 모으기: 개인전 ↔ 팀전
   const p = e.target.closest('[data-pick]');
   if (p) { askId = Number(p.dataset.pick); renderCurrent(); renderQuestions(); }
 });
@@ -45,11 +46,14 @@ function renderCurrent() {
   $('#c-no').textContent = q ? `Q${q.id}` : '-'; $('#c-mode').textContent = q ? q.mode : '-'; $('#c-text').textContent = q ? q.text + (q.options ? '  ' + q.options.map((o, i) => `${i + 1}.${o}`).join(' ') : '') : '문제를 선택해 출제하세요';
   const nx = info.questions.find((x) => x.id === askId), live = st?.q?.id && st.phase !== PHASE.LOBBY; $('#c-next').hidden = !(live && nx && nx.id !== st.q.id); if (nx) $('#c-next').textContent = `다음 ▶ Q${nx.id} ${nx.text.slice(0, 24)}`;
   $('#ask').textContent = askId ? `▶ Q${askId} 출제` : '▶ 출제';
+  { const sel = info.questions.find((x) => x.id === askId); $('#qt-v').textContent = sel ? `${sel.time}초` : '-'; $('#qt-m').disabled = $('#qt-p').disabled = !sel || sel.type === 'real'; } // 고른 문제의 제한시간
   $('#premap').disabled = !askId; $('#premap').textContent = askId ? `🗺 Q${askId} 맵으로` : '🗺 맵으로 이동';
   const im = $('#c-img'); im.hidden = !q?.image; if (q?.image) im.style.backgroundImage = `url("${q.image}")`;
 }
 $('#ask').addEventListener('click', () => { if (!askId) return; if (st?.phase === PHASE.REAL && st.real?.pending?.length && !confirm('입력한 현실 퀴즈 점수가 사라져요. 출제할까요?')) return; emit('host:ask', { id: askId }); const ids = info.questions.map((q) => q.id), i = ids.indexOf(askId); askId = ids[i + 1] ?? askId; renderQuestions(); }); // 출제하면 다음 문제가 자동 선택됨
 $('#premap').addEventListener('click', () => { if (!askId) return; const live = [PHASE.READING, PHASE.MOVING, PHASE.HOLD, PHASE.REAL].includes(st?.phase); if (!live || confirm('진행 중인 문제를 닫고 맵을 옮길까요? (점수 변화 없음)')) emit('host:previewMap', { id: askId }); }); // 선택한 문제의 맵으로 (대기실 상태)
+const qt = (d) => { const q = info.questions.find((x) => x.id === askId); if (q) emit('host:setTime', { id: q.id, sec: q.time + d }); }; // 출제 전 제한시간 ±10초
+$('#qt-m').addEventListener('click', () => qt(-10)); $('#qt-p').addEventListener('click', () => qt(10));
 $('#vote').addEventListener('click', () => { const live = [PHASE.READING, PHASE.MOVING, PHASE.HOLD, PHASE.REAL].includes(st?.phase); if (!live || confirm('진행 중인 문제를 닫고 투표할까요?')) emit('host:vote', { sec: 15 }); }); // 다음 문제 투표
 $('#cal-fin').addEventListener('click', () => { if (confirm('지금 상태로 정산하고 끝낼까요?')) emit('host:calFinish'); });
 $('#lobby').addEventListener('click', () => { const live = [PHASE.READING, PHASE.MOVING, PHASE.HOLD, PHASE.REAL].includes(st?.phase); if (!live || confirm('진행 중인 문제를 닫고 대기실로 갈까요? (점수 변화 없음)')) emit('host:lobby'); });
@@ -66,11 +70,12 @@ $('#sb-add').addEventListener('click', () => emit('host:addSandbags'));
 $('#sb-del').addEventListener('click', () => emit('host:clearSandbags'));
 $('#reset-coins').addEventListener('click', () => { if (confirm('모두의 획득 동전을 0으로 할까요? (동전 점수도 빠짐)')) emit('host:resetCoins'); });
 $('#reset').addEventListener('click', () => { if (confirm('점수와 동전을 모두 초기화할까요?')) emit('host:reset'); });
-$('#q-type').addEventListener('click', (e) => { const b = e.target.closest('[data-t]'); if (!b) return; $('#q-type').dataset.v = b.dataset.t; $('#q-type').querySelectorAll('[data-t]').forEach((x) => x.classList.toggle('on', x === b)); const t = b.dataset.t; $('#q-time').value = { brawl: 240, tourney: 90, coin: 60 }[t] ?? 15; $('#q-ans').placeholder = ['brawl', 'tourney', 'coin'].includes(t) ? '점수' : t === 'real' ? '-' : '정답 (O/X · 1~4)'; }); // 방식마다 기본 제한시간(초)
+$('#q-cteam').addEventListener('click', () => { const b = $('#q-cteam'); b.classList.toggle('on'); b.textContent = b.classList.contains('on') ? '팀전' : '개인전'; });
+$('#q-type').addEventListener('click', (e) => { const b = e.target.closest('[data-t]'); if (!b) return; $('#q-type').dataset.v = b.dataset.t; $('#q-type').querySelectorAll('[data-t]').forEach((x) => x.classList.toggle('on', x === b)); const t = b.dataset.t; $('#q-cteam').hidden = t !== 'coin'; $('#q-time').value = { brawl: 240, tourney: 90, coin: 60 }[t] ?? 15; $('#q-ans').placeholder = ['brawl', 'tourney', 'coin'].includes(t) ? '점수' : t === 'real' ? '-' : '정답 (O/X · 1~4)'; }); // 방식마다 기본 제한시간(초)
 $('#q-add').addEventListener('click', () => {
   const text = $('#q-text').value.trim(), type = $('#q-type').dataset.v; if (!text) return;
   const raw = $('#q-ans').value.trim().toUpperCase();
-  emit('host:addQuestion', { type, text, options: $('#q-opts').value.split(',').map((x) => x.trim()).filter(Boolean), answer: type === 'ox' ? raw : Number(raw), pts: ['brawl', 'tourney', 'coin'].includes(type) ? Number(raw) || undefined : undefined, time: Number($('#q-time').value) || undefined, image: $('#q-img').value.trim() });
+  emit('host:addQuestion', { type, text, team: type === 'coin' && $('#q-cteam').classList.contains('on'), options: $('#q-opts').value.split(',').map((x) => x.trim()).filter(Boolean), answer: type === 'ox' ? raw : Number(raw), pts: ['brawl', 'tourney', 'coin'].includes(type) ? Number(raw) || undefined : undefined, time: Number($('#q-time').value) || undefined, image: $('#q-img').value.trim() });
   $('#q-text').value = ''; $('#q-img').value = '';
 });
 

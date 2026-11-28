@@ -538,7 +538,7 @@ export class WorldScene extends Phaser.Scene {
       if (ff > v.chip) v.chip = ff;
       if (now >= v.chipHold && v.chip > f) v.chip = Math.max(f, v.chip - (v.chipRate * delta) / 1000);
       v.hpLast = f;
-      const TCOL = [0, 0xff4d4d, 0x4d8dff, 0x4be37a, 0xffd54a, 0xc77dff, 0xff9f43, 0x4dd8e8, 0xff8fc8], fv0 = this.views.get(this.focusId)?.p, rel = this._brawlOn && !me ? (this.focusId ? (fv0?.tm && p.tm === fv0.tm ? 1 : 2) : p.tm ? 3 : 0) : 0; // 대난투: 1 아군 2 적 3 프로젝터(팀색)
+      const TCOL = [0, 0xff4d4d, 0x4d8dff, 0x4be37a, 0xffd54a, 0xc77dff, 0xff9f43, 0x4dd8e8, 0xff8fc8], fv0 = this.views.get(this.focusId)?.p, rel = !me && (this._brawlOn || p.tm) ? (this.focusId ? (fv0?.tm && p.tm === fv0.tm ? 1 : 2) : p.tm ? 3 : 0) : 0; // 팀이 있으면(대기실 포함): 1 아군 2 적 3 프로젝터(팀색)
       const relCol = rel === 1 ? 0x2fb8ff : rel === 2 ? 0xe5342c : rel === 3 ? TCOL[p.tm] : 0;
       const hpCol = p.sd > 0 ? 0x4a86d9 : relCol || (f > 0.6 ? 0x4fd16a : f > 0.3 ? 0xf2c230 : 0xe5483c); // 색 이동: 초록 → 노랑 → 빨강
       v.bar.fillStyle(THEME.hpEmpty, 1).fillRect(bx0, by, bw, bh);
