@@ -555,12 +555,6 @@ test('봇: 문제가 나오면 무작위 구역으로 걸어가고, 틀린 구�
   assert.ok(g.leaderboard().some((e) => e.id.startsWith('bot')), '봇도 등수에 오름');
 });
 
-test('샌드백·아군 봇은 점수·등수에 안 들어간다', () => {
-  const g = new Game(chars, quizzes); g.addSandbags(['blue']); g.addAllies(); const a = g.join({ token: 'a', name: 'A', charId: 'blue' });
-  g.ask(1); run(g, 20); g.endQuestion();
-  assert.deepEqual(g.reveal.results.map((r) => r.id), ['a']); assert.deepEqual(g.leaderboard().map((e) => e.id), ['a']); assert.equal(g.snapshot().players.find((p) => p.n === '샌드백').ct, 0);
-});
-
 test('봇: 정지·공격형 테스트 봇은 문제를 풀지 않는다', () => {
   const g = new Game(chars, quizzes);
   g.join({ token: 'h', name: 'H', charId: 'blue' });
@@ -1201,18 +1195,6 @@ test('테스트용 충전 배수: 사람만 궁극기 충전이 2배(자동·타
   } finally { ULT_CHARGE.humanMul = 1; }
 });
 
-test('샌드백: 가만히 선 봇과, 가까이 오면 때리고 구역을 벗어나면 제자리로 돌아가는 봇. 모이기·문제에 끌려가지 않는다', () => {
-  const g = new Game(chars, quizzes); g.addSandbags(['blue']); // 캐릭터를 고정해 결과가 흔들리지 않게
-  const sand = [...g.players.values()].filter((p) => p.home), guards = sand.filter((p) => p.botMode === 'guard'), idle = sand.filter((p) => p.botMode === 'idle');
-  assert.ok(idle.length >= 3 && guards.length >= 2 && sand.every((p) => p.x >= 30), '우측에 배치');
-  const a = g.join({ token: 'a', name: 'A', charId: 'blue' }), gd = guards[0]; gd.cfg = { ...gd.cfg, hp: 9999 }; gd.hp = 9999;
-  a.x = gd.home.x - 3; a.y = gd.home.y; a.hp = 999; a.invUntil = 1e9; const before = a.hp; run(g, 3);
-  if (SANDBAG_ATTACK) assert.ok(Math.abs(a.x - gd.x) < 4, '가까이 오면 쫓아옴'); else assert.equal(Math.hypot(gd.x - gd.home.x, gd.y - gd.home.y) < 0.5, true, '공격 기능이 꺼져 있어 가만히 있음'); void before;
-  a.x = 5; a.y = 5; run(g, 10); assert.ok(Math.hypot(gd.x - gd.home.x, gd.y - gd.home.y) < 1, '멀어지면 제자리로 복귀');
-  g.gather(); assert.ok(sand.every((p) => Math.hypot(p.x - p.home.x, p.y - p.home.y) < 1.5), '모이기에 안 끌려감');
-  a.x = 5; a.y = 5; g.ask(1); run(g, 20); assert.ok(sand.every((p) => Math.hypot(p.x - p.home.x, p.y - p.home.y) < 1.5), '문제 중에도 제자리');
-});
-
 test('진행자 도구: 타이머 일시정지·±시간, 점수 되돌리기·2배 라운드, 공지, 화면 전환, 이름 수정·퇴장, 비상 정지, 동전 비', () => {
   const g = new Game(chars, quizzes); const a = g.join({ token: 'a', name: 'A', charId: 'blue' });
   g.ask(1); run(g, 4); const left = g.phaseEnd - g.t; g.pauseTimer(true); run(g, 3); assert.ok(Math.abs((g.phaseEnd - g.t) - left) < 0.2, '일시정지 중엔 시간이 안 줆');
@@ -1226,15 +1208,6 @@ test('진행자 도구: 타이머 일시정지·±시간, 점수 되돌리기·2
   g.setFrozen(true); const t0 = g.t; run(g, 2); assert.equal(g.t, t0, '비상 정지 중엔 시간이 멈춤'); g.setFrozen(false);
   g.coins.clear(); g.coinRain(10, 2); run(g, 3); assert.ok(g.coins.size >= 9, `동전 비 ${g.coins.size}`);
   assert.ok(g.kick('a')); assert.equal(g.players.has('a'), false);
-});
-
-test('아군 봇: 왼쪽에 서 있고 사람과 같은 편이라 공격·궁극기에 안 맞고, 공주·간호사의 회복을 받는다', () => {
-  const g = new Game(chars, quizzes); g.addAllies(['blue']); const al = [...g.players.values()].filter((p) => p.ally);
-  assert.ok(al.length >= 3 && al.every((p) => p.x <= 6 && p.hp < p.cfg.hp), '왼쪽·체력 반쯤');
-  const a = g.join({ token: 'a', name: 'A', charId: 'princess' }); a.x = al[0].x + 2; a.y = al[0].y; const hp = al[0].hp;
-  g.attack('a', { x: -1, y: 0 }); run(g, 1); assert.equal(al[0].hp, hp, '사람의 공격이 아군 봇에 안 맞음');
-  a.ult = a.cfg.ult.need; g.ult('a', null); run(g, 3.5); assert.ok(al[0].hp > hp, '공주 응원으로 회복'); assert.ok(al[0].charmUntil <= g.t, '매혹 안 됨');
-  g.gather(); assert.ok(al.every((p) => Math.hypot(p.x - p.home.x, p.y - p.home.y) < 1.5), '모이기에 안 끌려감');
 });
 
 test('대기실 QR: 진행자가 닫고 열 수 있다', () => {
@@ -1805,14 +1778,13 @@ test('대난투 봇은 도망보다 전투: 체력 30%여도 싸우고, 15% 아�
   foe.hp = 1; foe.x = 11; bot.ai.fleeing = false; assert.equal(g._botFlee(bot), false, '사거리 안에 더 약한 적이 있으면 마무리');
 });
 
-test('팀은 항상 2팀: 들어오면 인원이 적은 팀으로, 섞어도 2팀, 샌드백·아군은 팀 없음', () => {
+test('팀은 항상 2팀: 들어오면 인원이 적은 팀으로, 섞어도 2팀', () => {
   const g = new Game(chars, quizzes); g.autoTeam = true;
   const ps = Array.from({ length: 7 }, (_, i) => g.join({ token: `p${i}`, name: `P${i}`, charId: 'blue' }));
   const cnt = (t) => ps.filter((p) => p.team === t).length;
   assert.ok(Math.abs(cnt(1) - cnt(2)) <= 1, `${cnt(1)} vs ${cnt(2)}`); assert.equal(cnt(1) + cnt(2), 7);
   g.autoTeams(5); assert.ok(ps.every((p) => p.team === 1 || p.team === 2), '숫자를 줘도 2팀');
   g.setTeam('p0', 7); assert.equal(ps[0].team, 1);
-  g.addSandbags(); g.addAllies(); assert.ok([...g.players.values()].filter((p) => p.home).every((p) => !p.team));
   assert.equal(g.snapshot().teams.length, 2);
 });
 

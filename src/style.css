@@ -29,7 +29,7 @@ body.screen { display: grid; place-items: center; overflow: hidden; }
 #rank div:first-child { color: #ffd54a; font-weight: 800; }
 #rank i { font-style: normal; font-variant-numeric: tabular-nums; }
 .card button.sel { outline: 2px solid var(--accent); }
-#join { position: absolute; top: 4cqw; left: 50%; transform: translateX(-50%); background: rgba(29,36,51,.93); border-radius: 1.6cqw; padding: 1.6cqw 2cqw; text-align: center; }
+#join { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); /* 가장자리엔 출제자 얼굴이 있어 QR은 가운데 */ background: rgba(29,36,51,.93); border-radius: 1.6cqw; padding: 1.6cqw 2cqw; text-align: center; }
 #join[hidden] { display: none; }
 #join img { width: 13cqw; height: 13cqw; background: #fff; border-radius: .8cqw; padding: .6cqw; display: block; margin: .8cqw auto; image-rendering: pixelated; }
 #join .t { font-size: 1.9cqw; font-weight: 800; }

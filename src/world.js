@@ -488,7 +488,8 @@ export class WorldScene extends Phaser.Scene {
       const x = f.x * BU, y = f.y * BU, n = s.vt?.[f.q] || 0, sz = 3.4 * BU;
       v.x = x; v.y = y; v.mine = mine === f.q && !f.d; v.done = !!f.d;
       if (v.img.visible) v.img.setDisplaySize(sz, sz);
-      v.lab.setText(`${f.n}${n && !f.d ? ` 👊${n}` : ''}`).setPosition(x, y + sz * 0.45).setDepth(y + 2).setAlpha(f.d ? 0.5 : 1);
+      const low = f.y > MAP.h / 2; // 아래쪽 가장자리는 이름을 얼굴 위에 (화면 밖으로 안 잘리게)
+      v.lab.setText(`${f.n}${n && !f.d ? ` 👊${n}` : ''}`).setOrigin(0.5, low ? 1 : 0).setPosition(x, low ? y - sz * 0.45 : y + sz * 0.45).setDepth(y + 3 * BU).setAlpha(f.d ? 0.5 : 1);
     }
     for (const e of s.ev || []) if (e.e === 'vote') { const v = this.faceViews.get(e.id); if (v) v.pop = performance.now(); }
     for (const [id, v] of this.faceViews) if (!seen.has(id)) { v.img.destroy(); v.ring.destroy(); v.lab.destroy(); v.ph?.destroy(); this.faceViews.delete(id); }
@@ -498,8 +499,8 @@ export class WorldScene extends Phaser.Scene {
     for (const v of this.faceViews?.values() || []) {
       const u = (now - v.pop) / 260, k = u < 1 ? 1 + 0.25 * Math.sin(Math.PI * u) : 1, sh = u < 1 ? Math.sin(u * 30) * 6 * (1 - u) : 0; // 맞으면 흔들리며 팡
       const sz = 3.4 * BU * k;
-      if (v.img.visible) v.img.setPosition(v.x + sh, v.y).setDisplaySize(sz, sz).setDepth(v.y + 1).setAlpha(v.done ? 0.5 : 1); // 다 푼 문제는 반투명
-      v.ph?.setPosition(v.x + sh, v.y).setScale(k).setDepth(v.y + 1).setAlpha(v.done ? 0.5 : 1);
+      if (v.img.visible) v.img.setPosition(v.x + sh, v.y).setDisplaySize(sz, sz).setDepth(v.y + 2 * BU).setAlpha(v.done ? 0.5 : 1); // 다 푼 문제는 반투명 · 가장자리 나무·바위보다 앞에
+      v.ph?.setPosition(v.x + sh, v.y).setScale(k).setDepth(v.y + 2 * BU).setAlpha(v.done ? 0.5 : 1);
       v.ring.clear(); if (v.mine) v.ring.lineStyle(6, 0xffd54a, 1).strokeCircle(v.x, v.y, sz * 0.55).setDepth(v.y);
     }
   }

@@ -194,10 +194,10 @@ export class Game {
     const all = [], seen = new Set();
     for (const q of this.questions) if (q.face && !seen.has(q.face)) { seen.add(q.face); all.push(this.questions.find((x) => x.face === q.face && !this.asked.has(x.id)) || q); }
     for (const [id, p] of this.players) if (p.faceQ && !all.some((q) => q.face === p.faceImg)) this.players.delete(id);
-    const cols = Math.ceil(all.length / 2), gap = Math.min(3.8, 30 / Math.max(1, cols - 1));
+    const E = 2, W = MAP.w - 2 * E, H = MAP.h - 2 * E, L = 2 * (W + H), step = L / Math.max(1, all.length); // 맵 가장자리를 따라 고르게 빙 둘러섬
+    const along = (t) => (t < W ? [E + t, E] : t < W + H ? [E + W, E + t - W] : t < 2 * W + H ? [E + W - (t - W - H), E + H] : [E, E + H - (t - 2 * W - H)]);
     all.forEach((q, k) => {
-      const r = k < cols ? 0 : 1, i = r ? k - cols : k, n = r ? all.length - cols : cols;
-      const x = MAP.w / 2 + (i - (n - 1) / 2) * gap, y = MAP.h / 2 + (r ? 2.9 : -2.9);
+      const [x, y] = along((k + 0.5) * step);
       let f = [...this.players.values()].find((p) => p.faceImg === q.face);
       if (!f) { f = this._spawn({ id: `face-${q.face}`, name: q.author || q.face, charId: 'blue', isBot: true, botMode: 'idle' }); f.faceImg = q.face; f.team = 0; f.cfg = { ...f.cfg, radius: 1.3 }; } // 얼굴이 커서 맞는 범위도 넓게
       f.faceQ = q.id; f.faceDone = this.asked.has(q.id); f.x = x; f.y = y; f.home = { x, y }; f.kx = f.ky = 0;
@@ -400,28 +400,6 @@ export class Game {
     if (q.type === 'brawl') { this.map = BRAWL_MAP; this.solids = true; for (const p of this.players.values()) if (p.isBot && p.connected && p.home) this._park(p); }
     this.gather();
     this._log(`Q${q.id} 맵으로 이동`); return true;
-  }
-
-  /** 대기실 왼쪽 아군 봇: 가만히 서 있고 체력이 반쯤 깎여 있어서 힐·버프·방어 스킬을 시험해 볼 수 있다 (사람과 같은 편) */
-  addAllies(only) {
-    const ids = only || ['blue']; // 아군 봇은 기본 남성(파란티)
-    for (const [x, y] of [[3, 5], [4, 9], [3, 13], [4, 17]]) {
-      const p = this.addBot('idle', ids[Math.floor(Math.random() * ids.length)]);
-      p.name = '아군'; p.x = x; p.y = y; p.home = { x, y }; p.ally = true; p.team = 0; p.hp = Math.ceil(p.cfg.hp * 0.5);
-    }
-  }
-
-  /** 대기실 우측 샌드백: 가만히 서 있는 봇(idle)과, 가까이 오면 때리고 구역을 벗어나면 제자리로 돌아가는 봇(guard) */
-  clearSandbags() { for (const [id, p] of this.players) if (p.home && !p.ally && !p.faceQ) this.players.delete(id); }
-
-  addSandbags(only) {
-    this.clearSandbags(); // 다시 누르면 원래 자리로 새로 배치 (겹쳐서 늘어나지 않음)
-    const ids = only || ['knight']; // 샌드백(적군 봇)은 기사
-    const spots = [['idle', 35, 4], ['idle', 36, 8], ['idle', 35, 12], ['idle', 36, 16], ['idle', 35, 19], ['guard', 31, 6], ['guard', 32, 11], ['guard', 31, 16], ['guard', 37, 11]];
-    for (const [mode, x, y] of spots) {
-      const p = this.addBot(mode, ids[Math.floor(Math.random() * ids.length)]);
-      p.name = '샌드백'; p.x = x; p.y = y; p.home = { x, y }; p.team = 0;
-    }
   }
 
   _refill(p) {
