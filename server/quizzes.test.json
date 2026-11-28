@@ -87,7 +87,9 @@
     "month": 11,
     "time": 60,
     "mode": "달력",
-    "answer": null
+    "answer": null,
+    "author": "태중",
+    "face": "태중"
   },
   {
     "type": "choice",
@@ -100,7 +102,9 @@
     ],
     "answer": 4,
     "time": 60,
-    "mode": "개인"
+    "mode": "개인",
+    "author": "동호",
+    "face": "동호"
   },
   {
     "type": "choice",
@@ -113,7 +117,9 @@
     ],
     "answer": 3,
     "time": 60,
-    "mode": "개인"
+    "mode": "개인",
+    "author": "인경",
+    "face": "인경"
   },
   {
     "type": "choice",
@@ -126,7 +132,9 @@
     ],
     "answer": 3,
     "time": 60,
-    "mode": "개인"
+    "mode": "개인",
+    "author": "윤수",
+    "face": "윤수"
   },
   {
     "type": "choice",
@@ -139,14 +147,18 @@
     ],
     "answer": 3,
     "time": 60,
-    "mode": "개인"
+    "mode": "개인",
+    "author": "장호",
+    "face": "장호"
   },
   {
     "type": "ox",
     "text": "레이디 가가의 생고기 드레스 무게는 약 22kg이다",
     "answer": "O",
     "time": 60,
-    "mode": "개인"
+    "mode": "개인",
+    "author": "기남",
+    "face": "기남"
   },
   {
     "type": "choice",
@@ -159,7 +171,9 @@
     ],
     "answer": 2,
     "time": 60,
-    "mode": "개인"
+    "mode": "개인",
+    "author": "기훈",
+    "face": "기훈"
   },
   {
     "type": "choice",
@@ -172,7 +186,9 @@
     ],
     "answer": 3,
     "time": 60,
-    "mode": "개인"
+    "mode": "개인",
+    "author": "니엘",
+    "face": "니엘"
   },
   {
     "type": "choice",
@@ -185,7 +201,9 @@
     ],
     "answer": 2,
     "time": 60,
-    "mode": "개인"
+    "mode": "개인",
+    "author": "형민",
+    "face": "형민"
   },
   {
     "type": "choice",
@@ -198,7 +216,9 @@
     ],
     "answer": 1,
     "time": 60,
-    "mode": "개인"
+    "mode": "개인",
+    "author": "건우",
+    "face": "건우"
   },
   {
     "type": "choice",
@@ -211,7 +231,9 @@
     ],
     "answer": 2,
     "time": 60,
-    "mode": "개인"
+    "mode": "개인",
+    "author": "민구",
+    "face": "민구"
   },
   {
     "type": "choice",
@@ -224,6 +246,8 @@
     ],
     "answer": 3,
     "time": 60,
-    "mode": "개인"
+    "mode": "개인",
+    "author": "민규",
+    "face": "민규"
   }
 ]

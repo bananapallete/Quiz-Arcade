@@ -1843,15 +1843,18 @@ test('내보내기: 접속이 끊긴 사람도 목록(off)에 보이고 내보�
   assert.equal(g.kick('a'), true); assert.ok(g.kicked.has('a')); assert.deepEqual(g.snapshot().off, []);
 });
 
-test('다음 문제 투표: 안 낸 문제 4개를 칸에 깔고, 사람이 가장 많은 칸의 문제가 뽑힌다 (점수·폭발 없음)', () => {
-  const g = new Game(chars, quizzes);
-  const ps = Array.from({ length: 3 }, (_, i) => g.join({ token: `p${i}`, name: `P${i}`, charId: 'blue' }));
-  g.ask(1); g.cancelQuestion();
-  assert.ok(g.startVote(15)); assert.equal(g.question.mode, '투표'); assert.deepEqual(g.question.vote, [2, 3, 4, 5]);
-  run(g, 3.1); const z2 = ZONES.choice.find((z) => z.id === 2); for (const p of ps) { p.x = z2.cx; p.y = z2.cy; }
-  run(g, 15.2);
-  assert.equal(g.phase, PHASE.REVEAL); assert.ok(g.reveal.vote); assert.equal(g.reveal.winner, 3);
-  assert.ok(ps.every((p) => !p.ghost && p.score === 0));
+test('얼굴 투표: 대기실에 안 낸 문제의 출제자 얼굴이 서 있고, 때리면 한 표(한 사람 한 표), 낸 문제의 얼굴은 사라진다', () => {
+  const qs = [{ type: 'ox', text: 'a', answer: 'O', author: '가', face: '가' }, { type: 'ox', text: 'b', answer: 'X', author: '나', face: '나' }, { type: 'ox', text: 'c', answer: 'O' }];
+  const g = new Game(chars, qs); g.syncFaces();
+  const fs = () => g.snapshot().fc; assert.deepEqual(fs().map((f) => f.q), [1, 2], '얼굴 있는 문제만');
+  const a = g.join({ token: 'a', name: 'A', charId: 'blue' }), b = g.join({ token: 'b', name: 'B', charId: 'blue' });
+  const f1 = g.players.get('face-1'), f2 = g.players.get('face-2');
+  g._applyHit(f1, a, 5, 1, 1, 0); g._applyHit(f2, a, 5, 1, 1, 0); g._applyHit(f1, b, 5, 1, 1, 0);
+  assert.deepEqual(g.snapshot().vt, { 1: 1, 2: 1 }, 'a는 마지막에 때린 2번으로 옮김');
+  assert.equal(f1.hp, f1.cfg.hp, '얼굴은 안 다침'); assert.ok(!g.snapshot().players.some((p) => p.id === 'face-1'), '얼굴은 players가 아니라 fc로');
+  assert.ok(!g.leaderboard().some((r) => r.id.startsWith('face')));
+  g.ask(1); assert.deepEqual(g.snapshot().fc, [], '문제 중엔 얼굴 숨김'); assert.ok(!g.players.has('face-1'), '낸 문제 얼굴은 사라짐'); assert.deepEqual(g.snapshot().vt, { 2: 1 });
+  g.cancelQuestion(); assert.deepEqual(fs().map((f) => f.q), [2]);
 });
 
 test('동전 모으기 팀전: 팀 합계가 많은 팀 전원이 점수, 개인전↔팀전 전환', () => {

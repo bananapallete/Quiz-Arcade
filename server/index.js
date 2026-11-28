@@ -90,7 +90,6 @@ io.on('connection', (socket) => {
     ack?.(res ?? { ok: true });
   });
   host('host:ask', (d) => ({ ok: game.ask(Number(d?.id)) }));
-  host('host:vote', (d) => ({ ok: game.startVote(Number(d?.sec) || 15) }));
   host('host:end', () => game.endQuestion());
   host('host:reset', () => game.resetScores());
   host('host:resetCoins', () => ({ ok: game.resetCoins() }));
@@ -142,7 +141,7 @@ io.on('connection', (socket) => {
 // 기본 봇: 서로 공격하는 15마리 (호스트 화면에서 제거 가능)
 const charIds = Object.keys(characters);
 game.botsCanAttack = true;
-game.addSandbags(); game.addAllies(); // 오른쪽 샌드백(공격 안 함) · 왼쪽 아군 봇 // 대기실 우측 샌드백 봇 (돌아다니는 봇은 진행자 화면의 '공격봇 15'로 필요할 때만)
+game.addSandbags(); game.addAllies(); game.syncFaces(); // 출제자 얼굴 (때려서 투표) // 오른쪽 샌드백(공격 안 함) · 왼쪽 아군 봇 // 대기실 우측 샌드백 봇 (돌아다니는 봇은 진행자 화면의 '공격봇 15'로 필요할 때만)
 
 // ---------- 루프 ----------
 let last = performance.now();
