@@ -1305,9 +1305,9 @@ test('돼지: 기본 공격을 하면 2칸 앞으로 돌진한 뒤 타격한다 
   assert.ok(Math.abs(A2.x - 12) < 0.35, `상대가 없어도 약 2칸 전진 x=${A2.x}`);
 });
 
-test('봇 이름은 서로 겹치지 않는 임의의 사람 이름', () => {
-  const g = new Game(chars, quizzes); const bots = Array.from({ length: 30 }, () => g.addBot('wander', 'blue')); const names = bots.map((b) => b.name);
-  assert.equal(new Set(names).size, 30); assert.ok(names.every((n) => !/^봇\d/.test(n)));
+test('봇 이름은 모두 봇', () => {
+  const g = new Game(chars, quizzes); const bots = Array.from({ length: 3 }, () => g.addBot('wander', 'blue'));
+  assert.ok(bots.every((b) => b.name === '봇'));
 });
 
 test('시간이 끝나면(HOLD) 정답 공개 전까지 제자리에 고정, 공개 뒤에는 다시 움직인다', () => {
