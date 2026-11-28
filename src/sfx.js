@@ -158,6 +158,14 @@ const pitchOf = (id) => { let h = 0; for (const c of String(id || '')) h = (h * 
 /** 나와의 거리 d(칸)에 따른 음량: 3칸 안은 그대로, 16칸이 넘으면 안 들림 */
 export const loudness = (d) => (d <= 3 ? 1 : Math.max(0, 1 - (d - 3) / 13) ** 2);
 
+// 떴다 떴다 비행기 (미레도레미미미 레레레 미솔솔 미레도레미미미 레레미레도), 쏠 때마다 다음 음
+const C5 = 523.25, AIRPLANE = 'EDCDEEE DDD EGG EDCDEEE DDEDC'.replace(/ /g, '').split('').map((n) => C5 * 2 ** ({ C: 0, D: 2, E: 4, G: 7 }[n] / 12));
+const divaStep = new Map();
+function divaNote(id, v) {
+  const i = divaStep.get(id) || 0, f = AIRPLANE[i % AIRPLANE.length]; divaStep.set(id, i + 1);
+  tone(f, f, 0.32, 'square', 0.16 * v, 0, 5); tone(f * 2, f * 2, 0.22, 'sine', 0.1 * v); // 맑은 8비트 음 + 배음
+}
+
 /** 불새 자폭: 깊은 저음 쾅 + 갈라지는 폭발 + 장조 팡파르 화음 + 위로 흩어지는 반짝임 + 길게 남는 울림 */
 function phoenixBlast(v) {
   tone(95, 28, 1.4, 'sine', 1.0 * v); tone(60, 24, 1.8, 'triangle', 0.6 * v, 0.02); // 땅이 울리는 저음
@@ -189,6 +197,7 @@ export function sfxEvent(e, c) {
     return;
   }
   let k = null;
+  if (e.e === 'atk' && c.charId === 'gaga') { divaNote(e.id, v * (c.mine ? 1 : 0.8)); return; } // 디바 평타: 떴다 떴다 비행기를 한 음씩
   if (e.e === 'atk') {
     if (e.kind === 'melee') k = e.fx === 'smash' ? 'smash' : e.fx === 'bump' ? 'thump' : e.fx === 'punch' ? 'punch' : 'swing';
     else if (e.kind === 'ranged') k = e.fx === 'tongue' ? 'tongue' : 'spark';
