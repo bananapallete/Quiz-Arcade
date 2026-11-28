@@ -149,6 +149,12 @@
   #btnRun { width: 72px; height: 72px; right: calc(var(--bR) + 16px); bottom: calc(var(--bB) + 104px + var(--bg)); }
   .abtn { padding: 0; font-size: 14px; line-height: 1; gap: 4px; }
   #btnAtk { font-size: 16px; }
+  #watchBar { position: fixed; left: 50%; bottom: max(12px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 17; display: flex; gap: 6px; max-width: 92vw; overflow-x: auto; padding: 4px; }
+  #watchBar[hidden] { display: none; }
+  body.watching .abtn, body.watching #pad, body.watching #padHint, body.watching #lzone { display: none !important; }
+  #watchBar button { flex: none; border: 3px solid #14122b; border-radius: 99px; padding: 5px 12px; font: 900 14px system-ui, 'Noto Sans KR', sans-serif; background: #f6e6c8; color: #14122b; box-shadow: 0 3px 0 #14122b66; }
+  #watchBar button.ally { background: #bfe0ff; } #watchBar button.foe { background: #ffc9c9; } #watchBar button.gh { opacity: .5; }
+  #watchBar button.on { outline: 3px solid #ffd54a; outline-offset: 1px; transform: translateY(-2px); }
 </style>
 
 <div id="deathMsg" hidden></div><div id="charmfx"></div><div id="charmMsg" hidden>💘 매혹당했습니다</div>

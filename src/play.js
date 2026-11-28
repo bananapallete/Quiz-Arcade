@@ -90,10 +90,32 @@ scene.onFrame = (sc, dt) => {
     { const uz = ultDir ? ultZoom() : 0; cam.centerOn(v.x + (ultDir ? ultDir.dx * 2.2 * BU * uz : 0), v.y - 30 + (ultDir ? ultDir.dy * 2.2 * BU * uz : 0)); } // 투사체형 궁극기: 발사 방향으로 살짝 당겨 보여 줌
   } else {
     const mw = lastState?.mp ? lastState.mp[0] * BU : WORLD_W, mh = lastState?.mp ? lastState.mp[1] * BU : WORLD_H; // 관전(토너먼트 대기) 중엔 대난투 맵 전체
-    cam.setZoom(Math.min(w / mw, h / mh));
-    cam.centerOn(mw / 2, mh / 2);
+    const t = watchTarget(lastState), tv = t && sc.views.get(t.id); // 관전: 고른 선수(없으면 유령 아닌 1등)를 따라감
+    const tz = tv ? w / ((h > w ? 16.5 : 24) * BU) : Math.min(w / mw, h / mh), tx = tv ? tv.x : mw / 2, ty = tv ? tv.y - 30 : mh / 2;
+    const k = 1 - Math.exp(-(dt / 1000) * 5), m = cam.midPoint, z = cam.zoom + (tz - cam.zoom) * k, hw = w / 2 / z, hh = h / 2 / z;
+    const clamp = (c, hf, L) => (L <= 2 * hf ? L / 2 : Math.min(L - hf, Math.max(hf, c)));
+    cam.setZoom(z); cam.centerOn(clamp(m.x + (tx - m.x) * k, hw, mw), clamp(m.y + (ty - m.y) * k, hh, mh));
   }
 };
+// ---------- 관전 카메라: 토너먼트 대기 중이면 경기 중인 선수를 따라감, 이름 버튼으로 전환 ----------
+let watchId = null, watchAuto = null;
+function watchTarget(s) {
+  if (!s || !s.tr || !ME || s.players.some((p) => p.id === ME)) return null; // 내가 경기 중이면 관전 아님
+  const fs = s.players.filter((p) => p.ct), pick = fs.find((p) => p.id === watchId);
+  if (pick) return pick;
+  const alive = fs.filter((p) => !p.gh); if (!alive.length) return fs[0] || null;
+  const top = Math.max(...alive.map((p) => p.sc)), cur = alive.find((p) => p.id === watchAuto);
+  const t = cur && cur.sc === top ? cur : alive.find((p) => p.sc === top); watchAuto = t.id; return t;
+}
+const watchBar = document.createElement('div'); watchBar.id = 'watchBar'; watchBar.hidden = true; document.body.append(watchBar);
+watchBar.addEventListener('click', (e) => { const b = e.target.closest('[data-w]'); if (!b) return; watchId = b.dataset.w || null; watchKey = ''; renderWatch(lastState); });
+let watchKey = '';
+function renderWatch(s) {
+  const t = watchTarget(s); watchBar.hidden = !t; document.body.classList.toggle('watching', !!t); if (!t) { watchId = null; return; } // 관전 중엔 조작 버튼을 숨김
+  const myTm = s.lb?.find((r) => r.id === ME)?.team, fs = s.players.filter((p) => p.ct).sort((a, b) => (a.tm === myTm ? 0 : 1) - (b.tm === myTm ? 0 : 1) || a.n.localeCompare(b.n));
+  const key = JSON.stringify([fs.map((p) => [p.id, p.n, p.tm, p.gh]), t.id, watchId]); if (key === watchKey) return; watchKey = key;
+  watchBar.innerHTML = `<button data-w="" class="${watchId ? '' : 'on'}">자동</button>` + fs.map((p) => `<button data-w="${p.id}" class="${p.id === t.id ? 'on' : ''} ${p.tm === myTm ? 'ally' : 'foe'}${p.gh ? ' gh' : ''}">${p.n.replace(/[<>&]/g, '')}</button>`).join('');
+}
 
 const phaseText = { [PHASE.LOBBY]: '', [PHASE.READING]: '읽기', [PHASE.MOVING]: '이동', [PHASE.REVEAL]: '정답' };
 let lastState = null;
@@ -104,7 +126,7 @@ socket.on('state', (s) => {
   document.body.classList.toggle('noatk', !!s.ca || bl); document.body.classList.toggle('noult', !!s.cu || bl); document.body.classList.toggle('norun', bl && !!s.pc); // 진행자가 공격·궁극기를 막으면 버튼을 어둡게
   scene.applyState(s);
   { const e = s.ev?.find((e) => e.e === 'ult' && e.id === ME); if (e) { ultAt = performance.now(); ultDir = PROJ_ULT.includes(e.t) ? { dx: e.dx, dy: e.dy } : null; } }
-  hud(s);
+  hud(s); renderWatch(s);
 });
 // 조준 표시: 사거리·대상은 서버에 물어서(0.1초마다), 방향은 손가락을 따라 매 프레임 화면에서 바로 그림
 let aimBusy = false;

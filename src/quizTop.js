@@ -40,7 +40,7 @@ const CSS = `
 #qteam{position:fixed;left:max(10px,env(safe-area-inset-left,0px));bottom:58px;z-index:16;pointer-events:none;color:#fff;border:3px solid #14122b;border-radius:99px;padding:2px 10px;font-weight:900;font-size:14px;box-shadow:0 3px 0 #14122b66}#qteam[hidden]{display:none}
 #qres{position:fixed;left:50%;top:34%;transform:translate(-50%,-50%);z-index:36;pointer-events:none;text-align:center;font-weight:900;color:#fff;-webkit-text-stroke:5px #14122b;paint-order:stroke fill;font-size:clamp(30px,9vw,64px);line-height:1.1;animation:qres .25s cubic-bezier(.2,1.6,.4,1)}#qres small{display:block;font-size:.45em;-webkit-text-stroke:3px #14122b}#qres[hidden]{display:none}#qres.ok{color:#ffe27a}#qres.bad{color:#ff9aa8}
 @keyframes qres{from{transform:translate(-50%,-50%) scale(.4);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
-#qwatch{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:16;pointer-events:none;background:#14122bd8;color:#fff;border:3px solid #ffd54a;border-radius:12px;padding:6px 14px;font-weight:900;font-size:15px;white-space:nowrap}#qwatch[hidden]{display:none}
+#qwatch{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);z-index:16;pointer-events:none;background:#14122bd8;color:#fff;border:3px solid #ffd54a;border-radius:12px;padding:6px 14px;font-weight:900;font-size:15px;white-space:nowrap}#qwatch[hidden]{display:none}
 #qbig{position:fixed;inset:0;z-index:70;background:#14122bcc;display:grid;place-items:center}#qbig[hidden]{display:none}
 #qbig img{max-width:80vw;max-height:80vh;border:4px solid #14122b;border-radius:16px;background:#fff}
 `;
