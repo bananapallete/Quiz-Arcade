@@ -96,7 +96,7 @@ export function renderScreenUi(el, s) {
     legend.innerHTML = keys.map((k) => `<div class="zone z-${k}"><b>${k}</b><small>${q.type === 'choice' ? esc(q.options?.[k - 1]) : ''}</small>${ph === PHASE.HOLD && dist ? `<span style="margin-left:auto">${dist[k] || 0}명</span>` : ''}</div>`).join('');
   }
   const prep = live && s.pc && s.pl > 0 && !s.rank; // 전투 모드 준비 시간: 크게 카운트다운
-  end.hidden = !(ph === PHASE.HOLD || prep) || s.rank; end.innerHTML = prep ? `<div style="font-size:22vh;line-height:1">${Math.ceil(s.pl)}</div>전투 준비!<small>공격·궁극기·달리기 불가</small>` : '시간 종료<small>정답 공개를 기다리는 중</small>';
+  end.hidden = !(ph === PHASE.HOLD || prep) || s.rank; end.innerHTML = prep ? `<div style="font-size:22vh;line-height:1">${Math.ceil(s.pl)}</div>전투 준비!<small>카운트 끝날 때까지 공격·궁극기·달리기 불가</small>` : '시간 종료<small>정답 공개를 기다리는 중</small>';
   // 정답 공개
   const showRev = ph === PHASE.REVEAL && s.reveal && !s.rank && !s.ha;
   rev.hidden = !showRev;

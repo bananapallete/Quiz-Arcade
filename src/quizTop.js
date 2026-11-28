@@ -55,7 +55,7 @@ export function mountQuizTop() {
     const big = document.createElement('div'); big.id = 'qbig'; big.hidden = true; big.innerHTML = '<img alt="">'; document.body.append(big);
     const pop = document.createElement('div'); pop.id = 'qpop'; pop.hidden = true; pop.innerHTML = '<div class="c"><span class="no"></span><p></p><ol></ol><img alt="" hidden><div class="h">아무 곳이나 누르면 팝업이 닫힙니다.</div></div>'; document.body.append(pop);
     pop.addEventListener('pointerdown', (e) => { e.stopPropagation(); if (pop.dataset.at && performance.now() - Number(pop.dataset.at) < 3000) return; closePop(); }); // 처음 뜬 팝업은 3초 뒤부터 닫힘
-    const prep = document.createElement('div'); prep.id = 'qprep'; prep.hidden = true; prep.innerHTML = '<b></b><i>전투 준비!</i><small>공격·궁극기·달리기 불가</small>'; document.body.append(prep);
+    const prep = document.createElement('div'); prep.id = 'qprep'; prep.hidden = true; prep.innerHTML = '<b></b><i>전투 준비!</i><small>카운트 끝날 때까지 공격·궁극기·달리기 불가</small>'; document.body.append(prep);
     for (const [id, tx] of [['qnt', ''], ['qx2', '점수 ×2'], ['qfz', '잠시 멈춤'], ['qteam', ''], ['qres', ''], ['qwatch', '']]) { const d = document.createElement('div'); d.id = id; d.hidden = true; d.textContent = tx; document.body.append(d); }
     big.addEventListener('click', () => { big.hidden = true; });
     el.querySelector('.q').addEventListener('click', (e) => { if (!e.target.closest('.th')) openPop(false); }); // 줄어든 문제를 누르면 다시 크게
