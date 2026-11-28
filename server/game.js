@@ -207,20 +207,27 @@ export class Game {
   voteCounts() { const n = {}; for (const q of this.votes.values()) n[q] = (n[q] || 0) + 1; return n; }
 
   /** 맵이 바뀔 때(다음 게임): 그 게임에서 모은 동전을 점수로 정산하고 동전은 0으로 */
-  _bankCoins() {
+  /** 결과가 나오는 순간: 이번 게임에서 모은 동전을 부가점수로 정산 (결과 카드용으로 개수는 gs.cn에 남김) */
+  _bankReveal() {
     const rows = [];
     for (const p of this.players.values()) {
+      if (p.gs) p.gs.cn = p.coins;
       if (!p.coins) continue;
       const pts = Math.round(p.coins * COIN.value * 10) / 10;
       if (!p.home) { p.score = Math.round((p.score + pts) * 10) / 10; rows.push({ id: p.id, name: p.name, team: p.team || 0, gain: pts }); }
       p.coins = 0;
     }
-    this.coins.clear();
-    if (rows.length) { this._hist('coin', '동전 정산', rows); this._log(`동전 정산 ${rows.length}명`); }
+    if (rows.length) { this._hist('coin', '동전 부가점수', rows); this._log(`동전 부가점수 ${rows.length}명`); }
   }
 
+  /** 게임 밖(대기실·결과 화면)에서 주운 동전은 점수 없이 버림 */
+  _dropLobbyCoins() { for (const p of this.players.values()) p.coins = 0; this.coins.clear(); }
+
+  /** 동전이 점수로 치는 때: 게임 진행 중(읽기·이동·시간 종료·현실 퀴즈)만 */
+  _coinsLive() { return [PHASE.READING, PHASE.MOVING, PHASE.HOLD, PHASE.REAL].includes(this.phase); }
+
   _begin(q) {
-    this._bankCoins();
+    this._dropLobbyCoins(); this.revealBanked = false;
     for (const p of this.players.values()) p.gs = { k: 0, d: 0, dmg: 0, s0: p.score }; // 이번 게임 기록 초기화 (s0: 시작 때 점수)
     this._unpark(); this.preview = null; this._endBrawlWorld(); this._clearUltWorld(); this.brawl = null; this.cal = null; this.tour = null; this.coinRun = null;
     this.question = q;
@@ -372,7 +379,7 @@ export class Game {
 
   resetScores() {
     this.asked.clear(); this.votes.clear(); this.syncFaces();
-    this.cancelQuestion(); this.scoreLog = []; this.rounds = []; // 진행 중인 대난투·달력 정리, 초기화 이전 점수는 되돌리지 않음
+    this.cancelQuestion(); this.scoreLog = []; this.rounds = []; this.revealBanked = true; // 진행 중인 대난투·달력 정리, 초기화 이전 점수는 되돌리지 않음
     this._hist('reset', '점수 초기화'); for (const p of this.players.values()) { p.score = 0; p.coins = 0; }
     this.coins.clear(); this.minions.clear();
     this.items.clear();
@@ -395,7 +402,7 @@ export class Game {
   /** 진행자 '맵으로 이동': 대기실 그대로(문제 없음)에 맵만 그 문제의 맵으로 */
   previewMap(qid) {
     const q = this.questions.find((x) => x.id === qid); if (!q) return false;
-    this.cancelQuestion(); this._bankCoins();
+    this.cancelQuestion(); this._dropLobbyCoins();
     this.preview = q;
     if (q.type === 'brawl') { this.map = BRAWL_MAP; this.solids = true; for (const p of this.players.values()) if (p.isBot && p.connected && p.home) this._park(p); }
     this.gather();
@@ -1179,6 +1186,7 @@ export class Game {
   // ---------- 매 틱 ----------
   update(dt) {
     if (this.frozen) return; // 비상 정지: 모든 것이 멈춤
+    if (this.phase === PHASE.REVEAL && !this.revealBanked) { this.revealBanked = true; this._bankReveal(); } // 결과가 나오면 동전 → 부가점수
     this.t += dt;
     if (this.timerPaused && (this.phase === PHASE.READING || this.phase === PHASE.MOVING)) this.phaseEnd += dt; // 타이머 일시정지
 
@@ -1535,7 +1543,7 @@ export class Game {
       reveal: this.reveal,
       mp: this.map === MAP ? null : [this.map.w, this.map.h],
       pv: this.preview && this.phase === PHASE.LOBBY ? { type: this.preview.type, l: this.preview.type === 'calendar' ? calLayout(this.preview) : undefined, title: this.preview.title, author: this.preview.author, face: this.preview.face } : null, // 맵 미리 보기
-      gs: this.phase === PHASE.REVEAL ? Object.fromEntries(this.contestants().filter((p) => this._present(p)).map((p) => [p.id, [p.gs?.k || 0, p.gs?.d || 0, p.gs?.dmg || 0, p.coins]])) : null, // 결과 화면: 킬·데스·피해·동전
+      gs: this.phase === PHASE.REVEAL ? Object.fromEntries(this.contestants().filter((p) => this._present(p)).map((p) => [p.id, [p.gs?.k || 0, p.gs?.d || 0, p.gs?.dmg || 0, p.gs?.cn ?? p.coins]])) : null, // 결과 화면: 킬·데스·피해·동전
       fc: this._lobbyish() ? [...this.players.values()].filter((p) => p.faceQ && p.connected).map((p) => ({ id: p.id, q: p.faceQ, x: r2(p.x), y: r2(p.y), n: p.name, img: p.faceImg, d: p.faceDone ? 1 : 0 })) : [], vt: this.voteCounts(), vm: Object.fromEntries(this.votes), // 얼굴 투표 (vm: 누가 어디에)
       cs: this.cast,
       off: this.humans().filter((p) => !p.connected && !p.parked).map((p) => [p.id, p.name]), // 접속이 끊긴 참가자 (진행자 화면: 내보내기용)
@@ -1564,11 +1572,11 @@ export class Game {
   }
 
   totalScore(p) {
-    return Math.round((p.score + p.coins * COIN.value) * 10) / 10;
+    return Math.round((p.score + (this._coinsLive() ? p.coins * COIN.value : 0)) * 10) / 10; // 대기실 동전은 점수 아님
   }
 
   /** 이번 게임 점수: 이번 게임에서 받은 점수 + 모은 동전 (폰 좌측 상단 1~3등) */
-  gameScore(p) { return Math.round(((p.score - (p.gs?.s0 ?? p.score)) + p.coins * COIN.value) * 10) / 10; }
+  gameScore(p) { return Math.round(((p.score - (p.gs?.s0 ?? p.score)) + (this._coinsLive() ? p.coins * COIN.value : 0)) * 10) / 10; }
   gameBoard() {
     return this.contestants().filter((p) => this._present(p)).map((p) => ({ id: p.id, name: p.name, score: this.gameScore(p), coins: p.coins, team: p.team || 0 })).sort((a, b) => b.score - a.score);
   }

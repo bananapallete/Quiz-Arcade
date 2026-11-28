@@ -427,10 +427,10 @@ test('동전: 참가자가 있으면 3초마다 1개 생성, 없으면 생성 �
   run(g, 3); assert.equal(g.coins.size, 2);
 });
 
-test('동전: 가까이 가면 자동으로 주워지고 개당 0.5점', () => {
+test('동전: 가까이 가면 자동으로 주워지고 개당 0.5점 (게임 중)', () => {
   const g = new Game(chars, quizzes);
   const a = g.join({ token: 'a', name: 'A', charId: 'blue' });
-  a.x = 10; a.y = 10;
+  g.ask(1); a.x = 10; a.y = 10;
   g.spawnCoin(20, 10); g.spawnCoin(10.8, 10); // 하나는 멀리, 하나는 0.8칸
   run(g, 0.5);
   assert.equal(a.coins, 1);
@@ -1762,7 +1762,7 @@ test('하마 발 구르기: 그려지는 대로 주변 360°를 치고, 몸이 �
 
 test('동전 초기화: 획득 동전만 0, 문제 점수는 그대로', () => {
   const g = new Game(chars, quizzes);
-  const a = g.join({ token: 'a', name: 'A', charId: 'blue' }); a.score = 3; a.coins = 4;
+  const a = g.join({ token: 'a', name: 'A', charId: 'blue' }); g.ask(1); a.score = 3; a.coins = 4;
   assert.equal(g.totalScore(a), 5);
   g.resetCoins(); assert.equal(a.coins, 0); assert.equal(a.score, 3); assert.equal(g.totalScore(a), 3);
 });
@@ -1852,12 +1852,16 @@ test('문제 제한시간 바꾸기: 동전 모으기 20~900초, 퀴즈 5~60초'
   g.setQuestionTime(ox.id, 100); assert.equal(ox.time, 60);
 });
 
-test('다음 게임으로 가면 모은 동전은 점수로 정산되고 0으로 (순위 점수는 그대로)', () => {
+test('동전은 게임 중에만 점수: 결과가 나오면 부가점수로 정산, 대기실에서 주운 건 점수 없이 사라짐', () => {
   const g = new Game(chars, quizzes);
   const a = g.join({ token: 'a', name: 'A', charId: 'blue' }); a.score = 2; a.coins = 6;
-  const before = g.totalScore(a); g.ask(1);
-  assert.equal(a.coins, 0); assert.equal(a.score, 5); assert.equal(g.totalScore(a), before);
-  a.coins = 2; g.previewMap(2); assert.equal(a.coins, 0); assert.equal(a.score, 6);
+  assert.equal(g.totalScore(a), 2, '대기실 동전은 점수 아님');
+  g.ask(1); assert.equal(a.coins, 0, '게임 시작 때 대기실 동전은 버림'); assert.equal(a.score, 2);
+  a.coins = 4; assert.equal(g.totalScore(a), 4, '게임 중 동전은 점수'); a.x = 2; a.y = 2;
+  g.endQuestion(); g.update(0.01); assert.equal(a.coins, 0); assert.equal(a.score, 2, '오답이면 떨어뜨려서 정산할 것 없음');
+  g.ask(1); run(g, 3.1); const zO = ZONES.ox.find((z) => z.id === 'O'); a.x = zO.cx; a.y = zO.cy; a.coins = 2; run(g, 1); g.endQuestion(); g.update(0.01);
+  assert.equal(a.coins, 0); assert.ok(a.score >= 2 + 1 + 1, '정답 점수 + 동전 2개 부가점수'); assert.equal(g.snapshot().gs.a[3], 2, '결과 카드엔 모은 개수');
+  a.coins = 3; assert.equal(g.totalScore(a), a.score, '결과 화면에서 주운 건 점수 아님');
 });
 
 test('이번 게임 기록: 킬·데스·입힌 피해를 세고, 결과 화면 때 보낸다 (다음 게임에서 0부터)', () => {
@@ -1883,7 +1887,7 @@ test('얼굴 투표: 한 출제자가 여러 문제를 냈으면 얼굴은 하�
 test('이번 게임 점수(폰 좌측 상단): 게임이 시작되면 0부터, 받은 점수 + 모은 동전만', () => {
   const g = new Game(chars, quizzes);
   const a = g.join({ token: 'a', name: 'A', charId: 'blue' }); a.score = 10; a.coins = 4;
-  assert.equal(g.gameBoard()[0].score, 2, '게임 전엔 동전만 (총점 12와 다름)');
-  g.ask(1); assert.equal(g.gameBoard()[0].score, 0, '새 게임은 0부터'); assert.equal(g.leaderboard()[0].score, 12, '총점은 그대로');
+  assert.equal(g.gameBoard()[0].score, 0, '대기실 동전은 점수 아님');
+  g.ask(1); assert.equal(g.gameBoard()[0].score, 0, '새 게임은 0부터'); assert.equal(g.leaderboard()[0].score, 10, '총점은 그대로');
   a.coins = 2; g.adjust('a', 3); assert.equal(g.gameBoard()[0].score, 4);
 });
