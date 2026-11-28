@@ -483,7 +483,8 @@ export class WorldScene extends Phaser.Scene {
           if (this.textures.exists(key)) { img.setTexture(key).setVisible(true); v.ph?.destroy(); v.ph = null; }
           else { img.setVisible(false); v.ph ||= this.add.text(0, 0, f.n.slice(0, 2), { fontFamily: 'sans-serif', fontSize: '72px', fontStyle: '900', color: '#ffffff', backgroundColor: '#9a62d6', padding: { x: 26, y: 34 } }).setOrigin(0.5); }
         };
-        if (this.textures.exists(key)) show(); else { this.load.image(key, `/faces/${encodeURIComponent(f.img)}.png`); this.load.once('complete', show); this.load.start(); }
+        const hk = `faceHit-${f.img}`; v.hk = hk; // 맞을 때 보여 줄 표정
+        if (this.textures.exists(key)) show(); else { this.load.image(key, `/faces/${encodeURIComponent(f.img)}.png`); if (!this.textures.exists(hk)) this.load.image(hk, `/faces/hit/${encodeURIComponent(f.img)}.png`); this.load.once('complete', show); this.load.start(); }
       }
       const x = f.x * BU, y = f.y * BU, n = s.vt?.[f.q] || 0, sz = 3.4 * BU;
       v.x = x; v.y = y; v.mine = mine === f.q && !f.d; v.done = !!f.d;
@@ -491,7 +492,7 @@ export class WorldScene extends Phaser.Scene {
       const low = f.y > MAP.h / 2; // 아래쪽 가장자리는 이름을 얼굴 위에 (화면 밖으로 안 잘리게)
       v.lab.setText(`${f.n}${n && !f.d ? ` 👊${n}` : ''}`).setOrigin(0.5, low ? 1 : 0).setPosition(x, low ? y - sz * 0.45 : y + sz * 0.45).setDepth(y + 3 * BU).setAlpha(f.d ? 0.5 : 1);
     }
-    for (const e of s.ev || []) if (e.e === 'vote') { const v = this.faceViews.get(e.id); if (v) v.pop = performance.now(); }
+    for (const e of s.ev || []) if (e.e === 'faceHit' || e.e === 'vote') { const v = this.faceViews.get(e.id); if (v) { v.pop = performance.now(); v.hitUntil = v.pop + 600; } } // 맞으면 0.6초 동안 맞는 표정
     for (const [id, v] of this.faceViews) if (!seen.has(id)) { v.img.destroy(); v.ring.destroy(); v.lab.destroy(); v.ph?.destroy(); this.faceViews.delete(id); }
   }
 
@@ -499,6 +500,7 @@ export class WorldScene extends Phaser.Scene {
     for (const v of this.faceViews?.values() || []) {
       const u = (now - v.pop) / 260, k = u < 1 ? 1 + 0.25 * Math.sin(Math.PI * u) : 1, sh = u < 1 ? Math.sin(u * 30) * 6 * (1 - u) : 0; // 맞으면 흔들리며 팡
       const sz = 3.4 * BU * k;
+      if (v.img.visible) { const hit = now < (v.hitUntil || 0) && this.textures.exists(v.hk), want = hit ? v.hk : v.key; if (v.img.texture.key !== want) v.img.setTexture(want); }
       if (v.img.visible) v.img.setPosition(v.x + sh, v.y).setDisplaySize(sz, sz).setDepth(v.y + 2 * BU).setAlpha(v.done ? 0.5 : 1); // 다 푼 문제는 반투명 · 가장자리 나무·바위보다 앞에
       v.ph?.setPosition(v.x + sh, v.y).setScale(k).setDepth(v.y + 2 * BU).setAlpha(v.done ? 0.5 : 1);
       v.ring.clear(); if (v.mine) v.ring.lineStyle(6, 0xffd54a, 1).strokeCircle(v.x, v.y, sz * 0.55).setDepth(v.y);

@@ -1122,7 +1122,7 @@ export class Game {
 
   _applyHit(target, attacker, rawDmg, knock, dx, dy, fx) {
     const emp = this._emp; this._emp = false; // 이번 타격이 '강화된 평타'인가 (한 번 쓰면 사라짐)
-    if (target.faceQ) { const a = attacker.id && this.players.get(attacker.id); if (a && !target.faceDone && !a.home && !a.faceQ && !a.isBot) { this.votes.set(a.id, target.faceQ); this.events.push({ e: 'vote', id: target.id, by: a.id }); } return; } // 얼굴: 피해 없이 한 표
+    if (target.faceQ) { const a = attacker.id && this.players.get(attacker.id); if (!target.faceDone) this.events.push({ e: 'faceHit', id: target.id }); if (a && !target.faceDone && !a.home && !a.faceQ && !a.isBot) { this.votes.set(a.id, target.faceQ); this.events.push({ e: 'vote', id: target.id, by: a.id }); } return; } // 얼굴: 맞는 표정 + 피해 없이 한 표 // 얼굴: 피해 없이 한 표
     if (target.ghost) return; // 유령은 맞지도 밀리지도 않음
     if (this.t < target.invUntil || (this.god && !target.isBot)) { // 무적: 피해도 밀림도 없음
       this.events.push({ e: 'block', id: target.id, x: r2(target.x), y: r2(target.y) });
