@@ -1585,11 +1585,11 @@ export class Game {
   /** 이번 게임 점수: 이번 게임에서 받은 점수 + 모은 동전 (폰 좌측 상단 1~3등) */
   gameScore(p) { return Math.round(((p.score - (p.gs?.s0 ?? p.score)) + (this._coinsLive() ? p.coins * COIN.value : 0)) * 10) / 10; }
   gameBoard() {
-    return this.contestants().filter((p) => this._present(p)).map((p) => ({ id: p.id, name: p.name, score: this.gameScore(p), coins: p.coins, team: p.team || 0 })).sort((a, b) => b.score - a.score);
+    return this.contestants().filter((p) => this._present(p) && !p.isBot).map((p) => ({ id: p.id, name: p.name, score: this.gameScore(p), coins: p.coins, team: p.team || 0 })).sort((a, b) => b.score - a.score);
   }
 
   leaderboard() {
-    return this.contestants().filter((p) => this._present(p)).map((p) => ({ id: p.id, name: p.name, score: this.totalScore(p), coins: p.coins, team: p.team || 0, rep: p.rep ? 1 : 0 })).sort((a, b) => b.score - a.score);
+    return this.contestants().filter((p) => this._present(p) && !p.isBot).map((p) => ({ id: p.id, name: p.name, score: this.totalScore(p), coins: p.coins, team: p.team || 0, rep: p.rep ? 1 : 0 })).sort((a, b) => b.score - a.score);
   }
 
   /** 지금 구역별 인원 (진행자 화면의 실시간 응답) */
@@ -1601,7 +1601,7 @@ export class Game {
 
   _teamTotals() {
     if (!this.teamCount) return [];
-    const tot = {}; for (const p of this.contestants()) if (this._present(p) && p.team) tot[p.team] = Math.round(((tot[p.team] || 0) + this.totalScore(p)) * 10) / 10;
+    const tot = {}; for (const p of this.contestants()) if (this._present(p) && p.team && !p.isBot) tot[p.team] = Math.round(((tot[p.team] || 0) + this.totalScore(p)) * 10) / 10;
     return Array.from({ length: this.teamCount }, (_, i) => ({ t: i + 1, score: tot[i + 1] || 0 }));
   }
 

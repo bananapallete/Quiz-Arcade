@@ -281,7 +281,7 @@ export class WorldScene extends Phaser.Scene {
     this.uzl.apply(s.uz);
     this.wallLayer.apply(s.wl);
 
-    let best = null; for (const p of s.players) if (p.sc > 0 && (!best || p.sc > best.sc)) best = p; // 1등(점수 있는 사람 중 최고)
+    let best = null; for (const p of s.players) if (!p.b && p.sc > 0 && (!best || p.sc > best.sc)) best = p; // 1등(점수 있는 사람 중 최고, 봇 제외)
     this.leaderId = best ? best.id : null;
     const seen = new Set();
     for (const p of s.players) {
