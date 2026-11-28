@@ -152,7 +152,7 @@ setInterval(() => {
 
 let roundsSeen = 0, histSeen = 0;
 setInterval(() => {
-  io.emit('state', { ...game.snapshot(), lb: game.leaderboard() });
+  io.emit('state', { ...game.snapshot(), lb: game.leaderboard(), glb: game.gameBoard() }); // glb: 이번 게임 점수 (폰 좌측 상단)
   if (game.rounds.length !== roundsSeen || game.histSeq !== histSeen) { roundsSeen = game.rounds.length; histSeen = game.histSeq; io.to('hosts').emit('host:info', game.hostInfo()); } // 시간이 다 돼서 끝난 경기도 진행자 화면 기록에 바로 반영
 }, 1000 / BROADCAST_HZ);
 

@@ -221,7 +221,7 @@ export class Game {
 
   _begin(q) {
     this._bankCoins();
-    for (const p of this.players.values()) p.gs = { k: 0, d: 0, dmg: 0 }; // 이번 게임 기록 초기화
+    for (const p of this.players.values()) p.gs = { k: 0, d: 0, dmg: 0, s0: p.score }; // 이번 게임 기록 초기화 (s0: 시작 때 점수)
     this._unpark(); this.preview = null; this._endBrawlWorld(); this._clearUltWorld(); this.brawl = null; this.cal = null; this.tour = null; this.coinRun = null;
     this.question = q;
     this.reveal = null; this.locked = null; this.realPending = new Map(); this.realConfirmed = false;
@@ -1565,6 +1565,12 @@ export class Game {
 
   totalScore(p) {
     return Math.round((p.score + p.coins * COIN.value) * 10) / 10;
+  }
+
+  /** 이번 게임 점수: 이번 게임에서 받은 점수 + 모은 동전 (폰 좌측 상단 1~3등) */
+  gameScore(p) { return Math.round(((p.score - (p.gs?.s0 ?? p.score)) + p.coins * COIN.value) * 10) / 10; }
+  gameBoard() {
+    return this.contestants().filter((p) => this._present(p)).map((p) => ({ id: p.id, name: p.name, score: this.gameScore(p), coins: p.coins, team: p.team || 0 })).sort((a, b) => b.score - a.score);
   }
 
   leaderboard() {

@@ -144,7 +144,7 @@ const ultAimNow = () => { // 궁극기를 끌어 조준 중이면 방향·거리
 };
 
 function hud(s) {
-  renderQuizTop(qtop, s, s.lb || [], ME);
+  renderQuizTop(qtop, s, s.glb || s.lb || [], ME); // 좌측 상단 1~3등: 이번 게임 점수
   const p = s.players.find((x) => x.id === ME);
   if (p) {
     showAmmo(p);

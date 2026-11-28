@@ -1868,7 +1868,7 @@ test('이번 게임 기록: 킬·데스·입힌 피해를 세고, 결과 화면 
   b.hp = 3; b.invUntil = 0; g._applyHit(b, a, 50, 0, 1, 0); assert.equal(a.gs.k, 1); assert.equal(b.gs.d, 1); assert.ok(a.gs.dmg >= 10, '마지막 일격은 남은 체력만큼');
   a.coins = 4; c.ghost = true; g.update(0.01);
   assert.equal(g.phase, PHASE.REVEAL); assert.deepEqual(g.snapshot().gs.a.slice(0, 2), [1, 0]); assert.equal(g.snapshot().gs.a[3], 4);
-  g.ask(2); assert.deepEqual(a.gs, { k: 0, d: 0, dmg: 0 }); assert.equal(g.snapshot().gs, null);
+  g.ask(2); assert.deepEqual([a.gs.k, a.gs.d, a.gs.dmg], [0, 0, 0]); assert.equal(g.snapshot().gs, null);
 });
 
 test('얼굴 투표: 한 출제자가 여러 문제를 냈으면 얼굴은 하나, 안 낸 첫 문제에 표가 가고 그 문제를 내면 다음 문제로', () => {
@@ -1878,4 +1878,12 @@ test('얼굴 투표: 한 출제자가 여러 문제를 냈으면 얼굴은 하�
   g._applyHit(f, a, 5, 1, 1, 0); assert.deepEqual(g.snapshot().vt, { 1: 1 });
   g.ask(1); g.cancelQuestion(); assert.equal(g.players.get('face-민규').faceQ, 2, '다음 문제로'); assert.deepEqual(g.snapshot().vt, {});
   g.ask(2); g.cancelQuestion(); assert.equal(g.players.get('face-민규').faceDone, true, '다 풀면 반투명');
+});
+
+test('이번 게임 점수(폰 좌측 상단): 게임이 시작되면 0부터, 받은 점수 + 모은 동전만', () => {
+  const g = new Game(chars, quizzes);
+  const a = g.join({ token: 'a', name: 'A', charId: 'blue' }); a.score = 10; a.coins = 4;
+  assert.equal(g.gameBoard()[0].score, 2, '게임 전엔 동전만 (총점 12와 다름)');
+  g.ask(1); assert.equal(g.gameBoard()[0].score, 0, '새 게임은 0부터'); assert.equal(g.leaderboard()[0].score, 12, '총점은 그대로');
+  a.coins = 2; g.adjust('a', 3); assert.equal(g.gameBoard()[0].score, 4);
 });
