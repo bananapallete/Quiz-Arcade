@@ -106,12 +106,13 @@ export class Game {
     if (!p || p.isBot || !this.characters[charId] || this.charWait(id) > 0) return false;
     const lobby = this.phase === PHASE.LOBBY, ratio = p.hp / p.cfg.hp;
     p.charId = charId; p.cfg = this.characters[charId]; p.dash = null; p.baseCfg = null; this._refill(p);
-    if (!lobby) { p.hp = Math.max(1, Math.ceil(p.cfg.hp * ratio)); p.charReadyAt = this.t + CHAR_CD_SEC; } // 퀴즈 중엔 체력 비율 유지(회복 꼼수 방지), 궁극기 충전은 초기화
+    p.charReadyAt = this.t + CHAR_CD_SEC;
+    if (!lobby) p.hp = Math.max(1, Math.ceil(p.cfg.hp * ratio)); // 퀴즈 중엔 체력 비율 유지(회복 꼼수 방지), 궁극기 충전은 초기화
     return true;
   }
 
   /** 지금 캐릭터를 바꾸려면 더 기다려야 하는 초 (대기실은 항상 0) */
-  charWait(id) { const p = this.players.get(id); return !p || this.phase === PHASE.LOBBY ? 0 : Math.max(0, Math.ceil((p.charReadyAt || 0) - this.t)); }
+  charWait(id) { const p = this.players.get(id); return !p ? 0 : Math.max(0, Math.ceil((p.charReadyAt || 0) - this.t)); }
 
   setConnected(id, connected) {
     const p = this.players.get(id);
