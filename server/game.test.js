@@ -207,7 +207,7 @@ test('걷기 3, 달리기 6 BU/s (파란티)', () => {
   run(g, 1); assert.ok(Math.abs(a.x - 16) < 0.15, `run x=${a.x}`);
 });
 
-test('점수: 정답 1점 + 먼저 도착한 1~3등 +3/+2/+1, 오답·무응답 0점', () => {
+test('점수: 정답 2점 + 먼저 도착한 1~3등 +1/+0.5/+0.5, 오답·무응답 0점', () => {
   const g = new Game(chars, quizzes);
   const ps = ['a', 'b', 'c', 'd', 'e'].map((t) => g.join({ token: t, name: t, charId: 'blue' }));
   g.ask(1); // O 정답
@@ -225,9 +225,9 @@ test('점수: 정답 1점 + 먼저 도착한 1~3등 +3/+2/+1, 오답·무응답 
   g.endQuestion();
   assert.equal(g.phase, PHASE.REVEAL);
   const byId = Object.fromEntries(g.reveal.results.map((r) => [r.id, r]));
-  assert.equal(byId.b.gain, 4); // 1등
-  assert.equal(byId.c.gain, 3); // 2등
-  assert.equal(byId.a.gain, 2); // 3등
+  assert.equal(byId.b.gain, 3); // 1등
+  assert.equal(byId.c.gain, 2.5); // 2등
+  assert.equal(byId.a.gain, 2.5); // 3등
   assert.equal(byId.d.gain, 0);
   assert.equal(byId.e.gain, 0);
   assert.equal(byId.e.zone, null);
@@ -1287,7 +1287,7 @@ test('달력 퀴즈: 채점 때 탈락 칸의 사람은 폭발해 다음 문제�
   const hp = b.hp; g._applyHit(b, a, 5, 1, 1, 0); assert.equal(b.hp, hp, '유령은 안 맞음'); g._tryAttack(b, null); assert.equal(g.ult('b', null), false);
   at(a, 3); at(c, 7); g.endQuestion(); // 3일은 1차에서 이미 열린 칸 → a도 유령, 새 안전 칸(7일)의 c만 생존 = 최후의 1인
   assert.equal(g.phase, PHASE.REVEAL); assert.ok(g.reveal.cal); assert.equal(g.reveal.results.find((r) => r.id === 'a').ghost, true, '이미 열린 칸을 다시 밟으면 유령');
-  assert.equal(g.reveal.elim, 3); assert.equal(g.reveal.survivors, 1); assert.equal(c.score, 6, '탈락자 3명 ×2 = 6점'); assert.equal(a.score, 0); assert.equal(b.ghost, true, '끝나도 다음 문제까지 유령'); assert.equal(g.snapshot().cal, null); g.ask(1); assert.equal(b.ghost, false, '다음 문제에서 부활');
+  assert.equal(g.reveal.elim, 3); assert.equal(g.reveal.survivors, 1); assert.equal(c.score, 5, '탈락자 3명 ×2 = 6점이지만 1인 최대 5점'); assert.equal(a.score, 0); assert.equal(b.ghost, true, '끝나도 다음 문제까지 유령'); assert.equal(g.snapshot().cal, null); g.ask(1); assert.equal(b.ghost, false, '다음 문제에서 부활');
 });
 
 test('달력 퀴즈: 안전한 칸을 모두 찾아내면 끝나고, 시간이 끝나도 정산된다', async () => {
@@ -1668,6 +1668,7 @@ test('동전 모으기: 제한시간 동안 동전이 쏟아지고 많이 주운
   assert.equal(g.phase, PHASE.REVEAL); assert.ok(g.reveal.coin);
   assert.deepEqual(g.reveal.results.map((r) => [r.name, r.got, r.gain]), [['B', 5, 5], ['A', 3, 3], ['C', 0, 0]]);
   assert.equal(g.coins.size, 0);
+  assert.equal(b.coins, 0, '동전 모으기에서 주운 동전은 부가점수로 정산하지 않음'); run(g, 0.1); assert.equal(b.score, 5);
 });
 
 test('래브라도 궁극기는 동전뿐 아니라 하트·신발 아이템도 흡수한다', () => {

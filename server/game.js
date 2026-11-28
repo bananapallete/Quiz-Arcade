@@ -8,8 +8,9 @@ import { calCell, calCenter, calLayout, fmtScore, isCombat, PREP_SEC, REGEN, ULT
 
 const KNOCK_DECAY = 12; // 밀림 속도 감쇠(1/s). 총 밀림 거리 = 처음 속도 / 감쇠
 const ATTACK_ANIM_SEC = 0.25;
-const BONUS = [3, 2, 1]; // 정답자 중 1~3등 추가 점수
-const BASE_POINT = 1;
+const BONUS = [1, 0.5, 0.5]; // 정답자 중 1~3등 추가 점수
+const BASE_POINT = 2;
+const CAL_MAX = 5; // 달력 생존자 1인 최대 점수
 const MAX_PLAYERS = 40;
 
 const r2 = (n) => Math.round(n * 100) / 100;
@@ -578,6 +579,8 @@ export class Game {
     for (const p of this.players.values()) if (p.isBot && p.connected && p.home) this._park(p);
     this.coinRun = { start: Object.fromEntries(hs.map((p) => [p.id, p.coins])), clock: 0 };
   }
+  /** 동전 모으기에서 주운 동전은 등수 상금으로만 쓰고 부가점수로는 정산하지 않음 */
+  _coinUnbank() { for (const [id, n] of Object.entries(this.coinRun.start)) { const p = this.players.get(id); if (p) p.coins = Math.min(p.coins, n); } }
   _coinGot(p) { return Math.max(0, p.coins - (this.coinRun.start[p.id] ?? p.coins)); }
   _coinTick(dt) {
     const c = this.coinRun, n = this.contestants().filter((p) => p.connected).length, every = Math.max(0.15, 1.2 / Math.max(1, n)); // 사람이 많을수록 자주
@@ -600,7 +603,7 @@ export class Game {
     this.reveal = { answer: null, coin: true, results, teams };
     this._pushUndo(`Q${q.id} 동전`, undo, this._hist('coin', `Q${q.id} ${q.text}`, results.map((r) => ({ id: r.id, name: r.name, team: r.team, gain: r.gain }))));
     this._log(`동전 모으기 종료 · 1등 ${results[0]?.name ?? '-'} ${results[0]?.got ?? 0}개`);
-    this.coinRun = null; this.coins.clear(); this._unpark(); this.phase = PHASE.REVEAL;
+    this._coinUnbank(); this.coinRun = null; this.coins.clear(); this._unpark(); this.phase = PHASE.REVEAL;
   }
 
   /** 동전 모으기 팀전: 팀원이 주운 동전을 합쳐 많은 팀 전원이 점수 (같으면 두 팀 다) */
@@ -619,7 +622,7 @@ export class Game {
     this.reveal = { answer: null, coin: true, teamCoin: true, results, teams, winTeams: [...win], rounds: this.rounds.slice(-12) };
     this._pushUndo(`Q${q.id} 동전 팀`, undo, this._hist('coin', `Q${q.id} ${q.text}`, results.map((r) => ({ id: r.id, name: r.name, team: r.team, gain: r.gain }))));
     this._log(`동전 팀전 종료 · ${[...win].map((t) => `${t}팀`).join(', ') || '승자 없음'}`);
-    this.coinRun = null; this.coins.clear(); this._unpark(); this.phase = PHASE.REVEAL;
+    this._coinUnbank(); this.coinRun = null; this.coins.clear(); this._unpark(); this.phase = PHASE.REVEAL;
   }
 
   // ---------- 달력 퀴즈: 탈락 날짜에 서 있으면 채점 때 유령, 끝까지 남은 사람들이 탈락자 수 ×2를 나눠 가짐 ----------
@@ -649,7 +652,7 @@ export class Game {
 
   _calFinish() {
     const c = this.cal, q = this.question, ids = [...c.ids].map((id) => this.players.get(id)).filter(Boolean), undo = [];
-    const surv = ids.filter((p) => p.connected && !p.ghost), elim = ids.filter((p) => p.ghost).length, pool = elim * 2 * this.multiplier, each = surv.length ? Math.round((pool / surv.length) * 10) / 10 : 0;
+    const surv = ids.filter((p) => p.connected && !p.ghost), elim = ids.filter((p) => p.ghost).length, pool = elim * 2 * this.multiplier, each = surv.length ? Math.min(CAL_MAX * this.multiplier, Math.round((pool / surv.length) * 10) / 10) : 0;
     const results = ids.map((p) => {
       const ok = p.connected && !p.ghost, gain = ok ? each : 0;
       if (gain) { p.score = Math.round((p.score + gain) * 10) / 10; undo.push([p.id, gain]); }
