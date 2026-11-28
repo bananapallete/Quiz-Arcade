@@ -1843,3 +1843,14 @@ test('내보내기: 접속이 끊긴 사람도 목록(off)에 보이고 내보�
   assert.deepEqual(g.snapshot().off, [['a', 'A']]);
   assert.equal(g.kick('a'), true); assert.ok(g.kicked.has('a')); assert.deepEqual(g.snapshot().off, []);
 });
+
+test('다음 문제 투표: 안 낸 문제 4개를 칸에 깔고, 사람이 가장 많은 칸의 문제가 뽑힌다 (점수·폭발 없음)', () => {
+  const g = new Game(chars, quizzes);
+  const ps = Array.from({ length: 3 }, (_, i) => g.join({ token: `p${i}`, name: `P${i}`, charId: 'blue' }));
+  g.ask(1); g.cancelQuestion();
+  assert.ok(g.startVote(15)); assert.equal(g.question.mode, '투표'); assert.deepEqual(g.question.vote, [2, 3, 4, 5]);
+  run(g, 3.1); const z2 = ZONES.choice.find((z) => z.id === 2); for (const p of ps) { p.x = z2.cx; p.y = z2.cy; }
+  run(g, 15.2);
+  assert.equal(g.phase, PHASE.REVEAL); assert.ok(g.reveal.vote); assert.equal(g.reveal.winner, 3);
+  assert.ok(ps.every((p) => !p.ghost && p.score === 0));
+});

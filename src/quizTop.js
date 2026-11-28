@@ -68,7 +68,7 @@ export function mountQuizTop() {
 let popKey = null, popQ = null, popAuto = false;
 function fillPop(q) {
   const pop = document.getElementById('qpop'), c = pop.querySelector('.c');
-  c.querySelector('.no').textContent = `Q${q.id}`; c.querySelector('p').textContent = q.text;
+  c.querySelector('.no').textContent = q.vote ? '🗳' : `Q${q.id}`; c.querySelector('p').textContent = q.text;
   const ol = c.querySelector('ol'); ol.hidden = !(q.type === 'choice' && q.options); ol.innerHTML = q.type === 'choice' && q.options ? q.options.map((o, i) => `<li><b>${i + 1}</b>${String(o).replace(/[<>&]/g, '')}</li>`).join('') : '';
   const im = c.querySelector('img'); im.hidden = !q.image; if (q.image) im.src = q.image;
 }
@@ -87,6 +87,7 @@ function closePop() {
 const TEAMC = ['', '#ff6b6b', '#4a86d9'];
 let resKey = null, resTimer = 0;
 function myResult(r, meId) { // 결과 알림 문구 [큰 글자, 작은 글자, 좋은 결과?]
+  if (r.vote) return null;
   const m = r.results?.find((x) => x.id === meId); if (!m) return null;
   if (r.coin) return [`🪙 ${m.got}개`, m.gain ? `${m.rank}등 +${m.gain}` : `${m.rank}등`, m.gain > 0];
   if (r.tour) return m.correct ? ['우승!', `+${m.gain}`, true] : m.gain ? ['준우승', `+${m.gain}`, true] : ['아쉬워요', '', false];
@@ -127,7 +128,7 @@ export function renderQuizTop(el, s, rows, meId) {
   const no = qb.querySelector('.no'), p = qb.querySelector('p'), th = qb.querySelector('.th');
   const ans = s.reveal && s.reveal.answer != null && !s.ha ? (q.type === 'choice' ? `${s.reveal.answer}번` : s.reveal.answer) : '';
   no.className = `no${s.phase === PHASE.HOLD ? ' end' : s.phase === PHASE.REVEAL ? ' ans' : s.phase === PHASE.REAL ? ' real' : ''}`;
-  no.textContent = s.phase === PHASE.HOLD ? '종료' : s.phase === PHASE.REVEAL ? (s.reveal?.real ? '공개' : s.reveal?.brawl || s.reveal?.cal || s.reveal?.coin ? '결과' : ans ? `정답 ${ans}` : '종료') : s.phase === PHASE.REAL ? '현실' : `Q${q.id}`;
+  no.textContent = s.phase === PHASE.HOLD ? '종료' : s.phase === PHASE.REVEAL ? (s.reveal?.real ? '공개' : s.reveal?.vote ? '투표' : s.reveal?.brawl || s.reveal?.cal || s.reveal?.coin ? '결과' : ans ? `정답 ${ans}` : '종료') : s.phase === PHASE.REAL ? '현실' : q.vote ? "🗳" : `Q${q.id}`;
   p.textContent = q.text + (q.type === 'calendar' && s.cal ? `  📅 ${s.cal.l.month ? `${s.cal.l.month}월 · ` : ''}${s.cal.r}차 · 생존 ${s.cal.a}명 · 안전칸 ${s.cal.f}/${s.cal.s}` : '') + (q.type === 'coin' && s.cr ? `  🪙 ${s.cr.find((r) => r[0] === meId)?.[2] ?? 0} · 1등 ${s.cr[0]?.[2] ?? 0}` : '') + (s.tr?.m ? `  🏆 ${s.tr.r}R ${s.tr.m[0]}팀 vs ${s.tr.m[1]}팀` : '') + (q.type === 'brawl' && s.bw ? `  ⚔ ${s.bw.tm.map(([t, al, n]) => `${t}팀 ${al}/${n}`).join(' · ')}` : '') + (q.type === 'choice' && q.options ? '  ' + q.options.map((o, i) => `${i + 1}.${o}`).join(' ') : '');
   th.hidden = !q.image; if (q.image) { th.style.backgroundImage = `url("${q.image}")`; th.dataset.url = q.image; }
   const reading = s.phase === PHASE.READING, moving = s.phase === PHASE.MOVING, total = reading ? READ_SEC : q.time || 15, f = (moving || reading) ? Math.max(0, Math.min(1, s.left / total)) : 0;

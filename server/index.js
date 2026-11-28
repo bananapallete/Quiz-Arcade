@@ -90,6 +90,7 @@ io.on('connection', (socket) => {
     ack?.(res ?? { ok: true });
   });
   host('host:ask', (d) => ({ ok: game.ask(Number(d?.id)) }));
+  host('host:vote', (d) => ({ ok: game.startVote(Number(d?.sec) || 15) }));
   host('host:end', () => game.endQuestion());
   host('host:reset', () => game.resetScores());
   host('host:resetCoins', () => ({ ok: game.resetCoins() }));

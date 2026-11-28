@@ -55,6 +55,7 @@ export class Game {
     this.locked = null; // 시간이 끝난 시점에 굳어진 판정 (정답 공개 때 점수에 반영)
     this.realPending = new Map(); // 현실 퀴즈: 진행자가 입력한 점수 id → 점수
     this.realConfirmed = false;
+    this.asked = new Set(); // 이미 낸 문제 (투표 후보에서 빠짐)
     this.kicked = new Set(); // 내보낸 참가자 토큰
     this.repSeq = 0; // 토너먼트 대표 지정 순서
     this.teamCount = 2; // 팀은 항상 2팀 (들어오면 인원이 적은 팀으로)
@@ -181,6 +182,26 @@ export class Game {
   ask(qid) {
     const q = this.questions.find((x) => x.id === qid);
     if (!q) return false;
+    this.asked.add(q.id);
+    return this._begin(q);
+  }
+
+  /** 다음 문제 투표: 아직 안 낸 문제 최대 4개를 객관식 4칸에 깔고, 참가자가 걸어가서 고름 (시간 끝나면 가장 많은 칸) */
+  startVote(sec = 15) {
+    const cands = this.questions.filter((q) => !this.asked.has(q.id)).slice(0, 4);
+    if (cands.length < 2) return false;
+    this._log('다음 문제 투표');
+    return this._begin({ id: 0, type: 'choice', text: '다음 문제 투표! 원하는 칸으로', options: cands.map((q) => `${q.mode} · ${q.text}`.slice(0, 24)), answer: null, time: sec, mode: '투표', vote: cands.map((q) => q.id) });
+  }
+
+  _finishVote() {
+    const q = this.question, d = this.locked?.dist || {}, n = q.vote.map((_, i) => d[i + 1] || 0), top = Math.max(...n);
+    const best = q.vote.filter((_, i) => n[i] === top), win = best[Math.floor(Math.random() * best.length)]; // 같으면 무작위
+    this.reveal = { answer: q.vote.indexOf(win) + 1, vote: true, winner: win, counts: n, results: [], dist: d };
+    this.locked = null; this.phase = PHASE.REVEAL; this._log(`투표 결과: Q${win}`);
+  }
+
+  _begin(q) {
     this._unpark(); this.preview = null; this._endBrawlWorld(); this._clearUltWorld(); this.brawl = null; this.cal = null; this.tour = null; this.coinRun = null;
     this.question = q;
     this.reveal = null; this.locked = null; this.realPending = new Map(); this.realConfirmed = false;
@@ -188,7 +209,7 @@ export class Game {
     this.phase = q.type === 'real' ? PHASE.REAL : PHASE.READING;
     this.phaseEnd = this.t + READ_SEC;
     this.prepUntil = q.type === 'real' ? 0 : this.t + PREP_SEC; // 준비 시간 (공격·궁극기 불가, 궁극기 게이지도 멈춤)
-    this._log(`문제 ${q.id} 출제`);
+    if (!q.vote) this._log(`문제 ${q.id} 출제`);
     for (const p of this.players.values()) { p.out = false; p.ghost = false; p.stunned = false; p.stunUntil = 0; this._refill(p); } // 문제마다 체력·달리기 게이지 가득
     if (q.type === 'brawl' && q.tour) this._tourSetup();
     else if (q.type === 'brawl') this._brawlSetup();
@@ -322,6 +343,7 @@ export class Game {
   }
 
   resetScores() {
+    this.asked.clear();
     this.cancelQuestion(); this.scoreLog = []; this.rounds = []; // 진행 중인 대난투·달력 정리, 초기화 이전 점수는 되돌리지 않음
     this._hist('reset', '점수 초기화'); for (const p of this.players.values()) { p.score = 0; p.coins = 0; }
     this.coins.clear(); this.minions.clear();
@@ -620,6 +642,7 @@ export class Game {
   }
 
   _applyLocked() {
+    if (this.question?.vote) return this._finishVote(); // 투표: 점수·폭발 없이 결과만
     const q = this.question, { ranked, dist } = this.locked, undo = [];
     const results = ranked.map((r) => {
       const bonus = r.correct && r.rank <= BONUS.length ? BONUS[r.rank - 1] : 0;
@@ -1131,7 +1154,7 @@ export class Game {
     if (this.timerPaused && (this.phase === PHASE.READING || this.phase === PHASE.MOVING)) this.phaseEnd += dt; // 타이머 일시정지
 
     if (this.phase === PHASE.READING && this.t >= this.phaseEnd) this._startMoving();
-    else if (this.phase === PHASE.MOVING && this.t >= this.phaseEnd) { if (this.brawl) this._finishBrawl(); else if (this.coinRun) this._coinFinish(); else if (this.cal) { this._calGrade(); if (this.cal) this._calFinish(); } else { this._lock(); this.phase = PHASE.HOLD; } } // 시간이 끝나도 바로 공개하지 않고 진행자를 기다린다
+    else if (this.phase === PHASE.MOVING && this.t >= this.phaseEnd) { if (this.brawl) this._finishBrawl(); else if (this.coinRun) this._coinFinish(); else if (this.cal) { this._calGrade(); if (this.cal) this._calFinish(); } else { this._lock(); if (this.question.vote) this._finishVote(); else this.phase = PHASE.HOLD; } } // 시간이 끝나도 바로 공개하지 않고 진행자를 기다린다
 
     const active = [...this.players.values()].filter((p) => p.connected);
 
@@ -1474,7 +1497,7 @@ export class Game {
       });
     }
     const q = this.question
-      ? { id: this.question.id, type: this.question.type, text: this.question.text, options: this.question.options, time: this.question.time, mode: this.question.mode || '개인', image: this.question.image, tour: this.question.tour ? 1 : 0 }
+      ? { id: this.question.id, vote: this.question.vote ? 1 : 0, type: this.question.type, text: this.question.text, options: this.question.options, time: this.question.time, mode: this.question.mode || '개인', image: this.question.image, tour: this.question.tour ? 1 : 0 }
       : null;
     return {
       phase: this.phase,
@@ -1532,7 +1555,7 @@ export class Game {
   hostInfo() {
     return {
       questions: this.questions.map((q) => ({ id: q.id, type: q.type, text: q.text, options: q.options, answer: q.answer, time: q.time, mode: q.mode || '개인', image: q.image, pts: q.pts, bad: q.bad, days: q.days, start: q.start, tour: q.tour ? 1 : 0 })),
-      teamCount: this.teamCount, log: this.log, history: this.history.slice(-100), rounds: this.rounds,
+      teamCount: this.teamCount, asked: [...this.asked], log: this.log, history: this.history.slice(-100), rounds: this.rounds,
     };
   }
 }

@@ -50,6 +50,7 @@ function renderCurrent() {
 }
 $('#ask').addEventListener('click', () => { if (!askId) return; if (st?.phase === PHASE.REAL && st.real?.pending?.length && !confirm('입력한 현실 퀴즈 점수가 사라져요. 출제할까요?')) return; emit('host:ask', { id: askId }); const ids = info.questions.map((q) => q.id), i = ids.indexOf(askId); askId = ids[i + 1] ?? askId; renderQuestions(); }); // 출제하면 다음 문제가 자동 선택됨
 $('#premap').addEventListener('click', () => { if (!askId) return; const live = [PHASE.READING, PHASE.MOVING, PHASE.HOLD, PHASE.REAL].includes(st?.phase); if (!live || confirm('진행 중인 문제를 닫고 맵을 옮길까요? (점수 변화 없음)')) emit('host:previewMap', { id: askId }); }); // 선택한 문제의 맵으로 (대기실 상태)
+$('#vote').addEventListener('click', () => { const live = [PHASE.READING, PHASE.MOVING, PHASE.HOLD, PHASE.REAL].includes(st?.phase); if (!live || confirm('진행 중인 문제를 닫고 투표할까요?')) emit('host:vote', { sec: 15 }); }); // 다음 문제 투표
 $('#cal-fin').addEventListener('click', () => { if (confirm('지금 상태로 정산하고 끝낼까요?')) emit('host:calFinish'); });
 $('#lobby').addEventListener('click', () => { const live = [PHASE.READING, PHASE.MOVING, PHASE.HOLD, PHASE.REAL].includes(st?.phase); if (!live || confirm('진행 중인 문제를 닫고 대기실로 갈까요? (점수 변화 없음)')) emit('host:lobby'); });
 $('#end').addEventListener('click', () => emit('host:end'));
@@ -117,9 +118,9 @@ function renderSteps(s) {
   const todo = [
     ['QR로 입장시키기', [['t-qr2', s.qr ? 'QR 끄기' : 'QR 켜기'], ['go-quiz', '화면: 퀴즈로']]],
     ['팀 확인 · 토너먼트면 ★ 대표 고르기', [['t-auto', '🔀 2팀 섞기']]],
-    [q ? `Q${q.id} 출제 준비` : '왼쪽에서 문제 선택', q ? [['premap', '🗺 맵 미리 보기'], ['ask', `▶ Q${q.id} 출제`]] : []],
+    [q ? `Q${q.id} 출제 준비` : '문제 선택', q ? [['vote', '🗳 투표'], ['premap', '🗺 맵 미리 보기'], ['ask', `▶ Q${q.id} 출제`]] : [['vote', '🗳 투표']]],
     [phaseName[s.phase] || '진행 중', [['t-p10', '＋10초'], ['end', $('#end').textContent]]],
-    ['결과 확인 후 다음 문제', [['scr-rank', '화면: 순위'], ['ask', askId ? `▶ Q${askId} 출제` : '▶ 출제']]],
+    ['결과 확인 후 다음 문제', [['scr-rank', '화면: 순위'], ['vote', '🗳 투표'], ['ask', askId ? `▶ Q${askId} 출제` : '▶ 출제']]],
   ][now];
   const key = JSON.stringify([now, sub, todo, $('#end').disabled, $('#ask').disabled]);
   if (key === stepKey) return; stepKey = key;
@@ -168,7 +169,7 @@ $('#plist').addEventListener('click', (e) => {
   if (k && confirm(`${k.dataset.nm} 님을 내보낼까요?`)) emit('host:kick', { id: k.dataset.kick });
 });
 
-let humans = [], lastKey = '', realKey = '', awWho = '';
+let humans = [], lastKey = '', realKey = '', awWho = '', voteSeen = '';
 $('#aw-who').addEventListener('click', (e) => { const b = e.target.closest('[data-aw]'); if (!b) return; awWho = b.dataset.aw; $('#aw-who').querySelectorAll('[data-aw]').forEach((x) => x.classList.toggle('on', x === b)); $('#aw-sel').textContent = b.textContent; }); // 점수 부여 대상: 버튼으로 고름
 $('#reload-me').addEventListener('click', () => location.reload());
 $('#reload-all').addEventListener('click', () => { if (confirm('빔프로젝터·참가자 폰 화면을 모두 새로고침할까요? (점수·접속은 유지)')) emit('host:reloadAll'); });
@@ -185,7 +186,8 @@ socket.on('state', (s) => {
   $('#tools-state').textContent = [s.tp ? '타이머 정지됨' : '', s.x2 === 2 ? '점수 ×2' : '', s.gd ? '전원 무적' : '', s.ca ? '공격 금지' : '', s.cu ? '궁극기 금지' : '', s.fz ? '비상 정지 중' : ''].filter(Boolean).join(' · ');
   const prevCur = curId, prevDone = doneIds.size;
   if (s.q && s.phase !== PHASE.LOBBY) curId = s.q.id; else if (s.phase === PHASE.LOBBY) curId = null;
-  if (s.phase === PHASE.REVEAL && s.q) doneIds.add(s.q.id);
+  if (s.phase === PHASE.REVEAL && s.q && !s.q.vote) doneIds.add(s.q.id);
+  if (s.reveal?.vote && voteSeen !== s.reveal.winner + ':' + s.q?.text) { voteSeen = s.reveal.winner + ':' + s.q?.text; askId = s.reveal.winner; renderQuestions(); } // 투표로 뽑힌 문제를 다음 문제로 선택
   if (prevCur !== curId || prevDone !== doneIds.size) renderQuestions();
   const special = ['brawl', 'calendar', 'coin'].includes(s.q?.type); // 읽는 중엔 끝낼 판정이 없음
   $('#end').disabled = !((s.phase === PHASE.READING && !special) || s.phase === PHASE.MOVING || s.phase === PHASE.HOLD);
