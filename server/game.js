@@ -149,6 +149,7 @@ export class Game {
       ai: { nextThink: 0, mx: 0, my: 0 },
     };
     this.players.set(id, p);
+    p.gs = { k: 0, d: 0, dmg: 0 }; // 이번 게임 기록 (킬·데스·입힌 피해)
     p.team = this._smallTeam(p); // 항상 2팀: 인원이 적은 팀으로 (샌드백·아군 봇은 아래에서 0으로)
     return p;
   }
@@ -216,6 +217,7 @@ export class Game {
 
   _begin(q) {
     this._bankCoins();
+    for (const p of this.players.values()) p.gs = { k: 0, d: 0, dmg: 0 }; // 이번 게임 기록 초기화
     this._unpark(); this.preview = null; this._endBrawlWorld(); this._clearUltWorld(); this.brawl = null; this.cal = null; this.tour = null; this.coinRun = null;
     this.question = q;
     this.reveal = null; this.locked = null; this.realPending = new Map(); this.realConfirmed = false;
@@ -703,7 +705,7 @@ export class Game {
   /** 퀴즈 오답: 제자리 폭발 + 즉사, 다음 문제가 시작될 때까지 유령 */
   _quizBoom(p) {
     this.events.push({ e: 'boom', x: r2(p.x), y: r2(p.y), r: 1.3 });
-    p.ghost = true; p.dash = null; p.channel = null; p.flurry = null; p.stunned = false; p.hp = 0;
+    p.ghost = true; p.dash = null; p.channel = null; p.flurry = null; p.stunned = false; p.hp = 0; if (p.gs) p.gs.d++;
     this.events.push({ e: 'ghost', id: p.id, x: r2(p.x), y: r2(p.y), q: 1 });
   }
 
@@ -971,6 +973,7 @@ export class Game {
   }
 
   _ko(target) {
+    if (target.gs) target.gs.d++;
     if (target.egg) { target.egg = false; this.events.push({ e: 'eggBreak', id: target.id, x: r2(target.x), y: r2(target.y) }); } // 알이 깨지면 병아리도 죽음 (아래의 보통 사망 처리: 동전이 떨어지고 부활 시간은 처음부터)
     target.hp = 0;
     target.stunned = true;
@@ -1152,8 +1155,10 @@ export class Game {
       if (tt) { target.tether = { by: attacker.id, until: this.t + tt.sec, len: tt.len, resist: tt.resist, pull: tt.pull }; this.events.push({ e: 'tetherStart', id: attacker.id, x: r2(target.x), y: r2(target.y), r: 1 }); }
       if (cm) { target.charmUntil = this.t + cm.sec; target.charmBy = attacker.id; this.events.push({ e: 'charm', id: attacker.id, x: r2(target.x), y: r2(target.y), r: 0.9 }); }
       target.hurtAt = this.t; target.regenT = 0; attacker.revealAt = this.t; // 맞으면 자동 회복 대기 시간이 처음부터
+      const att = attacker.id && this.players.get(attacker.id), real = Math.min(target.hp, dmg); // 이번 게임 기록: 입힌 피해 · 킬 · 데스
+      if (att && att !== target && att.gs) att.gs.dmg += real;
       target.hp = Math.max(0, target.hp - dmg);
-      if (target.hp === 0) this._ko(target);
+      if (target.hp === 0) { if (att && att !== target && att.gs) att.gs.k++; this._ko(target); }
     }
     // 기절(쓰러진) 상태에서는 밀리지 않음. 그 외에는 총 거리 = knock (BU, 음수면 끌어당김)
     if (!target.stunned && !target.ghost && !target.channel?.armor) { // armor(무대 위 춤 등)는 밀리지 않음
@@ -1548,6 +1553,7 @@ export class Game {
       reveal: this.reveal,
       mp: this.map === MAP ? null : [this.map.w, this.map.h],
       pv: this.preview && this.phase === PHASE.LOBBY ? { type: this.preview.type, l: this.preview.type === 'calendar' ? calLayout(this.preview) : undefined } : null, // 맵 미리 보기
+      gs: this.phase === PHASE.REVEAL ? Object.fromEntries(this.contestants().filter((p) => this._present(p)).map((p) => [p.id, [p.gs?.k || 0, p.gs?.d || 0, p.gs?.dmg || 0, p.coins]])) : null, // 결과 화면: 킬·데스·피해·동전
       cs: this.cast,
       off: this.humans().filter((p) => !p.connected && !p.parked).map((p) => [p.id, p.name]), // 접속이 끊긴 참가자 (진행자 화면: 내보내기용)
       pl: r2(this._prep()), pc: isCombat(this.question) ? 1 : 0, // 준비 시간 남은 초 · 전투 모드인가

@@ -1882,3 +1882,14 @@ test('다음 게임으로 가면 모은 동전은 점수로 정산되고 0으로
   assert.equal(a.coins, 0); assert.equal(a.score, 5); assert.equal(g.totalScore(a), before);
   a.coins = 2; g.previewMap(2); assert.equal(a.coins, 0); assert.equal(a.score, 6);
 });
+
+test('이번 게임 기록: 킬·데스·입힌 피해를 세고, 결과 화면 때 보낸다 (다음 게임에서 0부터)', () => {
+  const g = new Game(chars, [{ type: 'brawl', text: 'b', time: 120, pts: 5 }, { type: 'ox', text: 'o', answer: 'O' }]);
+  const a = g.join({ token: 'a', name: 'A', charId: 'blue' }), b = g.join({ token: 'b', name: 'B', charId: 'blue' }), c = g.join({ token: 'c', name: 'C', charId: 'blue' });
+  a.team = 1; b.team = 2; c.team = 2; g.ask(1); run(g, 10.5);
+  b.invUntil = 0; g._applyHit(b, a, 7, 0, 1, 0); assert.ok(a.gs.dmg >= 7);
+  b.hp = 3; b.invUntil = 0; g._applyHit(b, a, 50, 0, 1, 0); assert.equal(a.gs.k, 1); assert.equal(b.gs.d, 1); assert.ok(a.gs.dmg >= 10, '마지막 일격은 남은 체력만큼');
+  a.coins = 4; c.ghost = true; g.update(0.01);
+  assert.equal(g.phase, PHASE.REVEAL); assert.deepEqual(g.snapshot().gs.a.slice(0, 2), [1, 0]); assert.equal(g.snapshot().gs.a[3], 4);
+  g.ask(2); assert.deepEqual(a.gs, { k: 0, d: 0, dmg: 0 }); assert.equal(g.snapshot().gs, null);
+});

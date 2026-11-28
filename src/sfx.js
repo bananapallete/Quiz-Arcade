@@ -156,6 +156,9 @@ const ATK_GAP = 45, ULT_GAP = 120, BOOM_GAP = 60; // 같은 종류 소리의 최
 const gate = (k, gap) => { const t = performance.now(); if (t - (lastAt[k] || 0) < gap) return false; lastAt[k] = t; return true; };
 const pitchOf = (id) => { let h = 0; for (const c of String(id || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0; return 0.85 + (h % 41) / 100; }; // 캐릭터마다 0.85~1.25배 음높이
 /** 나와의 거리 d(칸)에 따른 음량: 3칸 안은 그대로, 16칸이 넘으면 안 들림 */
+/** 결과 화면 파친코: 동전 하나가 점수로 바뀔 때 '찰칵' (i가 클수록 조금씩 높아짐), 끝나면 팡파르 */
+export function sfxCoinTick(i) { if (muted || !ctx || ctx.state !== 'running') return; BASIC.coin(0.55, 1 + Math.min(0.6, i * 0.025)); }
+export function sfxScoreDone() { if (muted || !ctx || ctx.state !== 'running') return; [784, 988, 1175, 1568].forEach((f, i) => tone(f, f, 0.25, 'square', 0.16, i * 0.07)); }
 export const loudness = (d) => (d <= 3 ? 1 : Math.max(0, 1 - (d - 3) / 13) ** 2);
 
 /** 강화 평타: 공주는 반짝이는 하트 차임, 개구리는 '뾰옹' 혀 소리, 나머지는 반짝임 */

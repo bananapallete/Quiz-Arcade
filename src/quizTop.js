@@ -1,5 +1,6 @@
 // 플레이어 화면 상단 UI: 좌상단 1~3등 · 문제(+이미지 썸네일, 탭하면 크게) · 제한시간 링 · 맨 위 시간 게이지. 폰 크기에 맞춰 vw/vh로 늘고 줄어든다.
-import { isCombat, PHASE, READ_SEC } from '../shared/constants.js';
+import { COIN, fmtScore, isCombat, PHASE, READ_SEC } from '../shared/constants.js';
+import { sfxCoinTick, sfxScoreDone } from './sfx.js';
 import { renderTopRank } from './topRank.js';
 
 const CSS = `
@@ -41,6 +42,13 @@ const CSS = `
 #qres{position:fixed;left:50%;top:34%;transform:translate(-50%,-50%);z-index:36;pointer-events:none;text-align:center;font-weight:900;color:#fff;-webkit-text-stroke:5px #14122b;paint-order:stroke fill;font-size:clamp(30px,9vw,64px);line-height:1.1;animation:qres .25s cubic-bezier(.2,1.6,.4,1)}#qres small{display:block;font-size:.45em;-webkit-text-stroke:3px #14122b}#qres[hidden]{display:none}#qres.ok{color:#ffe27a}#qres.bad{color:#ff9aa8}
 @keyframes qres{from{transform:translate(-50%,-50%) scale(.4);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
 #qwatch{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);z-index:16;pointer-events:none;background:#14122bd8;color:#fff;border:3px solid #ffd54a;border-radius:12px;padding:6px 14px;font-weight:900;font-size:15px;white-space:nowrap}#qwatch[hidden]{display:none}
+#qcard{position:fixed;inset:0;z-index:38;background:#14122b99;display:grid;place-items:center;padding:12px}#qcard[hidden]{display:none}
+#qcard .c{box-sizing:border-box;width:min(420px,92vw);max-height:92vh;overflow:auto;background:#f6e6c8;border:4px solid #14122b;border-radius:18px;box-shadow:0 6px 0 #14122b88;padding:14px 16px;display:grid;gap:10px;justify-items:center;color:#5a3a24;font-weight:900;animation:qres .3s cubic-bezier(.2,1.6,.4,1)}
+#qcard .t{font-size:clamp(26px,7vw,40px);line-height:1;-webkit-text-stroke:4px #14122b;paint-order:stroke fill;color:#fff}#qcard .t.ok{color:#ffe27a}#qcard .t.bad{color:#ff9aa8}#qcard .t small{display:block;font-size:.5em;-webkit-text-stroke:3px #14122b;margin-top:4px}
+#qcard .hero{width:112px;height:112px;background-size:400% 100%;image-rendering:pixelated;animation:qhero .8s steps(4) infinite}@keyframes qhero{from{background-position:0 0}to{background-position:-448px 0}}
+#qcard .st{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%}#qcard .st div{background:#fff;border:3px solid #14122b;border-radius:12px;padding:5px 4px;text-align:center;font-size:20px}#qcard .st small{display:block;font-size:12px;color:#7a4e32}
+#qcard .pk{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;width:100%;background:#14122b;color:#fff;border-radius:14px;padding:8px 12px;font-size:30px}#qcard .pk span{text-align:center}#qcard .pk i{font-style:normal;font-size:20px;color:#ffd54a}#qcard .pk b.pop{animation:qpop .12s}@keyframes qpop{50%{transform:scale(1.25)}}
+#qcard .sum{font-size:clamp(30px,9vw,46px);color:#fff;-webkit-text-stroke:5px #14122b;paint-order:stroke fill}#qcard .sum small{font-size:.45em;-webkit-text-stroke:3px #14122b}
 #qbig{position:fixed;inset:0;z-index:70;background:#14122bcc;display:grid;place-items:center}#qbig[hidden]{display:none}
 #qbig img{max-width:80vw;max-height:80vh;border:4px solid #14122b;border-radius:16px;background:#fff}
 `;
@@ -56,7 +64,7 @@ export function mountQuizTop() {
     const pop = document.createElement('div'); pop.id = 'qpop'; pop.hidden = true; pop.innerHTML = '<div class="c"><span class="no"></span><p></p><ol></ol><img alt="" hidden><div class="h">아무 곳이나 누르면 팝업이 닫힙니다.</div></div>'; document.body.append(pop);
     pop.addEventListener('pointerdown', (e) => { e.stopPropagation(); if (pop.dataset.at && performance.now() - Number(pop.dataset.at) < 3000) return; closePop(); }); // 처음 뜬 팝업은 3초 뒤부터 닫힘
     const prep = document.createElement('div'); prep.id = 'qprep'; prep.hidden = true; prep.innerHTML = '<b></b><i>전투 준비!</i><small>카운트 끝날 때까지 공격·궁극기·달리기 불가</small>'; document.body.append(prep);
-    for (const [id, tx] of [['qnt', ''], ['qx2', '점수 ×2'], ['qfz', '잠시 멈춤'], ['qteam', ''], ['qres', ''], ['qwatch', '']]) { const d = document.createElement('div'); d.id = id; d.hidden = true; d.textContent = tx; document.body.append(d); }
+    for (const [id, tx] of [['qnt', ''], ['qx2', '점수 ×2'], ['qfz', '잠시 멈춤'], ['qteam', ''], ['qres', ''], ['qwatch', ''], ['qcard', '']]) { const d = document.createElement('div'); d.id = id; d.hidden = true; d.textContent = tx; document.body.append(d); }
     big.addEventListener('click', () => { big.hidden = true; });
     el.querySelector('.q').addEventListener('click', (e) => { if (!e.target.closest('.th')) openPop(false); }); // 줄어든 문제를 누르면 다시 크게
     el.querySelector('.th').addEventListener('click', () => { const u = el.querySelector('.th').dataset.url; if (u) { big.querySelector('img').src = u; big.hidden = false; } });
@@ -97,12 +105,38 @@ function myResult(r, meId) { // 결과 알림 문구 [큰 글자, 작은 글자,
   if (r.real) return m.gain ? [`+${m.gain}`, '', m.gain > 0] : null;
   return m.correct ? ['정답!', `+${m.gain}${m.rank ? ` · ${m.rank}등` : ''}`, true] : [m.zone == null ? '무응답' : '오답', '💥', false];
 }
+// ---------- 결과 카드: 캐릭터 · 이번 게임 기록(킬·데스·피해) · 동전이 하나씩 점수로 바뀌는 파친코 ----------
+let lastSprite = null, pkTimer = 0;
+function showCard(s, meId) {
+  const g = s.gs?.[meId]; if (!g || s.reveal?.vote) return;
+  const [k, d, dmg, coins] = g, m = myResult(s.reveal, meId), mine = s.reveal.results?.find((x) => x.id === meId), gain = mine?.gain || 0;
+  const el = document.getElementById('qcard');
+  el.innerHTML = `<div class="c">${m ? `<div class="t ${m[2] ? 'ok' : 'bad'}">${m[0]}${m[1] ? `<small>${m[1]}</small>` : ''}</div>` : ''}${lastSprite ? `<div class="hero" style="background-image:url(/characters/${lastSprite}/idle.png)"></div>` : ''}
+    <div class="st"><div>${k}<small>⚔ 킬</small></div><div>${d}<small>💀 데스</small></div><div>${dmg}<small>💥 피해</small></div></div>
+    <div class="pk"><span>🪙 <b class="cn">${coins}</b></span><i>➜</i><span>⭐ <b class="sc">${fmtScore(gain)}</b></span></div>
+    <div class="sum">+<span class="tot">${fmtScore(gain)}</span><small>점</small></div></div>`;
+  el.hidden = false;
+  el.onclick = () => { el.hidden = true; clearInterval(pkTimer); };
+  const cn = el.querySelector('.cn'), sc = el.querySelector('.sc'), tot = el.querySelector('.tot');
+  let left = coins, score = gain, i = 0; clearInterval(pkTimer);
+  const step = Math.max(45, Math.min(160, 2200 / Math.max(1, coins))); // 많아도 2초 남짓에 끝나게
+  setTimeout(() => {
+    if (!left) { sfxScoreDone(); return; }
+    pkTimer = setInterval(() => { // 동전 하나 → +0.5점
+      left--; score = Math.round((score + COIN.value) * 10) / 10; cn.textContent = left; sc.textContent = fmtScore(score); tot.textContent = fmtScore(score);
+      sc.classList.remove('pop'); void sc.offsetWidth; sc.classList.add('pop'); sfxCoinTick(i++);
+      if (left <= 0) { clearInterval(pkTimer); sfxScoreDone(); }
+    }, step);
+  }, 700);
+}
+
 function renderMine(s, rows, meId) {
   const me = s.players.find((p) => p.id === meId), row = rows.find((r) => r.id === meId), tm = me?.tm || row?.team || 0;
   const te = document.getElementById('qteam'); te.hidden = !tm; if (tm) { te.textContent = `${tm}팀`; te.style.background = TEAMC[tm]; }
   const res = document.getElementById('qres'), key = s.phase === PHASE.REVEAL && s.reveal ? `${s.q?.id}:${s.q?.text}:${(s.reveal.results || []).length}` : null;
-  if (key && key !== resKey) { resKey = key; const m = myResult(s.reveal, meId); if (m) { res.innerHTML = `${m[0]}${m[1] ? `<small>${m[1]}</small>` : ''}`; res.className = m[2] ? 'ok' : 'bad'; res.hidden = false; clearTimeout(resTimer); resTimer = setTimeout(() => { res.hidden = true; }, 2800); } }
-  if (!key) resKey = null;
+  if (me) lastSprite = me.s;
+  if (key && key !== resKey && s.gs) { resKey = key; showCard(s, meId); }
+  if (!key) { resKey = null; document.getElementById('qcard').hidden = true; clearInterval(pkTimer); }
   const w = document.getElementById('qwatch'), watching = !!s.tr && !me && !!row; // 토너먼트: 내가 경기에 안 나가면 관전
   w.hidden = !watching; if (watching) w.textContent = `👀 관전 중 · ${s.tr.r}R ${s.tr.m?.[0]}팀 vs ${s.tr.m?.[1]}팀`;
 }
