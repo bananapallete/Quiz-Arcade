@@ -39,6 +39,8 @@ const CSS = `
 #sq .tms{display:flex;gap:1vw;justify-content:center;margin-top:1.4vh}#sq .tms span{font-weight:900;font-size:3vh;border:.35vh solid #14122b;border-radius:99px;padding:.4vh 1.6vh;background:#fff}
 #sq .notice{position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);max-width:80vw;background:#14122bf0;color:#fff;border:.5vh solid #ffd54a;border-radius:3vh;padding:3vh 3vw;font-weight:900;font-size:6vh;text-align:center;word-break:keep-all;box-shadow:0 1vh 0 #0008}
 #sq .title{position:absolute;inset:0;display:grid;place-items:center;background:#2b4d2add}
+#sq .pre{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);display:grid;justify-items:center;gap:1.2vh;text-align:center;pointer-events:none;animation:sqpre .5s cubic-bezier(.2,1.5,.4,1)}#sq .pre i{width:30vh;height:30vh;background:center/contain no-repeat;filter:drop-shadow(0 1vh 0 #14122b55)}#sq .pre b{font-size:11vh;line-height:1.05;color:#fff;-webkit-text-stroke:1.2vh #14122b;paint-order:stroke fill;word-break:keep-all;max-width:90vw}#sq .pre small{font-size:4vh;font-weight:900;color:#ffe27a;-webkit-text-stroke:.6vh #14122b;paint-order:stroke fill}
+@keyframes sqpre{from{transform:translate(-50%,-50%) scale(.6);opacity:0}}
 #sq .title b{font-weight:900;font-size:14vh;color:#fff;-webkit-text-stroke:1vh #14122b;paint-order:stroke fill;text-shadow:0 1.4vh 0 #14122b}
 #sq .x2{position:absolute;right:2vw;bottom:12vh;font-weight:900;font-size:6vh;color:#fff;background:#e5483c;border:.5vh solid #14122b;border-radius:2vh;padding:.6vh 2vh;box-shadow:0 .6vh 0 #0007}
 #sq .frz{position:absolute;inset:0;display:grid;place-items:center;background:#14122baa;color:#fff;font-weight:900;font-size:9vh}
@@ -62,7 +64,7 @@ export function mountScreenUi() {
   if (!el) {
     el = document.createElement('div'); el.id = 'sq';
     el.innerHTML = `<div class="head" hidden><div class="top"><span class="qn"></span><span class="chip"></span><span class="num"></span></div><div class="gauge"><i></i></div><div class="main"><div class="card"></div><div class="img"><div></div></div></div></div>
-      <div class="legend" hidden></div><div class="title" hidden><b>QUIZ ARCADE</b></div><div class="x2" hidden>점수 ×2</div><div class="notice" hidden></div><div class="frz" hidden>잠시 멈춤</div><div class="center"><div class="end" hidden></div><div class="panel rev" hidden></div><div class="panel rank" hidden></div></div>`;
+      <div class="pre" hidden></div><div class="legend" hidden></div><div class="title" hidden><b>QUIZ ARCADE</b></div><div class="x2" hidden>점수 ×2</div><div class="notice" hidden></div><div class="frz" hidden>잠시 멈춤</div><div class="center"><div class="end" hidden></div><div class="panel rev" hidden></div><div class="panel rank" hidden></div></div>`;
     document.body.append(el);
   }
   return el;
@@ -72,6 +74,8 @@ export function renderScreenUi(el, s) {
   const mode = s.sm || 'quiz', nt = el.querySelector('.notice');
   el.querySelector('.title').hidden = mode !== 'title'; el.querySelector('.x2').hidden = s.x2 !== 2; el.querySelector('.frz').hidden = !s.fz;
   nt.hidden = !s.nt; if (s.nt) nt.textContent = s.nt;
+  { const pre = el.querySelector('.pre'), t = s.pv?.title, on = !!t && s.phase === PHASE.LOBBY && !s.rank; // 맵으로 이동한 뒤 출제 전: 출제 전 타이틀을 크게
+    pre.hidden = !on; const k = on ? `${t}|${s.pv.face}` : ''; if (on && pre.dataset.k !== k) { pre.dataset.k = k; pre.innerHTML = `${s.pv.face ? `<i style="background-image:url('/faces/${encodeURIComponent(s.pv.face)}.png')"></i>` : ''}<b>${esc(t)}</b>${s.pv.author ? `<small>${esc(s.pv.author)}</small>` : ''}`; } }
   el.classList.toggle('fight', isCombat(s.q) && (s.phase === PHASE.READING || s.phase === PHASE.MOVING) && !s.rank);
   if (mode === 'map') { for (const c of ['.head', '.legend', '.end', '.rev', '.rank']) el.querySelector(c).hidden = true; return; } // 맵만 보여 줌
   const q = s.q, ph = s.phase, live = !!q && ph !== PHASE.LOBBY, head = el.querySelector('.head'), legend = el.querySelector('.legend'), end = el.querySelector('.end'), rev = el.querySelector('.rev'), rank = el.querySelector('.rank');

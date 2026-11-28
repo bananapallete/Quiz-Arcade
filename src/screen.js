@@ -65,7 +65,7 @@ socket.on('state', (s) => {
 
 function hud(s) {
   const banner = $('#banner'), timer = $('#timer'), reveal = $('#reveal'), lb = $('#lb');
-  $('#join').hidden = s.phase !== PHASE.LOBBY || s.rank || !s.qr;
+  $('#join').hidden = s.phase !== PHASE.LOBBY || s.rank || !s.qr || !!s.pv?.title; // 출제 전 타이틀을 띄울 땐 QR을 숨김
 
   if (s.q && s.phase !== PHASE.LOBBY) {
     banner.hidden = false;

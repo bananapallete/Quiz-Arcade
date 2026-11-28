@@ -5,7 +5,8 @@
     "time": 240,
     "mode": "대난투",
     "answer": null,
-    "pts": 5
+    "pts": 5,
+    "title": "팀 대난투"
   },
   {
     "type": "brawl",
@@ -14,7 +15,8 @@
     "time": 90,
     "mode": "토너먼트",
     "answer": null,
-    "pts": 6
+    "pts": 6,
+    "title": "팀 토너먼트"
   },
   {
     "type": "coin",
@@ -22,7 +24,8 @@
     "time": 60,
     "mode": "동전",
     "answer": null,
-    "pts": 5
+    "pts": 5,
+    "title": "동전 모으기"
   },
   {
     "type": "calendar",
@@ -48,7 +51,8 @@
     "mode": "달력",
     "answer": null,
     "author": "태중",
-    "face": "태중"
+    "face": "태중",
+    "title": "알콜 사랑 서바이벌"
   },
   {
     "type": "choice",
@@ -63,7 +67,8 @@
     "time": 60,
     "mode": "개인",
     "author": "동호",
-    "face": "동호"
+    "face": "동호",
+    "title": "발라드 여제 찾기"
   },
   {
     "type": "choice",
@@ -78,7 +83,8 @@
     "time": 60,
     "mode": "개인",
     "author": "인경",
-    "face": "인경"
+    "face": "인경",
+    "title": "멸종 위기 퀴즈"
   },
   {
     "type": "choice",
@@ -93,7 +99,8 @@
     "time": 60,
     "mode": "개인",
     "author": "윤수",
-    "face": "윤수"
+    "face": "윤수",
+    "title": "상식 한 스푼"
   },
   {
     "type": "choice",
@@ -108,7 +115,8 @@
     "time": 60,
     "mode": "개인",
     "author": "장호",
-    "face": "장호"
+    "face": "장호",
+    "title": "슬기로운 직장생활"
   },
   {
     "type": "ox",
@@ -117,7 +125,8 @@
     "time": 60,
     "mode": "개인",
     "author": "기남",
-    "face": "기남"
+    "face": "기남",
+    "title": "팝스타 퀴즈"
   },
   {
     "type": "choice",
@@ -132,7 +141,8 @@
     "time": 60,
     "mode": "개인",
     "author": "기훈",
-    "face": "기훈"
+    "face": "기훈",
+    "title": "희비의 차트"
   },
   {
     "type": "choice",
@@ -147,7 +157,8 @@
     "time": 60,
     "mode": "개인",
     "author": "니엘",
-    "face": "니엘"
+    "face": "니엘",
+    "title": "믿거나 말거나"
   },
   {
     "type": "choice",
@@ -162,7 +173,8 @@
     "time": 60,
     "mode": "개인",
     "author": "형민",
-    "face": "형민"
+    "face": "형민",
+    "title": "세종 미스터리"
   },
   {
     "type": "choice",
@@ -177,22 +189,8 @@
     "time": 60,
     "mode": "개인",
     "author": "건우",
-    "face": "건우"
-  },
-  {
-    "type": "choice",
-    "text": "민규님이 대장 내시경 중 발견한 '용종'의 의학적 정의로 알맞은 것은?",
-    "options": [
-      "단순 장염 증상",
-      "대장 점막에 비정상적으로 자라난 혹",
-      "만성 소화불량 원인",
-      "장내 유익균 부족"
-    ],
-    "answer": 2,
-    "time": 60,
-    "mode": "개인",
-    "author": "민규",
-    "face": "민규"
+    "face": "건우",
+    "title": "깔끔남의 변신"
   },
   {
     "type": "choice",
@@ -207,7 +205,8 @@
     "time": 60,
     "mode": "개인",
     "author": "민규",
-    "face": "민규"
+    "face": "민규",
+    "title": "민규의 건강검진"
   },
   {
     "type": "real",
@@ -216,6 +215,7 @@
     "time": 15,
     "mode": "현실",
     "author": "영선",
-    "face": "영선"
+    "face": "영선",
+    "title": "히든싱어"
   }
 ]

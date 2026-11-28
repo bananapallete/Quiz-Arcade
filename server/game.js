@@ -189,7 +189,7 @@ export class Game {
   }
 
   // ---------- 얼굴 투표: 대기실에 아직 안 낸 문제의 출제자 얼굴이 서 있고, 때리면 그 문제에 한 표 (한 사람 한 표, 마지막에 때린 얼굴) ----------
-  _lobbyish() { return this.phase === PHASE.LOBBY || this.phase === PHASE.REVEAL; }
+  _lobbyish() { return this.phase === PHASE.LOBBY && !this.preview; } // 얼굴은 대기실에서만 (맵 미리 보기·문제·결과 땐 숨김)
   syncFaces() { // 출제자마다 얼굴 하나 (여러 문제를 냈으면 아직 안 낸 첫 문제에 표), 맵 중앙을 기준으로 두 줄
     const want = [], seen = new Set();
     for (const q of this.questions) if (q.face && !this.asked.has(q.id) && !seen.has(q.face)) { seen.add(q.face); want.push(q); }
@@ -1556,7 +1556,7 @@ export class Game {
       q,
       reveal: this.reveal,
       mp: this.map === MAP ? null : [this.map.w, this.map.h],
-      pv: this.preview && this.phase === PHASE.LOBBY ? { type: this.preview.type, l: this.preview.type === 'calendar' ? calLayout(this.preview) : undefined } : null, // 맵 미리 보기
+      pv: this.preview && this.phase === PHASE.LOBBY ? { type: this.preview.type, l: this.preview.type === 'calendar' ? calLayout(this.preview) : undefined, title: this.preview.title, author: this.preview.author, face: this.preview.face } : null, // 맵 미리 보기
       gs: this.phase === PHASE.REVEAL ? Object.fromEntries(this.contestants().filter((p) => this._present(p)).map((p) => [p.id, [p.gs?.k || 0, p.gs?.d || 0, p.gs?.dmg || 0, p.coins]])) : null, // 결과 화면: 킬·데스·피해·동전
       fc: this._lobbyish() ? [...this.players.values()].filter((p) => p.faceQ && p.connected).map((p) => ({ id: p.id, q: p.faceQ, x: r2(p.x), y: r2(p.y), n: p.name, img: p.faceImg })) : [], vt: this.voteCounts(), vm: Object.fromEntries(this.votes), // 얼굴 투표 (vm: 누가 어디에)
       cs: this.cast,
@@ -1608,7 +1608,7 @@ export class Game {
 
   hostInfo() {
     return {
-      questions: this.questions.map((q) => ({ id: q.id, type: q.type, text: q.text, options: q.options, answer: q.answer, time: q.time, mode: q.mode || '개인', image: q.image, pts: q.pts, bad: q.bad, days: q.days, start: q.start, tour: q.tour ? 1 : 0, author: q.author })),
+      questions: this.questions.map((q) => ({ id: q.id, type: q.type, text: q.text, options: q.options, answer: q.answer, time: q.time, mode: q.mode || '개인', image: q.image, pts: q.pts, bad: q.bad, days: q.days, start: q.start, tour: q.tour ? 1 : 0, author: q.author, title: q.title })),
       teamCount: this.teamCount, asked: [...this.asked], log: this.log, history: this.history.slice(-100), rounds: this.rounds,
     };
   }

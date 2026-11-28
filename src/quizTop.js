@@ -49,6 +49,7 @@ const CSS = `
 #qcard .st{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%}#qcard .st div{background:#fff;border:3px solid #14122b;border-radius:12px;padding:5px 4px;text-align:center;font-size:20px}#qcard .st small{display:block;font-size:12px;color:#7a4e32}
 #qcard .pk{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;width:100%;background:#14122b;color:#fff;border-radius:14px;padding:8px 12px;font-size:30px}#qcard .pk span{text-align:center}#qcard .pk i{font-style:normal;font-size:20px;color:#ffd54a}#qcard .pk b.pop{animation:qpop .12s}@keyframes qpop{50%{transform:scale(1.25)}}
 #qcard .sum{font-size:clamp(30px,9vw,46px);color:#fff;-webkit-text-stroke:5px #14122b;paint-order:stroke fill}#qcard .sum small{font-size:.45em;-webkit-text-stroke:3px #14122b}
+#qpre{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);z-index:14;pointer-events:none;display:grid;justify-items:center;gap:6px;text-align:center}#qpre[hidden]{display:none}#qpre i{width:min(34vw,28vh);height:min(34vw,28vh);background:center/contain no-repeat}#qpre b{font-size:clamp(30px,9vw,60px);line-height:1.05;color:#fff;-webkit-text-stroke:6px #14122b;paint-order:stroke fill;word-break:keep-all;max-width:90vw}#qpre small{font-size:clamp(16px,4vw,24px);font-weight:900;color:#ffe27a;-webkit-text-stroke:4px #14122b;paint-order:stroke fill}
 #qbig{position:fixed;inset:0;z-index:70;background:#14122bcc;display:grid;place-items:center}#qbig[hidden]{display:none}
 #qbig img{max-width:80vw;max-height:80vh;border:4px solid #14122b;border-radius:16px;background:#fff}
 `;
@@ -64,7 +65,7 @@ export function mountQuizTop() {
     const pop = document.createElement('div'); pop.id = 'qpop'; pop.hidden = true; pop.innerHTML = '<div class="c"><span class="no"></span><p></p><ol></ol><img alt="" hidden><div class="h">아무 곳이나 누르면 팝업이 닫힙니다.</div></div>'; document.body.append(pop);
     pop.addEventListener('pointerdown', (e) => { e.stopPropagation(); if (pop.dataset.at && performance.now() - Number(pop.dataset.at) < 3000) return; closePop(); }); // 처음 뜬 팝업은 3초 뒤부터 닫힘
     const prep = document.createElement('div'); prep.id = 'qprep'; prep.hidden = true; prep.innerHTML = '<b></b><i>전투 준비!</i><small>카운트 끝날 때까지 공격·궁극기·달리기 불가</small>'; document.body.append(prep);
-    for (const [id, tx] of [['qnt', ''], ['qx2', '점수 ×2'], ['qfz', '잠시 멈춤'], ['qteam', ''], ['qres', ''], ['qwatch', ''], ['qcard', '']]) { const d = document.createElement('div'); d.id = id; d.hidden = true; d.textContent = tx; document.body.append(d); }
+    for (const [id, tx] of [['qnt', ''], ['qx2', '점수 ×2'], ['qfz', '잠시 멈춤'], ['qteam', ''], ['qres', ''], ['qwatch', ''], ['qcard', ''], ['qpre', '']]) { const d = document.createElement('div'); d.id = id; d.hidden = true; d.textContent = tx; document.body.append(d); }
     big.addEventListener('click', () => { big.hidden = true; });
     el.querySelector('.q').addEventListener('click', (e) => { if (!e.target.closest('.th')) openPop(false); }); // 줄어든 문제를 누르면 다시 크게
     el.querySelector('.th').addEventListener('click', () => { const u = el.querySelector('.th').dataset.url; if (u) { big.querySelector('img').src = u; big.hidden = false; } });
@@ -130,7 +131,13 @@ function showCard(s, meId) {
   }, 700);
 }
 
+function renderPre(s) { // 맵으로 이동한 뒤 출제 전: 출제 전 타이틀
+  const el = document.getElementById('qpre'), t = s.pv?.title, on = !!t && s.phase === PHASE.LOBBY; el.hidden = !on;
+  const k = on ? `${t}|${s.pv.face}` : ''; if (on && el.dataset.k !== k) { el.dataset.k = k; el.innerHTML = `${s.pv.face ? `<i style="background-image:url('/faces/${encodeURIComponent(s.pv.face)}.png')"></i>` : ''}<b>${t.replace(/[<>&]/g, '')}</b>${s.pv.author ? `<small>${s.pv.author.replace(/[<>&]/g, '')}</small>` : ''}`; }
+}
+
 function renderMine(s, rows, meId) {
+  renderPre(s);
   const me = s.players.find((p) => p.id === meId), row = rows.find((r) => r.id === meId), tm = me?.tm || row?.team || 0;
   const te = document.getElementById('qteam'); te.hidden = !tm; if (tm) { te.textContent = `${tm}팀`; te.style.background = TEAMC[tm]; }
   const res = document.getElementById('qres'), key = s.phase === PHASE.REVEAL && s.reveal ? `${s.q?.id}:${s.q?.text}:${(s.reveal.results || []).length}` : null;
