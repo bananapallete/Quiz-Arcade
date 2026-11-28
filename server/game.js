@@ -744,12 +744,14 @@ export class Game {
     }
     let best = null, bestD = Infinity;
     const cands = this._enemies(p);
-    if (p.cfg.attack?.aimAllies) for (const o of this._allies(p)) if (o !== p && o.hp < o.cfg.hp) cands.push(o); // 간호사: 다친 아군도 자동 조준
-    for (const o of cands) {
-      if (this._stealthed(o)) continue; // 은신 중인 상대는 자동 조준 불가
+    const mates = p.cfg.attack?.aimAllies ? this._allies(p).filter((o) => o !== p && !o.out && !o.ghost) : [];
+    cands.push(...mates.filter((o) => o.hp < o.cfg.hp)); // 간호사: 다친 아군도 자동 조준
+    const near = (list) => { for (const o of list) {
+      if (this._stealthed(o) && !this._sameSide(p, o)) continue; // 은신 중인 상대는 자동 조준 불가
       const d = Math.hypot(o.x - p.x, o.y - p.y);
       if (d <= Math.max(range, AUTO_AIM) && d < bestD) { best = o; bestD = d; }
-    }
+    } };
+    near(cands); if (!best) near(mates); // 적·다친 아군이 없으면 멀쩡한 아군이라도 조준
     if (best) return { dx: (best.x - p.x) / bestD, dy: (best.y - p.y) / bestD, manual: false, near: best };
     return { dx: p.face, dy: 0, manual: false };
   }
@@ -796,7 +798,7 @@ export class Game {
     if (pr?.lob) { // 던지기: 착탄 지점과 폭발 범위, 그 안의 가장 가까운 상대를 조준 대상으로 표시
       const L = this._lobLanding(p, dir, range, aim);
       lob = { x: r2(L.x), y: r2(L.y), r: pr.explodeRadius };
-      target = this._enemies(p).filter((o) => Math.hypot(o.x - L.x, o.y - L.y) <= pr.explodeRadius + o.cfg.radius).sort((u, v) => Math.hypot(u.x - L.x, u.y - L.y) - Math.hypot(v.x - L.x, v.y - L.y))[0] || null;
+      target = [...this._enemies(p), ...(p.cfg.attack.aimAllies ? this._allies(p).filter((o) => o !== p && !o.ghost) : [])].filter((o) => Math.hypot(o.x - L.x, o.y - L.y) <= pr.explodeRadius + o.cfg.radius).sort((u, v) => Math.hypot(u.x - L.x, u.y - L.y) - Math.hypot(v.x - L.x, v.y - L.y))[0] || null;
     }
     return { lob, px: r2(p.x), py: r2(p.y), dx: dir.dx, dy: dir.dy, manual: dir.manual, range, step, kind: p.cfg.attack.type, arc, radius: p.cfg.radius, line, targetId: target ? target.id : null };
   }

@@ -1154,10 +1154,11 @@ test('간호사: 평타 폭발이 같은 팀은 회복·적은 피해, 궁극기
   assert.ok(B.hp >= 10 + Math.floor(B.cfg.hp * 0.4), '아군 회복'); assert.ok(B.invUntil >= g.t + 3.9 && A.invUntil >= g.t + 3.9, '아군·자신 4초 무적'); assert.ok(C.invUntil <= g.t, '적은 무적 아님');
 });
 
-test('간호사: 평타 자동 조준은 가까운 다친 아군도 향한다 (멀쩡한 아군은 제외)', () => {
+test('간호사: 평타 자동 조준은 가까운 다친 아군도 향하고, 적이 없으면 멀쩡한 아군도 향한다', () => {
   const { g, A, B } = duo('nurse', 'blue'); const C = g.join({ token: 'c', name: 'C', charId: 'orc' });
   A.team = 1; B.team = 1; C.team = 2; A.x = 10; A.y = 10; B.x = 10; B.y = 13; C.x = 14; C.y = 10;
-  assert.equal(g._aimDir(A, null, 5).near, C, '멀쩡한 아군은 대상 아님'); B.hp = 10;
+  assert.equal(g._aimDir(A, null, 5).near, C, '적이 있으면 멀쩡한 아군보다 적 우선'); C.x = 40; C.y = 20;
+  assert.equal(g._aimDir(A, null, 5).near, B, '적이 없으면 멀쩡한 아군도 조준'); C.x = 14; C.y = 10; B.hp = 10;
   assert.equal(g._aimDir(A, null, 5).near, B, '다친 아군이 더 가까우면 조준');
 });
 
